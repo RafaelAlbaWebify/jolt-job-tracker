@@ -1,0 +1,19 @@
+{
+  "prefer_remote": true,
+  "prefer_spain": true,
+  "eu_uk_remote_ok": true,
+  "b2b_contract_ok": true,
+  "avoid_on_call": true,
+  "avoid_weekends": true,
+  "avoid_night_shift": true,
+  "avoid_call_center": true,
+  "avoid_us_only": true,
+  "avoid_german_french_required": true,
+  "avoid_onsite_outside_spain": true,
+  "prefer_it_support": true,
+  "prefer_saas_support": true,
+  "prefer_it_ops": true,
+  "prefer_cloud_ops": true,
+  "prefer_m365_identity": true,
+  "prefer_erp_industrial": true
+}

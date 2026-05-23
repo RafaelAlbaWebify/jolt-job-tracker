@@ -1,0 +1,10 @@
+.venv/
+__pycache__/
+*.pyc
+captures_id/*.csv
+captures_id/*.json
+captures_id/*.jsonl
+captures_id/*.md
+captures_id/analysis_pages/*.csv
+captures_id/analysis_pages/*.json
+debug_outputs/*.png

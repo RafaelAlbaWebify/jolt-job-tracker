@@ -259,3 +259,59 @@ Next phase should be P0 completion, not React/FastAPI implementation yet:
 4. Confirm whether MVP state/history should remain CSV/JSON or move to SQLite.
 5. Confirm which Rafael-specific profile details can be committed publicly versus kept private.
 6. Only after those confirmations, start P1: create the FastAPI wrapper skeleton and React capture-first control panel.
+
+## 2026-05-23 - Phase 1 Local-Server Skeleton
+
+- Type: Feature / Docs
+- Files changed:
+  - `backend/main.py`
+  - `backend/requirements.txt`
+  - `backend/tests/test_health.py`
+  - `backend/core/.gitkeep`
+  - `backend/capture/.gitkeep`
+  - `backend/legacy/.gitkeep`
+  - `backend/config/.gitkeep`
+  - `frontend/package.json`
+  - `frontend/index.html`
+  - `frontend/vite.config.ts`
+  - `frontend/tsconfig.json`
+  - `frontend/src/main.tsx`
+  - `frontend/src/App.tsx`
+  - `frontend/src/api.ts`
+  - `frontend/src/styles.css`
+  - `frontend/src/vite-env.d.ts`
+  - `docs/engineering-log.md`
+- Problem / goal:
+  - Create the first minimal React + FastAPI local-server skeleton for LinkAut.
+  - Make Capture the first/main page and Manual Paste / Debug clearly secondary.
+  - Add a frontend health indicator that calls `GET /api/health`.
+  - Avoid implementing real capture, parsing, classification, export, history, XLSX, rule profiles, or legacy pipeline files.
+- Root cause:
+  - Not applicable; this is new skeleton work.
+- Change made:
+  - Added a minimal FastAPI app with CORS configured for the local Vite dev server.
+  - Added `GET /api/health`, returning backend status, service name, and a short running message.
+  - Added a focused backend health test using FastAPI `TestClient`.
+  - Added a Vite + React + TypeScript frontend skeleton.
+  - Added basic app navigation for Capture, Review Dashboard, Rule Profiles, History / Tracker, Manual Paste / Debug, and About.
+  - Set Capture as the default active page.
+  - Added placeholder copy that marks unimplemented pipeline work honestly.
+  - Added a frontend API helper and backend health badge.
+  - Added minimal backend folder placeholders without importing legacy pipeline code.
+- Tests/checks run:
+  - Read `AGENTS.md`.
+  - Read `specs/product-spec.md`.
+  - Read `specs/technical-plan.md`.
+  - Read `specs/tasks.md`.
+  - Verified committed backend/frontend files by GitHub file readback.
+  - Local runtime commands were not run because this Codex environment does not have a local clone of the GitHub repository available; updates were made through the GitHub connector.
+- Result:
+  - Backend skeleton exists under `backend/`.
+  - Frontend skeleton exists under `frontend/`.
+  - Frontend health indicator is wired to `GET /api/health`.
+  - No real app workflow logic or legacy files were added.
+- Remaining risks / follow-up:
+  - Run `pip install -r backend/requirements.txt` and `uvicorn main:app --reload` from `backend/` in a local clone to verify backend startup.
+  - Run `npm install` and `npm run build` from `frontend/` in a local clone to verify TypeScript/Vite build.
+  - Add profile loading and capture wrapper endpoints only in the next approved phase.
+  - Import or identify legacy pipeline files before wrapping real capture/parser/classifier behavior.

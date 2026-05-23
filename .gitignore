@@ -21,6 +21,7 @@ frontend/dist/
 frontend/build/
 frontend/.vite/
 coverage/
+*.tsbuildinfo
 
 # Environment / local config
 .env

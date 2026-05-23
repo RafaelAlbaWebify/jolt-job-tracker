@@ -2,25 +2,64 @@
 .venv/
 venv/
 __pycache__/
-*.pyc
+*.py[cod]
+*$py.class
 .pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
 
 # Node / React
 node_modules/
 dist/
 build/
 .vite/
+frontend/node_modules/
+frontend/dist/
+frontend/build/
+frontend/.vite/
+coverage/
+
+# Environment / local config
+.env
+.env.*
+!.env.example
+backend/.env
+backend/.env.*
+frontend/.env
+frontend/.env.*
+local_config.json
+personal_rules.json
+job_preferences.json
+job_history_master.csv
 
 # LinkAut private/generated data
+captures/
 captures_id/
-logs/
+captures_raw/
+manual_inputs/
 outputs/
 debug_outputs/
-manual_inputs/
 exports/
-runs/
+logs/
 data/
 backend/data/
+backend/logs/
+outputs/state/job_history_master.csv
+
+# Run packages: real/private runs stay local; explicit demo runs may be committed only after anonymization.
+runs/*
+!runs/.gitkeep
+!runs/demo_*/
+!runs/demo_*/**
+runs/real_*/
+runs/private_*/
+
+# User-specific profiles are local/private.
+backend/config/user_profiles/*
+!backend/config/user_profiles/.gitkeep
 
 # Real job-search exports / captures
 *.csv
@@ -28,16 +67,48 @@ backend/data/
 *.jsonl
 *.log
 
-# But allow safe samples later if needed
+# Safe samples, examples, and demo data may be committed intentionally.
 !samples/**/*.csv
 !samples/**/*.xlsx
 !samples/**/*.json
+!samples/**/*.jsonl
 !samples/**/*.txt
+!samples/**/*.md
+!examples/**/*.csv
+!examples/**/*.xlsx
+!examples/**/*.json
+!examples/**/*.jsonl
+!examples/**/*.txt
+!examples/**/*.md
+!demo_data/**/*.csv
+!demo_data/**/*.xlsx
+!demo_data/**/*.json
+!demo_data/**/*.jsonl
+!demo_data/**/*.txt
+!demo_data/**/*.md
+!portfolio_demo/**/*.csv
+!portfolio_demo/**/*.xlsx
+!portfolio_demo/**/*.json
+!portfolio_demo/**/*.jsonl
+!portfolio_demo/**/*.txt
+!portfolio_demo/**/*.md
+!runs/demo_*/**/*.csv
+!runs/demo_*/**/*.xlsx
+!runs/demo_*/**/*.json
+!runs/demo_*/**/*.jsonl
+!runs/demo_*/**/*.txt
+!runs/demo_*/**/*.md
 
-# Personal/local config
-.env
-.env.*
-local_config.json
-personal_rules.json
-job_preferences.json
-job_history_master.csv
+# Browser automation artifacts
+browser_profiles/
+.playwright/
+playwright-report/
+test-results/
+html_snapshots/
+screenshots/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

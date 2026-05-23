@@ -355,3 +355,53 @@ Next phase should be P0 completion, not React/FastAPI implementation yet:
 - Remaining risks / follow-up:
   - Local runtime verification still needs to be run in an actual local clone with dependencies installed, because this Codex environment is updating the GitHub repo through the connector and cannot execute the repository in place.
   - If a misspelled `legacy/streamtlit_pipeline` directory exists only in another branch or local working copy, rename it to `legacy/streamlit_pipeline` there before importing legacy code.
+
+## 2026-05-23 - Phase 2 Configurable Rule Profiles
+
+- Type: Feature / Test / Docs
+- Files changed:
+  - `backend/app/models.py`
+  - `backend/app/config/default_profiles.json`
+  - `backend/app/services/__init__.py`
+  - `backend/app/services/profiles.py`
+  - `backend/app/api/profiles.py`
+  - `backend/app/main.py`
+  - `backend/tests/test_profiles.py`
+  - `frontend/src/api.ts`
+  - `frontend/src/App.tsx`
+  - `frontend/src/styles.css`
+  - `docs/engineering-log.md`
+- Problem / goal:
+  - Add configurable rule profiles as backend data and expose them in the React UI.
+  - Keep Rafael's personal rules as one default/demo profile, not global hardcoded behavior.
+  - Avoid implementing classification, capture, parser, export, history, manual paste logic, or profile editing.
+- Root cause:
+  - Not applicable; this is Phase 2 read/display functionality.
+- Change made:
+  - Added `RuleProfile` and `RuleProfileSummary` backend models.
+  - Added default profile storage at `backend/app/config/default_profiles.json`.
+  - Added default profiles: `rafael_default`, `generic_remote_it_support`, `saas_support`, and `infrastructure_support`.
+  - Added a small profile loading service for default profile JSON.
+  - Added read-only endpoints: `GET /api/profiles` and `GET /api/profiles/{profile_id}`.
+  - Added backend tests for list loading, `rafael_default` presence, required detail fields, and controlled 404 for unknown profiles.
+  - Extended frontend API helpers with profile summary/detail fetches.
+  - Updated the Rule Profiles page to fetch profiles, select one in local React state, display full details, and mark Rafael Default as a demo/default preset rather than a global rule set.
+- Tests/checks run:
+  - Read `AGENTS.md`.
+  - Read `specs/product-spec.md`.
+  - Read `specs/technical-plan.md`.
+  - Read `specs/tasks.md`.
+  - Reviewed `docs/engineering-log.md`.
+  - Verified backend changed files and profile tests by GitHub file readback.
+  - Frontend file readback through the GitHub connector timed out after writes, so local frontend verification remains required.
+  - Local commands were not run in this connector-only environment.
+- Result:
+  - Rule profiles are available as backend configuration data.
+  - Read-only profile API endpoints are wired into FastAPI.
+  - The React Rule Profiles view can fetch, select, and display profile details.
+  - No real classification or profile editing was added.
+- Remaining risks / follow-up:
+  - Run `cd backend && pytest` locally to verify health and profile tests.
+  - Run `cd frontend && npm run build` locally to verify the TypeScript/Vite build.
+  - In a later phase, connect selected profile state to capture/classification run summaries.
+  - In a later phase, add profile validation/editing only after read-only profile display is stable.

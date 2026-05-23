@@ -405,3 +405,28 @@ Next phase should be P0 completion, not React/FastAPI implementation yet:
   - Run `cd frontend && npm run build` locally to verify the TypeScript/Vite build.
   - In a later phase, connect selected profile state to capture/classification run summaries.
   - In a later phase, add profile validation/editing only after read-only profile display is stable.
+
+## 2026-05-23 - Phase 2.1 Backend Development Dependency Cleanup
+
+- Type: Cleanup / Docs
+- Files changed:
+  - `backend/requirements-dev.txt`
+  - `README.md`
+  - `docs/engineering-log.md`
+- Problem / goal:
+  - Add explicit backend development/test dependencies so local verification does not require manual package discovery.
+- Root cause:
+  - Phase 2 added FastAPI `TestClient` tests, but `pytest` and `httpx` were not declared in the repository. Local verification therefore required manually installing them.
+- Change made:
+  - Added `backend/requirements-dev.txt` with only test/development dependencies needed for the current tests: `pytest` and `httpx`.
+  - Documented backend setup and test commands in `README.md`.
+  - Did not modify runtime requirements or product logic.
+- Tests/checks run:
+  - Verified `backend/requirements.txt` remains runtime-focused.
+  - Verified `backend/requirements-dev.txt` was absent before this cleanup.
+  - Verification command for local checkout: `cd backend && python -m pip install -r requirements.txt && python -m pip install -r requirements-dev.txt && python -m pytest`.
+- Result:
+  - Backend test dependencies are now declared separately from runtime dependencies.
+  - Local backend setup commands are documented.
+- Remaining risks / follow-up:
+  - Run the verification command in a local checkout to confirm dependency installation and tests pass in the user's Python environment.

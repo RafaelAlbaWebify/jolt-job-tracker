@@ -381,3 +381,28 @@
   - React JSX declaration packages are now declared for local install/build.
 - Remaining risks / follow-up:
   - Run `cd frontend && npm install && npm run build` locally. If local `npm install` creates `frontend/package-lock.json`, commit it in the next small cleanup so dependency resolution is fully locked.
+
+## 2026-05-23 - Phase 6A.3 / 6A.4 Frontend Lockfile Hygiene
+
+- Type: Cleanup / Docs
+- Files changed:
+  - `.gitignore`
+  - `frontend/package-lock.json`
+  - `docs/engineering-log.md`
+- Problem / goal:
+  - Finish frontend dependency lockfile hygiene after the React TypeScript declaration fix and local build verification.
+- Root cause:
+  - `npm install` expanded `frontend/package-lock.json` locally, while TypeScript incremental builds can produce `tsconfig.tsbuildinfo` cache files that should remain untracked.
+- Change made:
+  - Kept `frontend/package-lock.json` tracked for reproducible frontend installs.
+  - Confirmed `.gitignore` includes `*.tsbuildinfo`, so TypeScript incremental build cache files remain local.
+  - Confirmed no root-level `package-lock.json` is being added.
+  - Did not change backend logic, frontend product behavior, or add new product features.
+- Tests/checks run:
+  - User locally verified `cd frontend`, `npm install`, and `npm run build`.
+  - Confirmed `.gitignore` still ignores `*.tsbuildinfo`.
+  - Confirmed the root of the repository does not contain a tracked `package-lock.json`.
+- Result:
+  - Frontend lockfile tracking and TypeScript build-cache hygiene now match the locally verified build.
+- Remaining risks / follow-up:
+  - Future frontend dependency changes should update both `frontend/package.json` and `frontend/package-lock.json`.

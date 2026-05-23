@@ -315,3 +315,43 @@ Next phase should be P0 completion, not React/FastAPI implementation yet:
   - Run `npm install` and `npm run build` from `frontend/` in a local clone to verify TypeScript/Vite build.
   - Add profile loading and capture wrapper endpoints only in the next approved phase.
   - Import or identify legacy pipeline files before wrapping real capture/parser/classifier behavior.
+
+## 2026-05-23 - Phase 1 Backend Package Structure Repair
+
+- Type: Bugfix / Docs
+- Files changed:
+  - `backend/app/__init__.py`
+  - `backend/app/main.py`
+  - `backend/app/api/__init__.py`
+  - `backend/app/api/health.py`
+  - `backend/tests/test_health.py`
+  - `backend/main.py` (removed)
+  - `docs/engineering-log.md`
+- Problem / goal:
+  - Fix backend startup for the documented command from `backend/`: `uvicorn app.main:app --reload`.
+  - Preserve the existing `GET /api/health` response behavior.
+  - Avoid implementing product features beyond the structure repair.
+- Root cause:
+  - The initial Phase 1 backend placed the FastAPI app at `backend/main.py`, but the documented and desired package entrypoint is `backend/app/main.py`. Running `uvicorn app.main:app --reload` from `backend/` therefore failed with `ModuleNotFoundError: No module named 'app'`.
+- Change made:
+  - Moved the FastAPI application entrypoint into the `app` package at `backend/app/main.py`.
+  - Added package initializers for `backend/app/` and `backend/app/api/`.
+  - Moved the health endpoint into `backend/app/api/health.py` as an `APIRouter` mounted under `/api`.
+  - Included the health router from `backend/app/main.py`.
+  - Updated the health test to import `app` from `app.main`.
+  - Removed the obsolete `backend/main.py` entrypoint.
+  - Checked for `legacy/streamtlit_pipeline` and `legacy/streamlit_pipeline`; neither path exists on `main`, so no safe rename was performed.
+- Tests/checks run:
+  - Verified `backend/app/main.py` by GitHub file readback.
+  - Verified `backend/app/api/health.py` by GitHub file readback.
+  - Verified `backend/tests/test_health.py` imports `from app.main import app` by GitHub file readback.
+  - Verified `backend/main.py` is no longer present by GitHub file readback returning 404.
+  - Verification command to run in a local clone: `cd backend && uvicorn app.main:app --reload`.
+  - Endpoint verification to run locally: open `http://127.0.0.1:8000/api/health` and confirm it returns the existing JSON response.
+- Result:
+  - Repository structure now matches the documented `uvicorn app.main:app --reload` import path.
+  - `GET /api/health` response body remains unchanged.
+  - No profiles, capture, parser, classifier, export, history, XLSX, frontend, or legacy pipeline features were added.
+- Remaining risks / follow-up:
+  - Local runtime verification still needs to be run in an actual local clone with dependencies installed, because this Codex environment is updating the GitHub repo through the connector and cannot execute the repository in place.
+  - If a misspelled `legacy/streamtlit_pipeline` directory exists only in another branch or local working copy, rename it to `legacy/streamlit_pipeline` there before importing legacy code.

@@ -32,16 +32,15 @@ EMPLOYMENT_PATTERNS = [
     ("internship", re.compile(r"\binternship\b", re.IGNORECASE)),
 ]
 
-DOMAIN_SIGNAL_KEYWORDS = [
-    "Microsoft 365",
-    "Entra ID",
-    "IT Operations",
-    "Technical Support",
-    "Infrastructure Support",
-    "SaaS Support",
-    "endpoint",
-    "networking",
-    "automation",
+# Parser signals are neutral extraction hints. Profile-specific preference weighting stays in rule profiles.
+TECHNICAL_SIGNAL_PATTERNS = [
+    ("Microsoft 365", re.compile(r"\bMicrosoft\s+365\b", re.IGNORECASE)),
+    ("Entra ID", re.compile(r"\bEntra\s+ID\b", re.IGNORECASE)),
+    ("SaaS", re.compile(r"\bSaaS\b", re.IGNORECASE)),
+    ("API", re.compile(r"\bAPIs?\b", re.IGNORECASE)),
+    ("SQL", re.compile(r"\bSQL\b", re.IGNORECASE)),
+    ("PowerShell", re.compile(r"\bPowerShell\b", re.IGNORECASE)),
+    ("Azure", re.compile(r"\bAzure\b", re.IGNORECASE)),
 ]
 
 RISK_SIGNAL_PATTERNS = [
@@ -127,10 +126,6 @@ def _detect_employment_type(raw_text: str) -> str:
     return ""
 
 
-def _detect_keyword_matches(raw_text: str, keywords: list[str]) -> list[str]:
-    return [keyword for keyword in keywords if re.search(rf"\b{re.escape(keyword)}\b", raw_text, re.IGNORECASE)]
-
-
 def _detect_pattern_matches(raw_text: str, patterns: list[tuple[str, re.Pattern[str]]]) -> list[str]:
     return [label for label, pattern in patterns if pattern.search(raw_text)]
 
@@ -186,7 +181,7 @@ def parse_job(raw_text: str, source_url: str = "") -> NormalizedJob:
         employment_type=_detect_employment_type(normalized_text),
         shift_indicators=_detect_pattern_matches(normalized_text, SHIFT_PATTERNS),
         on_call_indicators=_detect_pattern_matches(normalized_text, ON_CALL_PATTERNS),
-        positive_keywords=_detect_keyword_matches(normalized_text, DOMAIN_SIGNAL_KEYWORDS),
+        positive_keywords=_detect_pattern_matches(normalized_text, TECHNICAL_SIGNAL_PATTERNS),
         risk_keywords=_detect_pattern_matches(normalized_text, RISK_SIGNAL_PATTERNS),
         parser_notes=parser_notes,
     )

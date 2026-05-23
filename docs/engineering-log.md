@@ -430,3 +430,41 @@ Next phase should be P0 completion, not React/FastAPI implementation yet:
   - Local backend setup commands are documented.
 - Remaining risks / follow-up:
   - Run the verification command in a local checkout to confirm dependency installation and tests pass in the user's Python environment.
+
+## 2026-05-23 - Phase 3 Decision Engine Recovery
+
+- Type: Feature / Test / Docs
+- Files changed:
+  - `backend/app/models.py`
+  - `backend/app/services/decision_engine.py`
+  - `backend/app/api/classify.py`
+  - `backend/app/main.py`
+  - `backend/tests/test_decision_engine.py`
+  - `docs/engineering-log.md`
+- Problem / goal:
+  - Recover and complete the backend-only Phase 3 decision engine after a stalled connector run.
+  - Classify already-normalized job records with a selected rule profile and return an explainable result.
+  - Avoid parser, capture, frontend dashboard, XLSX/export, history, and profile editing work.
+- Root cause:
+  - The previous run partially landed models, the decision service, and classify API file, but it did not mount the classify router, add tests, or write the Phase 3 log entry before interruption.
+- Change made:
+  - Confirmed normalized job, decision result, and classify request models are present.
+  - Confirmed pure decision engine service is present.
+  - Confirmed `POST /api/classify/job` route is present.
+  - Mounted the classify router in `backend/app/main.py`.
+  - Added backend tests for mandatory-language hard discard, remote distance exemption, hybrid Madrid discard, duplicate detection, missing info, low parser confidence, risk discard, and positive keywords not overriding hard discard.
+  - Documented the chosen already-reviewed behavior in code: already-reviewed jobs currently return `Duplicate` so they do not re-enter Apply/Maybe queues.
+- Tests/checks run:
+  - Read `AGENTS.md`.
+  - Read `specs/product-spec.md`.
+  - Read `specs/technical-plan.md`.
+  - Read `specs/tasks.md`.
+  - Reviewed `docs/engineering-log.md`.
+  - Verified changed files by GitHub file readback.
+  - Local tests were not run in this connector-only environment.
+- Result:
+  - Backend Phase 3 decision engine state is complete in the repository.
+  - No parser, capture, frontend dashboard, XLSX/export, history, or profile editing was implemented.
+- Remaining risks / follow-up:
+  - Run `cd backend && python -m pytest` locally to verify the full backend test suite.
+  - Future phases should refine location parsing/distance handling once a real parser and normalized location service exist.

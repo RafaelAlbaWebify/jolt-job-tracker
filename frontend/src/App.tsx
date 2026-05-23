@@ -1,14 +1,22 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   fetchBackendHealth,
+  fetchCaptureHealth,
   fetchProfile,
   fetchProfiles,
+  runCaptureReview,
+  type CaptureHealthStatus,
+  type CaptureJobResult,
+  type CaptureRunResult,
+  type DecisionResult,
   type HealthResponse,
+  type NormalizedJob,
   type RuleProfile,
   type RuleProfileSummary,
 } from './api';
 
 type PageId = 'capture' | 'review' | 'profiles' | 'history' | 'manual' | 'about';
+type DecisionFilter = 'All' | 'Apply' | 'Maybe' | 'Discard' | 'Manual Review' | 'Duplicate' | 'Errors';
 
 type Page = {
   id: PageId;
@@ -25,7 +33,7 @@ const pages: Page[] = [
     eyebrow: 'Primary workflow',
     title: 'Capture jobs',
     body:
-      'Capture will become the main entry point for browser-assisted job collection. Real capture, parsing, sorting, and export logic are intentionally not implemented in this skeleton.',
+      'Run a simulated capture review from manually staged raw job text. The backend still uses the real parser, profile, and decision engine chain.',
   },
   {
     id: 'review',
@@ -33,7 +41,7 @@ const pages: Page[] = [
     eyebrow: 'After capture',
     title: 'Review dashboard',
     body:
-      'This view will summarize captured, parsed, Apply, Maybe, Manual Review, Discard, Duplicate, and Already Reviewed jobs before export.',
+      'Capture run results now appear on the Capture page after a simulated run. Persistent queues and editable statuses arrive in later phases.',
   },
   {
     id: 'profiles',
@@ -69,8 +77,145 @@ const pages: Page[] = [
   },
 ];
 
-function joinValues(values: string[]): string {
-  return values.length > 0 ? values.join(', ') : 'None configured';
+const decisionFilters: DecisionFilter[] = [
+  'All',
+  'Apply',
+  'Maybe',
+  'Discard',
+  'Manual Review',
+  'Duplicate',
+  'Errors',
+];
+
+const demoJobs = [
+  `Title: Microsoft 365 Technical Support Specialist
+Company: Northstar SaaS
+Location: Remote, Spain
+Work mode: Remote
+English required. Spanish is a plus.
+We need a Technical Support specialist for Microsoft 365, Entra ID, endpoint troubleshooting, networking basics, and SaaS support. Stable daytime schedule with automation-adjacent support work.`,
+  `Title: IT Support Engineer
+Company: Alpen Desk
+Location: Remote, Spain
+Work mode: Remote
+German required. English preferred.
+Support Windows endpoints, tickets, identity access, and Microsoft 365 for business users.`,
+  `Title: Infrastructure Support Technician
+Company: Metro Systems
+Location: Madrid, Spain
+Work mode: Hybrid
+English required. Onsite presence in Madrid three days per week. Support endpoint, networking, and infrastructure operations.`,
+  `Support role.
+Company unknown.
+Tickets and users.
+Need help soon.`,
+];
+
+function joinValues(values: string[] | undefined): string {
+  return values && values.length > 0 ? values.join(', ') : 'None';
+}
+
+function decisionClass(decision: string | undefined): string {
+  return `decision-badge decision-${(decision ?? 'unknown').toLowerCase().replace(/\s+/g, '-')}`;
+}
+
+function hasErrors(result: CaptureJobResult): boolean {
+  return result.errors.length > 0;
+}
+
+function SummaryMetric({ label, value }: { label: string; value: number | string }) {
+  return (
+    <div className="summary-metric">
+      <span>{label}</span>
+      <strong>{value}</strong>
+    </div>
+  );
+}
+
+function TextList({ title, items }: { title: string; items: string[] | undefined }) {
+  return (
+    <section className="text-list">
+      <h4>{title}</h4>
+      {items && items.length > 0 ? (
+        <ul>
+          {items.map((item) => (
+            <li key={item}>{item}</li>
+          ))}
+        </ul>
+      ) : (
+        <p>None</p>
+      )}
+    </section>
+  );
+}
+
+function JobFacts({ job }: { job: NormalizedJob | null }) {
+  return (
+    <dl className="job-facts">
+      <div>
+        <dt>Title</dt>
+        <dd>{job?.title || 'Unknown title'}</dd>
+      </div>
+      <div>
+        <dt>Company</dt>
+        <dd>{job?.company || 'Unknown company'}</dd>
+      </div>
+      <div>
+        <dt>Location</dt>
+        <dd>{job?.location || 'Unknown location'}</dd>
+      </div>
+      <div>
+        <dt>Work mode</dt>
+        <dd>{job?.work_mode || 'unknown'}</dd>
+      </div>
+      <div>
+        <dt>Parser confidence</dt>
+        <dd>{job?.parser_confidence || 'unknown'}</dd>
+      </div>
+      <div>
+        <dt>Source URL</dt>
+        <dd>
+          {job?.source_url ? (
+            <a href={job.source_url} target="_blank" rel="noreferrer">
+              Open source
+            </a>
+          ) : (
+            'None'
+          )}
+        </dd>
+      </div>
+    </dl>
+  );
+}
+
+function DecisionCard({ result, index }: { result: CaptureJobResult; index: number }) {
+  const job = result.parsed_job;
+  const decision: DecisionResult | null = result.decision;
+
+  return (
+    <article className="decision-card">
+      <div className="decision-card-header">
+        <div>
+          <span className={decisionClass(decision?.decision)}>{decision?.decision ?? 'Error'}</span>
+          <h3>{job?.title || `Raw job ${index + 1}`}</h3>
+          <p>{job?.company || 'No company parsed yet'}</p>
+        </div>
+        <div className="score-block">
+          <span>{decision?.priority ?? 'No priority'}</span>
+          <strong>{decision ? decision.score : 'N/A'}</strong>
+        </div>
+      </div>
+
+      <JobFacts job={job} />
+
+      {result.errors.length > 0 ? <TextList title="Errors" items={result.errors} /> : null}
+      <TextList title="Reasons" items={decision?.reasons} />
+      <TextList title="Warnings" items={decision?.warnings} />
+      <TextList title="Missing information" items={decision?.missing_information} />
+      <TextList title="Matched positive keywords" items={decision?.matched_positive_keywords} />
+      <TextList title="Matched risk keywords" items={decision?.matched_risk_keywords} />
+    </article>
+  );
 }
 
 function App() {
@@ -82,11 +227,35 @@ function App() {
   const [selectedProfile, setSelectedProfile] = useState<RuleProfile | null>(null);
   const [profilesError, setProfilesError] = useState<string | null>(null);
   const [profilesLoading, setProfilesLoading] = useState<boolean>(true);
+  const [captureHealth, setCaptureHealth] = useState<CaptureHealthStatus | null>(null);
+  const [captureHealthError, setCaptureHealthError] = useState<string | null>(null);
+  const [rawJobText, setRawJobText] = useState<string>('');
+  const [stagedJobs, setStagedJobs] = useState<string[]>([]);
+  const [captureResult, setCaptureResult] = useState<CaptureRunResult | null>(null);
+  const [captureError, setCaptureError] = useState<string | null>(null);
+  const [captureLoading, setCaptureLoading] = useState<boolean>(false);
+  const [activeFilter, setActiveFilter] = useState<DecisionFilter>('All');
 
   const activePage = useMemo(
     () => pages.find((page) => page.id === activePageId) ?? pages[0],
     [activePageId],
   );
+
+  const filteredResults = useMemo(() => {
+    if (!captureResult) {
+      return [];
+    }
+
+    if (activeFilter === 'All') {
+      return captureResult.results;
+    }
+
+    if (activeFilter === 'Errors') {
+      return captureResult.results.filter(hasErrors);
+    }
+
+    return captureResult.results.filter((result) => result.decision?.decision === activeFilter);
+  }, [activeFilter, captureResult]);
 
   useEffect(() => {
     let cancelled = false;
@@ -102,6 +271,20 @@ function App() {
         if (!cancelled) {
           setHealth(null);
           setHealthError(error instanceof Error ? error.message : 'Backend unavailable');
+        }
+      });
+
+    fetchCaptureHealth()
+      .then((result) => {
+        if (!cancelled) {
+          setCaptureHealth(result);
+          setCaptureHealthError(null);
+        }
+      })
+      .catch((error: unknown) => {
+        if (!cancelled) {
+          setCaptureHealth(null);
+          setCaptureHealthError(error instanceof Error ? error.message : 'Capture health unavailable');
         }
       });
 
@@ -170,6 +353,62 @@ function App() {
     };
   }, [selectedProfileId]);
 
+  function addJob() {
+    const trimmed = rawJobText.trim();
+    if (!trimmed) {
+      setCaptureError('Paste raw job text before adding it to the staged run.');
+      return;
+    }
+
+    setStagedJobs((current) => [...current, trimmed]);
+    setRawJobText('');
+    setCaptureError(null);
+  }
+
+  function loadDemoJobs() {
+    setStagedJobs(demoJobs);
+    setCaptureResult(null);
+    setActiveFilter('All');
+    setCaptureError(null);
+  }
+
+  function removeStagedJob(indexToRemove: number) {
+    setStagedJobs((current) => current.filter((_, index) => index !== indexToRemove));
+  }
+
+  async function runReview() {
+    if (!selectedProfileId) {
+      setCaptureError('Select a rule profile before running capture review.');
+      return;
+    }
+
+    setCaptureLoading(true);
+    setCaptureError(null);
+
+    try {
+      const result = await runCaptureReview({
+        profile_id: selectedProfileId,
+        source: 'manual_frontend',
+        dry_run: true,
+        max_results: stagedJobs.length || 25,
+        raw_jobs: stagedJobs.map((rawText, index) => ({
+          source: 'manual_frontend',
+          raw_text: rawText,
+          external_id: `frontend_staged_${index + 1}`,
+          capture_notes: ['Staged from the Phase 6A frontend review dashboard.'],
+        })),
+      });
+      setCaptureResult(result);
+      setCaptureHealth(result.capture_health);
+      setActiveFilter('All');
+    } catch (error: unknown) {
+      setCaptureResult(null);
+      setCaptureError(error instanceof Error ? error.message : 'Capture review failed');
+    } finally {
+      setCaptureLoading(false);
+    }
+  }
+
   return (
     <div className="app-shell">
       <aside className="sidebar" aria-label="Main navigation">
@@ -211,21 +450,178 @@ function App() {
           <p>{activePage.body}</p>
 
           {activePage.id === 'capture' ? (
-            <div className="placeholder-grid" aria-label="Capture workflow placeholders">
-              <div>
-                <span>1</span>
-                <strong>Select profile</strong>
-                <p>Profile selection is available on the Rule Profiles page.</p>
+            <div className="capture-workspace">
+              <div className="capture-controls">
+                <section className="control-section">
+                  <div className="section-heading">
+                    <h2>Profile</h2>
+                    <span>{profilesLoading ? 'Loading' : `${profiles.length} available`}</span>
+                  </div>
+                  {profilesError ? <p className="status-message">{profilesError}</p> : null}
+                  <label className="field-label" htmlFor="capture-profile">
+                    Active rule profile
+                  </label>
+                  <select
+                    id="capture-profile"
+                    value={selectedProfileId}
+                    onChange={(event) => setSelectedProfileId(event.target.value)}
+                  >
+                    {profiles.map((profile) => (
+                      <option key={profile.profile_id} value={profile.profile_id}>
+                        {profile.display_name}
+                      </option>
+                    ))}
+                  </select>
+                  {selectedProfile ? (
+                    <p className="helper-text">
+                      {selectedProfile.profile_id === 'rafael_default'
+                        ? 'Rafael Default is a demo/default profile, not global frontend logic.'
+                        : selectedProfile.description}
+                    </p>
+                  ) : null}
+                </section>
+
+                <section className="control-section">
+                  <div className="section-heading">
+                    <h2>Capture health</h2>
+                    <span>{captureHealth?.capture_mode ?? 'unknown'}</span>
+                  </div>
+                  <dl className="health-grid">
+                    <div>
+                      <dt>Mode</dt>
+                      <dd>{captureHealth?.capture_mode ?? 'Unavailable'}</dd>
+                    </div>
+                    <div>
+                      <dt>Browser automation</dt>
+                      <dd>{captureHealth?.browser_automation_enabled ? 'Enabled' : 'Disabled'}</dd>
+                    </div>
+                    <div>
+                      <dt>Last run</dt>
+                      <dd>{captureHealth?.last_run_status ?? 'None'}</dd>
+                    </div>
+                  </dl>
+                  {captureHealthError ? <p className="status-message">{captureHealthError}</p> : null}
+                  {captureHealth?.warnings.map((warning) => (
+                    <p className="inline-warning" key={warning}>
+                      {warning}
+                    </p>
+                  ))}
+                </section>
+
+                <section className="control-section raw-input-section">
+                  <div className="section-heading">
+                    <h2>Staged raw jobs</h2>
+                    <span>{stagedJobs.length} staged</span>
+                  </div>
+                  <label className="field-label" htmlFor="raw-job-text">
+                    Raw job text
+                  </label>
+                  <textarea
+                    id="raw-job-text"
+                    value={rawJobText}
+                    onChange={(event) => setRawJobText(event.target.value)}
+                    rows={9}
+                    placeholder="Paste one raw job listing here, then add it to the staged run."
+                  />
+                  <div className="button-row">
+                    <button type="button" className="primary-button" onClick={addJob}>
+                      Add job
+                    </button>
+                    <button type="button" className="secondary-button" onClick={loadDemoJobs}>
+                      Load demo jobs
+                    </button>
+                    <button
+                      type="button"
+                      className="secondary-button"
+                      onClick={() => {
+                        setStagedJobs([]);
+                        setCaptureResult(null);
+                      }}
+                    >
+                      Clear
+                    </button>
+                  </div>
+                </section>
+
+                {stagedJobs.length > 0 ? (
+                  <section className="staged-list" aria-label="Staged raw jobs">
+                    {stagedJobs.map((job, index) => (
+                      <article key={`${index}-${job.slice(0, 20)}`}>
+                        <div>
+                          <strong>Job {index + 1}</strong>
+                          <p>{job.slice(0, 180)}{job.length > 180 ? '...' : ''}</p>
+                        </div>
+                        <button type="button" onClick={() => removeStagedJob(index)}>
+                          Remove
+                        </button>
+                      </article>
+                    ))}
+                  </section>
+                ) : null}
+
+                <button
+                  type="button"
+                  className="run-button"
+                  disabled={captureLoading}
+                  onClick={runReview}
+                >
+                  {captureLoading ? 'Running capture review...' : 'Run capture review'}
+                </button>
+                {captureError ? <p className="status-message">{captureError}</p> : null}
               </div>
-              <div>
-                <span>2</span>
-                <strong>Capture jobs</strong>
-                <p>Browser-assisted capture is not wired yet.</p>
-              </div>
-              <div>
-                <span>3</span>
-                <strong>Review before export</strong>
-                <p>Parsing, sorting, and exports are deferred.</p>
+
+              <div className="capture-results" aria-live="polite">
+                {captureResult ? (
+                  <>
+                    <section className="run-summary">
+                      <div className="section-heading">
+                        <div>
+                          <h2>Run summary</h2>
+                          <p>{captureResult.run_id}</p>
+                        </div>
+                        <span>{captureResult.status}</span>
+                      </div>
+                      <div className="summary-grid">
+                        <SummaryMetric label="Captured" value={captureResult.total_captured} />
+                        <SummaryMetric label="Parsed" value={captureResult.parsed_count} />
+                        <SummaryMetric label="Classified" value={captureResult.classified_count} />
+                        <SummaryMetric label="Failed" value={captureResult.failed_count} />
+                      </div>
+                      <TextList title="Run warnings" items={captureResult.warnings} />
+                    </section>
+
+                    <section className="filter-bar" aria-label="Decision filters">
+                      {decisionFilters.map((filter) => (
+                        <button
+                          key={filter}
+                          type="button"
+                          className={filter === activeFilter ? 'filter-button active' : 'filter-button'}
+                          onClick={() => setActiveFilter(filter)}
+                        >
+                          {filter}
+                        </button>
+                      ))}
+                    </section>
+
+                    <section className="decision-list" aria-label="Capture review results">
+                      {filteredResults.length > 0 ? (
+                        filteredResults.map((result, index) => (
+                          <DecisionCard key={`${result.raw_job.external_id ?? index}-${index}`} result={result} index={index} />
+                        ))
+                      ) : (
+                        <p className="empty-state">No results match this filter.</p>
+                      )}
+                    </section>
+                  </>
+                ) : (
+                  <section className="empty-state large">
+                    <h2>Review results will appear here</h2>
+                    <p>
+                      Stage raw job text or load demo jobs, then run capture review to call the backend
+                      parser and decision engine through `POST /api/capture/run`.
+                    </p>
+                  </section>
+                )}
               </div>
             </div>
           ) : null}

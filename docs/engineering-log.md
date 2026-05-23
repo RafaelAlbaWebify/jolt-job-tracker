@@ -468,3 +468,40 @@ Next phase should be P0 completion, not React/FastAPI implementation yet:
 - Remaining risks / follow-up:
   - Run `cd backend && python -m pytest` locally to verify the full backend test suite.
   - Future phases should refine location parsing/distance handling once a real parser and normalized location service exist.
+
+## 2026-05-23 - Phase 4 Backend Parser and Parser Confidence
+
+- Type: Feature / Test / Docs
+- Files changed:
+  - `backend/app/models.py`
+  - `backend/app/services/parser.py`
+  - `backend/app/api/parse.py`
+  - `backend/app/main.py`
+  - `backend/tests/test_parser.py`
+  - `docs/engineering-log.md`
+- Problem / goal:
+  - Add a backend parser service that converts raw job-offer text into the existing `NormalizedJob` shape expected by the Phase 3 decision engine.
+  - Keep parsing rule-based, conservative, and backend-only.
+- Root cause:
+  - Phase 3 intentionally accepted already-normalized jobs only, leaving the raw text to normalized job boundary unimplemented.
+- Change made:
+  - Added a parser service that extracts labeled title/company/location, work mode, language signals, mandatory language signals, employment type, shift/on-call indicators, domain signal keywords, risk keywords, parser notes, and parser confidence.
+  - Added conservative missing/unclear-field notes instead of aggressive guessing.
+  - Added `POST /api/parse/job` for raw text to normalized job parsing.
+  - Added `POST /api/parse-and-classify/job` because it cleanly composes the new parser with the existing decision engine without adding frontend, persistence, capture, or export scope.
+  - Added parser request/result models for the new API shape.
+  - Added backend parser tests for work mode detection, mandatory versus optional language handling, shift/on-call risk detection, low confidence, parser notes, parse API output, and parse-to-decision compatibility.
+- Tests/checks run:
+  - Read `AGENTS.md`.
+  - Read `specs/product-spec.md`.
+  - Read `specs/technical-plan.md`.
+  - Read `specs/tasks.md`.
+  - Reviewed `docs/engineering-log.md`.
+  - Verified changed files by GitHub file readback.
+  - Local tests were not run in this connector-only environment.
+- Result:
+  - Backend Phase 4 parser boundary is implemented and test-covered in the repository.
+  - No browser capture, legacy LinkedIn wrapper, XLSX/export, frontend dashboard, history/tracker persistence, or profile editing was implemented.
+- Remaining risks / follow-up:
+  - Run `cd backend && python -m pytest` locally to verify the full backend test suite.
+  - Future parser phases should add structured parser confidence scores, richer title/company/location extraction, and legacy parser wrapping once capture/reference files are available.

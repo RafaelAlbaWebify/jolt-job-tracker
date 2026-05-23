@@ -1,0 +1,123 @@
+[
+  {
+    "profile_id": "rafael_default",
+    "display_name": "Rafael Default",
+    "description": "Demo/default profile based on Rafael's job-search preferences. It is a configurable preset, not a global hardcoded rule set.",
+    "accepted_languages": ["English", "Spanish"],
+    "mandatory_language_mode": "discard_if_not_accepted",
+    "base_location": "Vigo, Spain",
+    "max_distance_km_for_hybrid_onsite": 30,
+    "remote_ignores_distance": true,
+    "preferred_work_modes": ["remote"],
+    "acceptable_work_modes": ["remote", "hybrid"],
+    "positive_keywords": [
+      "Microsoft 365",
+      "Entra ID",
+      "IT Operations",
+      "Technical Support",
+      "Infrastructure Support",
+      "SaaS Support",
+      "endpoint",
+      "networking",
+      "automation"
+    ],
+    "risk_keywords": [
+      "24/7",
+      "heavy on-call",
+      "rotating shifts",
+      "night shifts",
+      "weekends",
+      "call-centre",
+      "call-center",
+      "high pressure",
+      "chaotic startup"
+    ],
+    "discard_keywords": [
+      "mandatory German",
+      "mandatory French",
+      "night shift required",
+      "onsite only"
+    ],
+    "stretch_skills": ["Kubernetes", "Terraform", "advanced cloud architecture"],
+    "risk_severity_settings": {
+      "on_call": "warning",
+      "heavy_on_call": "discard",
+      "rotating_shifts": "discard",
+      "night_shifts": "discard",
+      "weekends": "warning",
+      "call_center": "discard",
+      "high_pressure": "warning",
+      "chaotic_startup": "warning"
+    },
+    "portfolio_safe": true
+  },
+  {
+    "profile_id": "generic_remote_it_support",
+    "display_name": "Generic Remote IT Support",
+    "description": "Reusable portfolio-safe profile for remote-first IT support roles.",
+    "accepted_languages": ["English"],
+    "mandatory_language_mode": "manual_review_if_not_accepted",
+    "base_location": "Remote",
+    "max_distance_km_for_hybrid_onsite": 0,
+    "remote_ignores_distance": true,
+    "preferred_work_modes": ["remote"],
+    "acceptable_work_modes": ["remote"],
+    "positive_keywords": ["IT Support", "help desk", "service desk", "endpoint", "Microsoft 365", "troubleshooting"],
+    "risk_keywords": ["24/7", "rotating shifts", "night shifts", "weekends"],
+    "discard_keywords": ["onsite only", "door to door", "commission only"],
+    "stretch_skills": ["PowerShell", "Azure", "device management"],
+    "risk_severity_settings": {
+      "on_call": "warning",
+      "rotating_shifts": "manual_review",
+      "night_shifts": "discard",
+      "weekends": "warning"
+    },
+    "portfolio_safe": true
+  },
+  {
+    "profile_id": "saas_support",
+    "display_name": "SaaS Support",
+    "description": "Portfolio-safe profile for customer-facing SaaS technical support roles.",
+    "accepted_languages": ["English"],
+    "mandatory_language_mode": "manual_review_if_not_accepted",
+    "base_location": "Remote",
+    "max_distance_km_for_hybrid_onsite": 25,
+    "remote_ignores_distance": true,
+    "preferred_work_modes": ["remote", "hybrid"],
+    "acceptable_work_modes": ["remote", "hybrid"],
+    "positive_keywords": ["SaaS", "Technical Support", "customer support", "API", "integration", "troubleshooting"],
+    "risk_keywords": ["high volume", "call-center", "weekends", "on-call"],
+    "discard_keywords": ["sales quota", "commission only", "field sales"],
+    "stretch_skills": ["SQL", "REST APIs", "log analysis"],
+    "risk_severity_settings": {
+      "on_call": "manual_review",
+      "high_volume": "warning",
+      "call_center": "warning",
+      "weekends": "manual_review"
+    },
+    "portfolio_safe": true
+  },
+  {
+    "profile_id": "infrastructure_support",
+    "display_name": "Infrastructure Support",
+    "description": "Portfolio-safe profile for infrastructure, endpoint, and operations support roles.",
+    "accepted_languages": ["English"],
+    "mandatory_language_mode": "manual_review_if_not_accepted",
+    "base_location": "Remote or local region",
+    "max_distance_km_for_hybrid_onsite": 50,
+    "remote_ignores_distance": true,
+    "preferred_work_modes": ["remote", "hybrid"],
+    "acceptable_work_modes": ["remote", "hybrid", "onsite"],
+    "positive_keywords": ["Infrastructure Support", "IT Operations", "endpoint", "networking", "Microsoft 365", "identity", "automation"],
+    "risk_keywords": ["24/7", "datacenter shifts", "night shifts", "heavy on-call"],
+    "discard_keywords": ["travel required 80%", "security clearance required"],
+    "stretch_skills": ["cloud networking", "identity automation", "monitoring"],
+    "risk_severity_settings": {
+      "on_call": "warning",
+      "heavy_on_call": "manual_review",
+      "night_shifts": "discard",
+      "datacenter_shifts": "manual_review"
+    },
+    "portfolio_safe": true
+  }
+]

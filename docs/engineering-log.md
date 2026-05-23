@@ -332,3 +332,27 @@
   - Run `cd frontend && npm install && npm run build` locally.
   - Run the backend locally before trying the dashboard so `/api/profiles`, `/api/capture/health`, and `/api/capture/run` are available.
   - Future phases should add persistent review queues, status updates, history/tracker storage, and export only after this local demo dashboard is verified.
+
+## 2026-05-23 - Phase 6A.1 Frontend TypeScript Build Configuration
+
+- Type: Cleanup / Docs
+- Files changed:
+  - `frontend/tsconfig.json`
+  - `docs/engineering-log.md`
+- Problem / goal:
+  - Fix local `npm run build` failure caused by TypeScript reporting deprecated `moduleResolution=node10` behavior from the existing `"moduleResolution": "Node"` setting.
+- Root cause:
+  - The frontend Vite app was using the older Node module resolution setting while depending on `typescript@latest`, which now warns/errors for the deprecated Node10-style resolution.
+- Change made:
+  - Updated `frontend/tsconfig.json` from `"moduleResolution": "Node"` to `"moduleResolution": "Bundler"`, which matches modern Vite/ESM TypeScript projects.
+  - Did not add `ignoreDeprecations`, change frontend product behavior, or modify backend logic.
+- Tests/checks run:
+  - Inspected `frontend/tsconfig.json`, `frontend/package.json`, and `frontend/vite.config.ts`.
+  - Searched for related tsconfig references through the GitHub connector.
+  - Reasoned that `"moduleResolution": "Bundler"` is compatible with `"module": "ESNext"`, Vite, and the existing ESM frontend package.
+  - Local verification command to run: `cd frontend && npm run build`.
+  - Local build was not run in this connector-only environment.
+- Result:
+  - TypeScript configuration now uses the modern Vite-compatible module resolution setting.
+- Remaining risks / follow-up:
+  - Run `cd frontend && npm run build` locally to confirm the build is clean in the installed dependency environment.

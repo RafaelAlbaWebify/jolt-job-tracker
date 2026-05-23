@@ -1,5 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
-import { fetchBackendHealth, type HealthResponse } from './api';
+import {
+  fetchBackendHealth,
+  fetchProfile,
+  fetchProfiles,
+  type HealthResponse,
+  type RuleProfile,
+  type RuleProfileSummary,
+} from './api';
 
 type PageId = 'capture' | 'review' | 'profiles' | 'history' | 'manual' | 'about';
 
@@ -34,7 +41,7 @@ const pages: Page[] = [
     eyebrow: 'Configuration',
     title: 'Rule profiles',
     body:
-      'Profiles will make filtering reusable and portfolio-safe. Profile loading and editing are deferred to a later phase.',
+      'Profiles make LinkAut reusable. Select a default profile to inspect its rules; editing and classification arrive in later phases.',
   },
   {
     id: 'history',
@@ -42,7 +49,7 @@ const pages: Page[] = [
     eyebrow: 'Application status',
     title: 'History and tracker',
     body:
-      'This section will track application statuses and already-reviewed jobs. Persistence and exports are not part of this skeleton.',
+      'This section will track application statuses and already-reviewed jobs. Persistence and exports are not part of this phase.',
   },
   {
     id: 'manual',
@@ -62,10 +69,19 @@ const pages: Page[] = [
   },
 ];
 
+function joinValues(values: string[]): string {
+  return values.length > 0 ? values.join(', ') : 'None configured';
+}
+
 function App() {
   const [activePageId, setActivePageId] = useState<PageId>('capture');
   const [health, setHealth] = useState<HealthResponse | null>(null);
   const [healthError, setHealthError] = useState<string | null>(null);
+  const [profiles, setProfiles] = useState<RuleProfileSummary[]>([]);
+  const [selectedProfileId, setSelectedProfileId] = useState<string>('');
+  const [selectedProfile, setSelectedProfile] = useState<RuleProfile | null>(null);
+  const [profilesError, setProfilesError] = useState<string | null>(null);
+  const [profilesLoading, setProfilesLoading] = useState<boolean>(true);
 
   const activePage = useMemo(
     () => pages.find((page) => page.id === activePageId) ?? pages[0],
@@ -93,6 +109,66 @@ function App() {
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    setProfilesLoading(true);
+    fetchProfiles()
+      .then((result) => {
+        if (!cancelled) {
+          setProfiles(result);
+          setProfilesError(null);
+          setSelectedProfileId(
+            result.find((profile) => profile.profile_id === 'rafael_default')?.profile_id ??
+              result[0]?.profile_id ??
+              '',
+          );
+        }
+      })
+      .catch((error: unknown) => {
+        if (!cancelled) {
+          setProfiles([]);
+          setProfilesError(error instanceof Error ? error.message : 'Unable to load profiles');
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setProfilesLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!selectedProfileId) {
+      setSelectedProfile(null);
+      return;
+    }
+
+    let cancelled = false;
+
+    fetchProfile(selectedProfileId)
+      .then((result) => {
+        if (!cancelled) {
+          setSelectedProfile(result);
+          setProfilesError(null);
+        }
+      })
+      .catch((error: unknown) => {
+        if (!cancelled) {
+          setSelectedProfile(null);
+          setProfilesError(error instanceof Error ? error.message : 'Unable to load profile detail');
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedProfileId]);
 
   return (
     <div className="app-shell">
@@ -139,7 +215,7 @@ function App() {
               <div>
                 <span>1</span>
                 <strong>Select profile</strong>
-                <p>Profile loading arrives in a later phase.</p>
+                <p>Profile selection is available on the Rule Profiles page.</p>
               </div>
               <div>
                 <span>2</span>
@@ -151,6 +227,118 @@ function App() {
                 <strong>Review before export</strong>
                 <p>Parsing, sorting, and exports are deferred.</p>
               </div>
+            </div>
+          ) : null}
+
+          {activePage.id === 'profiles' ? (
+            <div className="profiles-layout">
+              {profilesError ? <p className="status-message">{profilesError}</p> : null}
+              {profilesLoading ? <p className="status-message">Loading profiles...</p> : null}
+
+              <div className="profile-list" aria-label="Available rule profiles">
+                {profiles.map((profile) => (
+                  <button
+                    key={profile.profile_id}
+                    className={
+                      profile.profile_id === selectedProfileId ? 'profile-option active' : 'profile-option'
+                    }
+                    type="button"
+                    onClick={() => setSelectedProfileId(profile.profile_id)}
+                  >
+                    <strong>{profile.display_name}</strong>
+                    <span>{profile.description}</span>
+                  </button>
+                ))}
+              </div>
+
+              {selectedProfile ? (
+                <article className="profile-detail">
+                  <div className="profile-detail-header">
+                    <div>
+                      <h2>{selectedProfile.display_name}</h2>
+                      <p>{selectedProfile.description}</p>
+                    </div>
+                    <span className="profile-badge">
+                      {selectedProfile.profile_id === 'rafael_default'
+                        ? 'Demo/default preset'
+                        : 'Reusable preset'}
+                    </span>
+                  </div>
+
+                  {selectedProfile.profile_id === 'rafael_default' ? (
+                    <p className="profile-note">
+                      Rafael Default is one editable demo/default profile. It is not a global hardcoded
+                      rule set for every user.
+                    </p>
+                  ) : null}
+
+                  <dl className="profile-fields">
+                    <div>
+                      <dt>Accepted languages</dt>
+                      <dd>{joinValues(selectedProfile.accepted_languages)}</dd>
+                    </div>
+                    <div>
+                      <dt>Mandatory language mode</dt>
+                      <dd>{selectedProfile.mandatory_language_mode}</dd>
+                    </div>
+                    <div>
+                      <dt>Base location</dt>
+                      <dd>{selectedProfile.base_location}</dd>
+                    </div>
+                    <div>
+                      <dt>Max hybrid/onsite distance</dt>
+                      <dd>{selectedProfile.max_distance_km_for_hybrid_onsite} km</dd>
+                    </div>
+                    <div>
+                      <dt>Remote ignores distance</dt>
+                      <dd>{selectedProfile.remote_ignores_distance ? 'Yes' : 'No'}</dd>
+                    </div>
+                    <div>
+                      <dt>Preferred work modes</dt>
+                      <dd>{joinValues(selectedProfile.preferred_work_modes)}</dd>
+                    </div>
+                    <div>
+                      <dt>Acceptable work modes</dt>
+                      <dd>{joinValues(selectedProfile.acceptable_work_modes)}</dd>
+                    </div>
+                    <div>
+                      <dt>Portfolio safe</dt>
+                      <dd>{selectedProfile.portfolio_safe ? 'Yes' : 'No'}</dd>
+                    </div>
+                  </dl>
+
+                  <div className="keyword-sections">
+                    <section>
+                      <h3>Positive keywords</h3>
+                      <p>{joinValues(selectedProfile.positive_keywords)}</p>
+                    </section>
+                    <section>
+                      <h3>Risk keywords</h3>
+                      <p>{joinValues(selectedProfile.risk_keywords)}</p>
+                    </section>
+                    <section>
+                      <h3>Discard keywords</h3>
+                      <p>{joinValues(selectedProfile.discard_keywords)}</p>
+                    </section>
+                    <section>
+                      <h3>Stretch skills</h3>
+                      <p>{joinValues(selectedProfile.stretch_skills)}</p>
+                    </section>
+                  </div>
+
+                  <section className="severity-list">
+                    <h3>Risk severity settings</h3>
+                    <dl>
+                      {Object.entries(selectedProfile.risk_severity_settings).map(([risk, severity]) => (
+                        <div key={risk}>
+                          <dt>{risk}</dt>
+                          <dd>{severity}</dd>
+                        </div>
+                      ))}
+                    </dl>
+                  </section>
+                </article>
+              ) : null}
             </div>
           ) : null}
         </section>

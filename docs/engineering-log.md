@@ -297,3 +297,38 @@
 - Remaining risks / follow-up:
   - Run `cd backend && python -m pytest` locally to verify the full backend test suite.
   - Future capture phases should wrap real browser-assisted capture behind this boundary only after legacy capture behavior is available and isolated.
+
+## 2026-05-23 - Phase 6A Frontend Capture Review Dashboard
+
+- Type: Feature / Docs
+- Files changed:
+  - `frontend/src/api.ts`
+  - `frontend/src/App.tsx`
+  - `frontend/src/styles.css`
+  - `docs/engineering-log.md`
+- Problem / goal:
+  - Make the React frontend visibly useful by letting the Capture page run a simulated capture batch with manually staged raw job text entries.
+  - Display the returned backend parse/classify decisions as a review dashboard before later persistence/export work.
+- Root cause:
+  - Phase 5 exposed the backend capture boundary, but the frontend still showed only a capture placeholder and did not consume `GET /api/capture/health` or `POST /api/capture/run`.
+- Change made:
+  - Added typed frontend API models and helpers for capture health and capture review runs.
+  - Updated the Capture page to load profiles, default to `rafael_default` when available, show capture health, stage multiple raw job entries, load demo jobs, and submit a dry-run manual capture request.
+  - Added frontend-only result filters for All, Apply, Maybe, Discard, Manual Review, Duplicate, and Errors.
+  - Added run summary metrics and explainable decision cards showing parsed fields, decision, priority, score, reasons, warnings, missing information, parser confidence, matched keywords, source URL, and per-job errors.
+  - Left browser automation, scraping, XLSX/export, persistent history/tracker, profile editing, and backend product logic untouched.
+- Tests/checks run:
+  - Read `AGENTS.md`.
+  - Read `specs/product-spec.md`.
+  - Read `specs/technical-plan.md`.
+  - Read `specs/tasks.md`.
+  - Reviewed `docs/engineering-log.md`.
+  - Read existing frontend API/app/style files and backend capture model/API shape.
+  - Updated files through the GitHub connector.
+  - Local `npm run build` was not run in this connector-only environment.
+- Result:
+  - Phase 6A frontend dashboard is implemented against the existing backend capture boundary.
+- Remaining risks / follow-up:
+  - Run `cd frontend && npm install && npm run build` locally.
+  - Run the backend locally before trying the dashboard so `/api/profiles`, `/api/capture/health`, and `/api/capture/run` are available.
+  - Future phases should add persistent review queues, status updates, history/tracker storage, and export only after this local demo dashboard is verified.

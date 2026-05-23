@@ -356,3 +356,28 @@
   - TypeScript configuration now uses the modern Vite-compatible module resolution setting.
 - Remaining risks / follow-up:
   - Run `cd frontend && npm run build` locally to confirm the build is clean in the installed dependency environment.
+
+## 2026-05-23 - Phase 6A.2 React TypeScript Declaration Dependencies
+
+- Type: Cleanup / Docs
+- Files changed:
+  - `frontend/package.json`
+  - `docs/engineering-log.md`
+- Problem / goal:
+  - Fix local `npm run build` failures where TypeScript could not find declaration files for `react`, `react-dom/client`, or `react/jsx-runtime`, causing JSX elements to be typed as `any`.
+- Root cause:
+  - The React frontend depends on `react` and `react-dom`, but the project did not declare `@types/react` or `@types/react-dom`. With `strict` TypeScript and `jsx: react-jsx`, those missing declarations break JSX type checking.
+- Change made:
+  - Added `@types/react` and `@types/react-dom` as frontend development dependencies.
+  - Kept `moduleResolution: Bundler` from Phase 6A.1.
+  - Did not change backend logic, product behavior, or the Phase 6A capture review dashboard.
+  - `frontend/package-lock.json` is not currently tracked on `main`; a temporary lockfile was generated locally to inspect dependency resolution, but no existing tracked lockfile could be updated through the repository.
+- Tests/checks run:
+  - Inspected `frontend/package.json`, `frontend/tsconfig.json`, `frontend/src/main.tsx`, `frontend/src/App.tsx`, and `frontend/src/vite-env.d.ts`.
+  - Confirmed `frontend/package-lock.json` is absent from `main` and is not ignored by `.gitignore`.
+  - Generated a temporary package lock with `npm install --package-lock-only --ignore-scripts` from the updated package metadata.
+  - Local full `npm run build` against the repository was not run in this connector-only environment.
+- Result:
+  - React JSX declaration packages are now declared for local install/build.
+- Remaining risks / follow-up:
+  - Run `cd frontend && npm install && npm run build` locally. If local `npm install` creates `frontend/package-lock.json`, commit it in the next small cleanup so dependency resolution is fully locked.

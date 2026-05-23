@@ -73,3 +73,17 @@ class DecisionResult(BaseModel):
 class ClassifyJobRequest(BaseModel):
     profile_id: str
     job: NormalizedJob
+
+
+class ParseJobRequest(BaseModel):
+    raw_text: str
+    source_url: str = ""
+
+
+class ParseAndClassifyJobRequest(ParseJobRequest):
+    profile_id: str
+
+
+class ParseAndClassifyJobResult(BaseModel):
+    job: NormalizedJob
+    decision: DecisionResult

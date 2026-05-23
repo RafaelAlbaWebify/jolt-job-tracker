@@ -32,6 +32,7 @@ class RuleProfileSummary(BaseModel):
 DecisionLabel = Literal["Apply", "Maybe", "Discard", "Manual Review", "Duplicate"]
 PriorityLabel = Literal["High", "Medium", "Low"]
 ParserConfidence = Literal["high", "medium", "low"]
+CaptureRunStatus = Literal["completed", "completed_with_errors", "failed"]
 
 
 class NormalizedJob(BaseModel):
@@ -87,3 +88,50 @@ class ParseAndClassifyJobRequest(ParseJobRequest):
 class ParseAndClassifyJobResult(BaseModel):
     job: NormalizedJob
     decision: DecisionResult
+
+
+class CapturedRawJob(BaseModel):
+    source: str = "manual_raw_jobs"
+    source_url: str = ""
+    raw_text: str = ""
+    captured_at: str = ""
+    external_id: str = ""
+    capture_notes: list[str] = []
+
+
+class CaptureHealthStatus(BaseModel):
+    capture_mode: str = "manual_raw_jobs"
+    browser_automation_enabled: bool = False
+    last_run_status: str | None = None
+    warnings: list[str] = []
+
+
+class CaptureRunRequest(BaseModel):
+    profile_id: str
+    source: str = "manual_raw_jobs"
+    query: str = ""
+    location: str = ""
+    work_mode_filter: str = ""
+    max_results: int = 25
+    dry_run: bool = False
+    raw_jobs: list[CapturedRawJob] = []
+
+
+class CaptureJobResult(BaseModel):
+    raw_job: CapturedRawJob
+    parsed_job: NormalizedJob | None = None
+    decision: DecisionResult | None = None
+    errors: list[str] = []
+
+
+class CaptureRunResult(BaseModel):
+    run_id: str
+    status: CaptureRunStatus
+    profile_id: str
+    total_captured: int
+    parsed_count: int
+    classified_count: int
+    failed_count: int
+    results: list[CaptureJobResult]
+    warnings: list[str]
+    capture_health: CaptureHealthStatus

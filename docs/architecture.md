@@ -10,6 +10,7 @@ manual raw job text
 -> configurable rule profile
 -> decision engine
 -> frontend review dashboard
+-> optional export and local history
 ```
 
 The project is intentionally local-first and human-in-the-loop. It helps a job seeker review and prioritize roles, but it does not apply to jobs automatically and does not currently scrape LinkedIn.
@@ -31,6 +32,7 @@ backend/
       capture_runner.py
       decision_engine.py
       export_package.py
+      history_store.py
       parser.py
       profiles.py
     main.py
@@ -103,6 +105,12 @@ Supported formats:
 
 Generated files are written under ignored `backend/data/exports/`. Raw job text is excluded by default and can be included explicitly for local/private review.
 
+### History Store
+
+`backend/app/services/history_store.py` persists reviewed jobs locally under ignored `backend/data/history/`.
+
+The current implementation uses JSONL file storage rather than a database. It can save reviewed capture results, list saved jobs, load one saved job, update application status, and detect duplicates by source URL, external ID, or normalized title/company/location fallback.
+
 ## Frontend Pages
 
 The current frontend is a compact React app rather than a fully split page/component tree.
@@ -111,7 +119,8 @@ Implemented views:
 
 - Capture: primary demo workflow, profile selector, capture health, staged raw jobs, demo jobs, review dashboard, decision filters, decision cards.
 - Rule Profiles: profile list and profile detail view.
-- Review Dashboard, History / Tracker, Manual Paste / Debug, About: visible navigation placeholders for future phases.
+- History / Tracker: saved reviewed jobs, simple filters, and application status updates.
+- Review Dashboard, Manual Paste / Debug, About: visible navigation placeholders for future phases.
 
 ## API Surface
 
@@ -126,6 +135,10 @@ Current local endpoints:
 - `GET /api/capture/health`
 - `POST /api/capture/run`
 - `POST /api/export/capture-result`
+- `POST /api/history/save-capture-result`
+- `GET /api/history/jobs`
+- `GET /api/history/jobs/{history_id}`
+- `PATCH /api/history/jobs/{history_id}/status`
 
 ## Current Data Flow
 
@@ -140,6 +153,9 @@ Frontend Capture page
 -> frontend displays decision overview, filters, and cards
 -> user optionally exports JSON, CSV, or XLSX
 -> backend writes files under backend/data/exports/
+-> user optionally saves reviewed jobs
+-> backend writes JSONL history under backend/data/history/
+-> History / Tracker displays saved jobs and updates application status
 ```
 
 ## Intentionally Excluded Features
@@ -148,7 +164,6 @@ The following are not implemented in the current safe demo:
 
 - real browser automation;
 - LinkedIn scraping;
-- persistent history/tracker storage;
 - profile editing UI;
 - authentication;
 - production deployment.
@@ -158,7 +173,8 @@ These exclusions keep the project honest and portfolio-safe while the parser/pro
 ## Future Extension Points
 
 - Richer XLSX tracker and auditable run package sheets.
-- History/status service for duplicates, already-reviewed jobs, and application statuses.
+- Apply Today and Manual Review queues built from saved history.
+- Richer duplicate/already-reviewed labels using saved history during capture/classification.
 - Safer browser-assisted capture adapter behind the existing capture runner boundary.
 - Profile editing and validation UI.
 - Demo mode with committed fake/anonymized sample runs.

@@ -3,9 +3,13 @@ import {
   exportCaptureResult,
   fetchBackendHealth,
   fetchCaptureHealth,
+  fetchHistoryJobs,
   fetchProfile,
   fetchProfiles,
   runCaptureReview,
+  saveCaptureResultToHistory,
+  updateHistoryJobStatus,
+  type ApplicationStatus,
   type CaptureHealthStatus,
   type CaptureJobResult,
   type CaptureRunResult,
@@ -13,14 +17,27 @@ import {
   type ExportCaptureResultResponse,
   type ExportFormat,
   type HealthResponse,
+  type HistoryJobEntry,
   type NormalizedJob,
   type RuleProfile,
   type RuleProfileSummary,
+  type SaveCaptureResultHistoryResponse,
 } from './api';
 
 type PageId = 'capture' | 'review' | 'profiles' | 'history' | 'manual' | 'about';
 type DecisionFilter = 'All' | 'Apply' | 'Maybe' | 'Discard' | 'Manual Review' | 'Duplicate' | 'Errors';
 type DecisionCountKey = DecisionFilter | 'Errors';
+type HistoryFilter =
+  | 'All'
+  | 'Apply'
+  | 'Maybe'
+  | 'Discard'
+  | 'Manual Review'
+  | 'Duplicate'
+  | 'Applied'
+  | 'Interview'
+  | 'Watchlist'
+  | 'Archived';
 
 type Page = {
   id: PageId;
@@ -61,7 +78,7 @@ const pages: Page[] = [
     eyebrow: 'Application status',
     title: 'History and tracker',
     body:
-      'This section will track application statuses and already-reviewed jobs. Persistence and exports are not part of this phase.',
+      'Saved reviewed jobs persist locally so you can revisit decisions, spot duplicates, and update application status across sessions.',
   },
   {
     id: 'manual',
@@ -89,6 +106,28 @@ const decisionFilters: DecisionFilter[] = [
   'Manual Review',
   'Duplicate',
   'Errors',
+];
+
+const historyFilters: HistoryFilter[] = [
+  'All',
+  'Apply',
+  'Maybe',
+  'Discard',
+  'Manual Review',
+  'Duplicate',
+  'Applied',
+  'Interview',
+  'Watchlist',
+  'Archived',
+];
+
+const applicationStatuses: ApplicationStatus[] = [
+  'Not started',
+  'Applied',
+  'Interview',
+  'Rejected',
+  'Archived',
+  'Watchlist',
 ];
 
 const demoJobs = [
@@ -152,6 +191,16 @@ function buildDecisionCounts(results: CaptureJobResult[]): Record<DecisionCountK
       Errors: 0,
     },
   );
+}
+
+function historyMatchesFilter(entry: HistoryJobEntry, filter: HistoryFilter): boolean {
+  if (filter === 'All') {
+    return true;
+  }
+  if (['Applied', 'Interview', 'Watchlist', 'Archived'].includes(filter)) {
+    return entry.application_status === filter;
+  }
+  return entry.decision === filter;
 }
 
 function SummaryMetric({ label, value }: { label: string; value: number | string }) {
@@ -299,6 +348,15 @@ function App() {
   const [exportLoading, setExportLoading] = useState<ExportFormat | null>(null);
   const [exportError, setExportError] = useState<string | null>(null);
   const [exportResponses, setExportResponses] = useState<ExportCaptureResultResponse[]>([]);
+  const [includeRawTextInHistory, setIncludeRawTextInHistory] = useState<boolean>(false);
+  const [historySaveLoading, setHistorySaveLoading] = useState<boolean>(false);
+  const [historySaveError, setHistorySaveError] = useState<string | null>(null);
+  const [historySaveSummary, setHistorySaveSummary] = useState<SaveCaptureResultHistoryResponse | null>(null);
+  const [historyJobs, setHistoryJobs] = useState<HistoryJobEntry[]>([]);
+  const [historyLoading, setHistoryLoading] = useState<boolean>(false);
+  const [historyError, setHistoryError] = useState<string | null>(null);
+  const [activeHistoryFilter, setActiveHistoryFilter] = useState<HistoryFilter>('All');
+  const [updatingHistoryId, setUpdatingHistoryId] = useState<string | null>(null);
 
   const activePage = useMemo(
     () => pages.find((page) => page.id === activePageId) ?? pages[0],
@@ -324,6 +382,20 @@ function App() {
   const decisionCounts = useMemo(
     () => buildDecisionCounts(captureResult?.results ?? []),
     [captureResult],
+  );
+
+  const filteredHistoryJobs = useMemo(
+    () => historyJobs.filter((entry) => historyMatchesFilter(entry, activeHistoryFilter)),
+    [activeHistoryFilter, historyJobs],
+  );
+
+  const historyCounts = useMemo(
+    () =>
+      historyFilters.reduce<Record<HistoryFilter, number>>((counts, filter) => {
+        counts[filter] = historyJobs.filter((entry) => historyMatchesFilter(entry, filter)).length;
+        return counts;
+      }, {} as Record<HistoryFilter, number>),
+    [historyJobs],
   );
 
   useEffect(() => {
@@ -422,6 +494,26 @@ function App() {
     };
   }, [selectedProfileId]);
 
+  async function loadHistoryJobs() {
+    setHistoryLoading(true);
+    setHistoryError(null);
+
+    try {
+      const result = await fetchHistoryJobs();
+      setHistoryJobs(result);
+    } catch (error: unknown) {
+      setHistoryError(error instanceof Error ? error.message : 'Unable to load saved history');
+    } finally {
+      setHistoryLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    if (activePageId === 'history') {
+      void loadHistoryJobs();
+    }
+  }, [activePageId]);
+
   function addJob() {
     const trimmed = rawJobText.trim();
     if (!trimmed) {
@@ -438,9 +530,11 @@ function App() {
     setStagedJobs(demoJobs);
     setCaptureResult(null);
     setExportResponses([]);
+    setHistorySaveSummary(null);
     setActiveFilter('All');
     setCaptureError(null);
     setExportError(null);
+    setHistorySaveError(null);
   }
 
   function removeStagedJob(indexToRemove: number) {
@@ -473,6 +567,8 @@ function App() {
       setCaptureHealth(result.capture_health);
       setExportResponses([]);
       setExportError(null);
+      setHistorySaveSummary(null);
+      setHistorySaveError(null);
       setActiveFilter('All');
     } catch (error: unknown) {
       setCaptureResult(null);
@@ -502,6 +598,46 @@ function App() {
       setExportError(error instanceof Error ? error.message : 'Export failed');
     } finally {
       setExportLoading(null);
+    }
+  }
+
+  async function saveCurrentRunToHistory() {
+    if (!captureResult) {
+      setHistorySaveError('Run capture review before saving jobs to history.');
+      return;
+    }
+
+    setHistorySaveLoading(true);
+    setHistorySaveError(null);
+
+    try {
+      const result = await saveCaptureResultToHistory({
+        capture_result: captureResult,
+        include_raw_text: includeRawTextInHistory,
+        default_application_status: 'Not started',
+      });
+      setHistorySaveSummary(result);
+      await loadHistoryJobs();
+    } catch (error: unknown) {
+      setHistorySaveError(error instanceof Error ? error.message : 'Saving history failed');
+    } finally {
+      setHistorySaveLoading(false);
+    }
+  }
+
+  async function updateStatus(historyId: string, applicationStatus: ApplicationStatus) {
+    setUpdatingHistoryId(historyId);
+    setHistoryError(null);
+
+    try {
+      const updated = await updateHistoryJobStatus(historyId, applicationStatus);
+      setHistoryJobs((current) =>
+        current.map((entry) => (entry.history_id === updated.history_id ? updated : entry)),
+      );
+    } catch (error: unknown) {
+      setHistoryError(error instanceof Error ? error.message : 'Unable to update application status');
+    } finally {
+      setUpdatingHistoryId(null);
     }
   }
 
@@ -645,6 +781,8 @@ function App() {
                         setCaptureResult(null);
                         setExportResponses([]);
                         setExportError(null);
+                        setHistorySaveSummary(null);
+                        setHistorySaveError(null);
                       }}
                     >
                       Clear
@@ -752,6 +890,40 @@ function App() {
                               ))}
                             </article>
                           ))}
+                        </div>
+                      ) : null}
+                    </section>
+
+                    <section className="history-save-panel">
+                      <div className="section-heading">
+                        <div>
+                          <h2>Save to history</h2>
+                          <p>Persist this reviewed run locally for duplicate checks and status tracking.</p>
+                        </div>
+                        <span>{historySaveSummary ? `${historySaveSummary.saved_count} saved` : 'Manual'}</span>
+                      </div>
+                      <label className="checkbox-row">
+                        <input
+                          type="checkbox"
+                          checked={includeRawTextInHistory}
+                          onChange={(event) => setIncludeRawTextInHistory(event.target.checked)}
+                        />
+                        Include raw job text in local history
+                      </label>
+                      <button
+                        type="button"
+                        className="primary-button"
+                        disabled={historySaveLoading}
+                        onClick={saveCurrentRunToHistory}
+                      >
+                        {historySaveLoading ? 'Saving to history...' : 'Save to history'}
+                      </button>
+                      {historySaveError ? <p className="status-message">{historySaveError}</p> : null}
+                      {historySaveSummary ? (
+                        <div className="save-summary">
+                          <span>Saved {historySaveSummary.saved_count}</span>
+                          <span>Duplicates {historySaveSummary.duplicate_count}</span>
+                          <span>Errors {historySaveSummary.errors.length}</span>
                         </div>
                       ) : null}
                     </section>
@@ -901,6 +1073,103 @@ function App() {
                   </section>
                 </article>
               ) : null}
+            </div>
+          ) : null}
+
+          {activePage.id === 'history' ? (
+            <div className="history-layout">
+              <section className="history-toolbar">
+                <div>
+                  <h2>Saved jobs</h2>
+                  <p>
+                    History is stored locally under the ignored backend data folder. Save a capture run
+                    from the Capture page to populate this tracker.
+                  </p>
+                </div>
+                <button type="button" className="secondary-button" onClick={loadHistoryJobs}>
+                  {historyLoading ? 'Refreshing...' : 'Refresh'}
+                </button>
+              </section>
+
+              {historyError ? <p className="status-message">{historyError}</p> : null}
+
+              <section className="filter-bar" aria-label="History filters">
+                {historyFilters.map((filter) => (
+                  <button
+                    key={filter}
+                    type="button"
+                    className={filter === activeHistoryFilter ? 'filter-button active' : 'filter-button'}
+                    onClick={() => setActiveHistoryFilter(filter)}
+                  >
+                    {filter} ({historyCounts[filter] ?? 0})
+                  </button>
+                ))}
+              </section>
+
+              {filteredHistoryJobs.length > 0 ? (
+                <section className="history-table" aria-label="Saved reviewed jobs">
+                  <div className="history-row history-header">
+                    <span>Decision</span>
+                    <span>Job</span>
+                    <span>Location</span>
+                    <span>Score</span>
+                    <span>Status</span>
+                    <span>Saved</span>
+                  </div>
+                  {filteredHistoryJobs.map((entry) => (
+                    <article className="history-row" key={entry.history_id}>
+                      <div>
+                        <span className={decisionClass(entry.decision)}>{entry.decision}</span>
+                      </div>
+                      <div>
+                        <strong>{entry.title || 'Untitled job'}</strong>
+                        <small>{entry.company || 'Unknown company'}</small>
+                      </div>
+                      <div>
+                        <span>{entry.location || 'Unknown'}</span>
+                        <small>{entry.work_mode}</small>
+                      </div>
+                      <div>
+                        <strong>{entry.score}</strong>
+                        <small>{entry.priority} / {entry.parser_confidence}</small>
+                      </div>
+                      <div>
+                        <select
+                          value={entry.application_status}
+                          disabled={updatingHistoryId === entry.history_id}
+                          onChange={(event) =>
+                            updateStatus(entry.history_id, event.target.value as ApplicationStatus)
+                          }
+                        >
+                          {applicationStatuses.map((status) => (
+                            <option key={status} value={status}>
+                              {status}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <span>{new Date(entry.saved_at).toLocaleDateString()}</span>
+                        {entry.source_url ? (
+                          <a href={entry.source_url} target="_blank" rel="noreferrer">
+                            Source
+                          </a>
+                        ) : (
+                          <small>No source URL</small>
+                        )}
+                      </div>
+                    </article>
+                  ))}
+                </section>
+              ) : (
+                <section className="empty-state large">
+                  <h2>No saved jobs yet</h2>
+                  <p>
+                    Run a capture review, click Save to history, then return here to update
+                    application statuses and revisit previous decisions.
+                  </p>
+                </section>
+              )}
             </div>
           ) : null}
         </section>

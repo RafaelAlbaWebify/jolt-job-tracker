@@ -52,8 +52,12 @@ Expected result:
 11. Open expandable card sections for warnings, missing information, matched keywords, and raw staged preview.
 12. Click `Export JSON`, `Export CSV`, or `Export XLSX`.
 13. Confirm the UI shows generated paths under `data/exports/`.
-14. Open the Rule Profiles page.
-15. Confirm Rafael Default is labeled as a demo/default preset, not global hardcoded behavior.
+14. Click `Save to history`.
+15. Open History / Tracker.
+16. Confirm saved jobs appear with decision, score, parser confidence, saved date, and application status.
+17. Change one status to `Applied`, `Interview`, `Watchlist`, or `Archived`.
+18. Open the Rule Profiles page.
+19. Confirm Rafael Default is labeled as a demo/default preset, not global hardcoded behavior.
 
 ## Expected Visible Results
 
@@ -63,6 +67,8 @@ Expected result:
 - A low-information job should produce Manual Review or Maybe-style uncertainty.
 - Decision cards should show score, priority, parser confidence, reasons, warnings, missing information, and matched keywords.
 - Export controls should generate local JSON, CSV, and XLSX files under ignored `backend/data/exports/`.
+- Save to history should persist reviewed jobs under ignored `backend/data/history/`.
+- History / Tracker should allow local application status updates across page visits.
 
 ## Useful Screenshots
 
@@ -75,6 +81,7 @@ For GitHub or LinkedIn, capture:
 - One Discard decision card showing a hard discard reason.
 - One Manual Review / uncertain result showing parser confidence or missing information.
 - Export package controls showing generated local file paths.
+- History / Tracker showing saved jobs and the application status selector.
 - Rule Profiles page showing Rafael Default as a demo/default profile.
 
 ## What To Say During The Demo
@@ -84,6 +91,7 @@ For GitHub or LinkedIn, capture:
 - Browser automation and LinkedIn scraping are intentionally disabled in this safe boundary.
 - The real backend parser, configurable profiles, and decision engine are used.
 - Export files are local generated artifacts and are ignored by Git.
+- History is local generated data and is ignored by Git.
 - The project is designed to make uncertainty visible rather than hide it.
 
 ## Do Not Demo As Implemented Yet
@@ -92,7 +100,7 @@ These are future phases:
 
 - real browser automation;
 - LinkedIn scraping;
-- persistent history/tracker;
+- database-backed or cloud-synced history/tracker;
 - downloadable export streaming;
 - full multi-sheet application tracker workflow;
 - profile editing UI;

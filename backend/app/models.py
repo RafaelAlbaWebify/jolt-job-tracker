@@ -35,6 +35,7 @@ ParserConfidence = Literal["high", "medium", "low"]
 CaptureRunStatus = Literal["completed", "completed_with_errors", "failed"]
 ExportFormat = Literal["json", "csv", "xlsx"]
 ExportStatus = Literal["completed", "failed"]
+ApplicationStatus = Literal["Not started", "Applied", "Interview", "Rejected", "Archived", "Watchlist"]
 
 
 class NormalizedJob(BaseModel):
@@ -150,3 +151,47 @@ class ExportCaptureResultResponse(BaseModel):
     status: ExportStatus
     files: list[str]
     warnings: list[str]
+
+
+class HistoryJobEntry(BaseModel):
+    history_id: str
+    saved_at: str
+    run_id: str
+    profile_id: str
+    source: str
+    source_url: str = ""
+    external_id: str = ""
+    title: str = ""
+    company: str = ""
+    location: str = ""
+    work_mode: str = "unknown"
+    decision: DecisionLabel
+    priority: PriorityLabel
+    score: int
+    parser_confidence: ParserConfidence
+    reasons: list[str] = []
+    warnings: list[str] = []
+    missing_information: list[str] = []
+    matched_positive_keywords: list[str] = []
+    matched_risk_keywords: list[str] = []
+    raw_text_included: bool = False
+    raw_text: str | None = None
+    application_status: ApplicationStatus = "Not started"
+
+
+class SaveCaptureResultHistoryRequest(BaseModel):
+    capture_result: CaptureRunResult
+    include_raw_text: bool = False
+    default_application_status: ApplicationStatus = "Not started"
+
+
+class SaveCaptureResultHistoryResponse(BaseModel):
+    saved_count: int
+    duplicate_count: int
+    updated_count: int
+    errors: list[str]
+    history_ids: list[str]
+
+
+class UpdateApplicationStatusRequest(BaseModel):
+    application_status: ApplicationStatus

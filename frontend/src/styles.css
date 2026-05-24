@@ -195,6 +195,7 @@ p {
 .control-section,
 .review-overview,
 .export-panel,
+.history-save-panel,
 .empty-state.large {
   border: 1px solid #d9e0e4;
   border-radius: 8px;
@@ -449,11 +450,34 @@ textarea {
   background: #ffffff;
 }
 
-.export-panel .section-heading p {
+.export-panel .section-heading p,
+.history-save-panel .section-heading p,
+.history-toolbar p {
   color: #60717b;
   font-size: 0.9rem;
   line-height: 1.4;
   margin-top: 4px;
+}
+
+.history-save-panel {
+  background: #f7faf9;
+  display: grid;
+  gap: 12px;
+}
+
+.save-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.save-summary span {
+  border: 1px solid #bed0d5;
+  border-radius: 999px;
+  color: #31535d;
+  font-size: 0.82rem;
+  font-weight: 700;
+  padding: 5px 9px;
 }
 
 .export-results {
@@ -726,6 +750,70 @@ dd {
   margin-top: 24px;
 }
 
+.history-layout {
+  display: grid;
+  gap: 14px;
+  margin-top: 24px;
+}
+
+.history-toolbar {
+  align-items: flex-start;
+  border: 1px solid #d9e0e4;
+  border-radius: 8px;
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px;
+}
+
+.history-toolbar h2,
+.history-toolbar p {
+  margin: 0;
+}
+
+.history-table {
+  border: 1px solid #d9e0e4;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.history-row {
+  align-items: center;
+  border-top: 1px solid #e3e9ec;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 120px minmax(180px, 1.4fr) minmax(140px, 1fr) 110px 160px 140px;
+  padding: 12px;
+}
+
+.history-row:first-child {
+  border-top: 0;
+}
+
+.history-header {
+  background: #f5f7f8;
+  color: #60717b;
+  font-size: 0.82rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.history-row strong,
+.history-row small,
+.history-row span,
+.history-row a {
+  display: block;
+}
+
+.history-row small {
+  color: #60717b;
+  margin-top: 4px;
+}
+
+.history-row select {
+  min-width: 140px;
+}
+
 .status-message {
   grid-column: 1 / -1;
 }
@@ -867,13 +955,15 @@ dd {
   .profiles-layout,
   .profile-fields,
   .keyword-sections,
-  .detail-grid {
+  .detail-grid,
+  .history-row {
     grid-template-columns: 1fr;
   }
 
   .decision-card-header,
   .profile-detail-header,
-  .staged-list article {
+  .staged-list article,
+  .history-toolbar {
     grid-template-columns: 1fr;
     display: grid;
   }

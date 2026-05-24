@@ -5,6 +5,7 @@ from app.api.capture import router as capture_router
 from app.api.classify import router as classify_router
 from app.api.export import router as export_router
 from app.api.health import router as health_router
+from app.api.history import router as history_router
 from app.api.parse import router as parse_router
 from app.api.profiles import router as profiles_router
 
@@ -24,3 +25,4 @@ app.include_router(classify_router)
 app.include_router(parse_router)
 app.include_router(capture_router)
 app.include_router(export_router)
+app.include_router(history_router)

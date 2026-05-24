@@ -124,6 +124,54 @@ export type ExportCaptureResultResponse = {
   warnings: string[];
 };
 
+export type ApplicationStatus =
+  | 'Not started'
+  | 'Applied'
+  | 'Interview'
+  | 'Rejected'
+  | 'Archived'
+  | 'Watchlist';
+
+export type HistoryJobEntry = {
+  history_id: string;
+  saved_at: string;
+  run_id: string;
+  profile_id: string;
+  source: string;
+  source_url: string;
+  external_id: string;
+  title: string;
+  company: string;
+  location: string;
+  work_mode: string;
+  decision: DecisionResult['decision'];
+  priority: DecisionResult['priority'];
+  score: number;
+  parser_confidence: NormalizedJob['parser_confidence'];
+  reasons: string[];
+  warnings: string[];
+  missing_information: string[];
+  matched_positive_keywords: string[];
+  matched_risk_keywords: string[];
+  raw_text_included: boolean;
+  raw_text: string | null;
+  application_status: ApplicationStatus;
+};
+
+export type SaveCaptureResultHistoryRequest = {
+  capture_result: CaptureRunResult;
+  include_raw_text: boolean;
+  default_application_status?: ApplicationStatus;
+};
+
+export type SaveCaptureResultHistoryResponse = {
+  saved_count: number;
+  duplicate_count: number;
+  updated_count: number;
+  errors: string[];
+  history_ids: string[];
+};
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000';
 
 async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
@@ -171,5 +219,34 @@ export async function exportCaptureResult(
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(request),
+  });
+}
+
+export async function saveCaptureResultToHistory(
+  request: SaveCaptureResultHistoryRequest,
+): Promise<SaveCaptureResultHistoryResponse> {
+  return fetchJson<SaveCaptureResultHistoryResponse>('/api/history/save-capture-result', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(request),
+  });
+}
+
+export async function fetchHistoryJobs(): Promise<HistoryJobEntry[]> {
+  return fetchJson<HistoryJobEntry[]>('/api/history/jobs');
+}
+
+export async function updateHistoryJobStatus(
+  historyId: string,
+  applicationStatus: ApplicationStatus,
+): Promise<HistoryJobEntry> {
+  return fetchJson<HistoryJobEntry>(`/api/history/jobs/${historyId}/status`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ application_status: applicationStatus }),
   });
 }

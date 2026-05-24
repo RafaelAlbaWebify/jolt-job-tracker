@@ -510,3 +510,42 @@
 - Remaining risks / follow-up:
   - Export files are generated locally and paths are shown in the UI, but download streaming is intentionally not implemented yet.
   - The XLSX is a focused capture review sheet; richer multi-sheet application tracker/export package remains a future phase.
+
+## 2026-05-24 - Phase 9 Local History and Application Tracker Persistence
+
+- Type: Feature / Test / Docs
+- Files changed:
+  - `backend/app/models.py`
+  - `backend/app/main.py`
+  - `backend/app/api/history.py`
+  - `backend/app/services/history_store.py`
+  - `backend/tests/test_history_store.py`
+  - `frontend/src/api.ts`
+  - `frontend/src/App.tsx`
+  - `frontend/src/styles.css`
+  - `README.md`
+  - `docs/architecture.md`
+  - `docs/demo-checklist.md`
+  - `docs/engineering-log.md`
+- Problem / goal:
+  - Add local history/tracker persistence so reviewed capture results can be saved and revisited across sessions.
+  - Keep persistence local, ignored by Git, and portfolio-safe.
+- Root cause:
+  - Phase 8 could export reviewed results, but the app still had no local application-status tracker or duplicate-aware reviewed-job history.
+- Change made:
+  - Added history models for saved reviewed jobs, save summaries, and application status updates.
+  - Added a JSONL-backed history store under ignored `backend/data/history/`.
+  - Added duplicate detection by source URL, external ID, or normalized title/company/location fallback.
+  - Added `POST /api/history/save-capture-result`, `GET /api/history/jobs`, `GET /api/history/jobs/{history_id}`, and `PATCH /api/history/jobs/{history_id}/status`.
+  - Added frontend Capture controls to save a reviewed run to history manually.
+  - Added a History / Tracker page with saved job filters and application status updates.
+  - Updated README, architecture notes, and demo checklist for the implemented history flow.
+- Tests/checks run:
+  - Ran `cd backend && .\.venv\Scripts\python.exe -m pytest`.
+  - Ran `cd frontend && npm run build`.
+- Result:
+  - Backend tests passed: 52 passed, 1 pytest cache warning.
+  - Frontend production build passed.
+- Remaining risks / follow-up:
+  - History uses simple local JSONL storage, not a database.
+  - Capture-time duplicate/already-reviewed labeling against history remains a future phase.

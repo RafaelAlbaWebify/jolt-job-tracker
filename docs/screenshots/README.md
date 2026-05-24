@@ -5,9 +5,11 @@ Actual screenshots are not committed yet. Use this guide to capture real screens
 ## Recommended Setup
 
 - Browser: Chrome, Edge, or Firefox.
-- Browser zoom: `90%` or `100%`; use `90%` if the Capture page feels cramped.
-- Window width: `1440px` wide when possible.
-- Window height: at least `900px`.
+- Use fullscreen browser when possible.
+- Hide the bookmarks bar before capturing.
+- Browser zoom: start with `100%`; use `90%` if you want more review cards visible.
+- Window size: `1920x1080` is the main target for portfolio screenshots.
+- If using a smaller display, use at least `1440px` wide and crop intentionally.
 - Backend: `http://127.0.0.1:8000`.
 - Frontend: `http://localhost:5173`.
 - Data: use only synthetic demo jobs from the app or synthetic text from `docs/demo-checklist.md`.
@@ -36,12 +38,20 @@ For page text / HTML capture:
 
 | Filename | What it should show |
 | --- | --- |
-| `docs/screenshots/01-capture-page.png` | Capture page before or after `Load demo jobs`, showing local portfolio demo copy, profile selector, capture health, and manual/page text modes. |
-| `docs/screenshots/02-page-text-capture.png` | Page text / HTML mode with synthetic pasted content and the disabled browser-assisted placeholder visible if possible. |
-| `docs/screenshots/03-review-dashboard.png` | Review dashboard after a run, showing decision counts and at least one decision card. |
-| `docs/screenshots/04-export-controls.png` | Export controls after a successful run, ideally showing JSON / CSV / XLSX buttons and a generated local path. |
-| `docs/screenshots/05-history-tracker.png` | History / Tracker after saving demo jobs, showing saved jobs and application status controls. |
+| `docs/screenshots/01-capture-page.png` | Capture page after `Load demo jobs`, showing profile, compact capture health, capture input, and run button. Crop to include the left workflow controls and top of the review area. |
+| `docs/screenshots/02-page-text-capture.png` | Page text / HTML mode with synthetic pasted content, source URL field, and the disabled browser-assisted placeholder visible if possible. |
+| `docs/screenshots/03-review-dashboard.png` | Review dashboard after a run, showing decision counts, filters, and the first decision card. |
+| `docs/screenshots/04-export-controls.png` | Review summary plus export/history controls near the top of the results column. Use a crop that shows JSON / CSV / XLSX buttons. |
+| `docs/screenshots/05-history-tracker.png` | History / Tracker after saving demo jobs, showing the first few saved jobs and application status controls. |
 | `docs/screenshots/06-about-demo-safety.png` | About page showing current milestone, intentionally disabled features, local storage notes, and cleanup control. |
+
+## Recommended Crops
+
+- Capture screenshots should prioritize the left controls plus the top of the right review column.
+- Review screenshots should prioritize the decision summary, filters, and first card rather than the full page height.
+- Export screenshots should crop around the review summary and export/history controls.
+- History screenshots should crop the toolbar, filters, and first few rows.
+- About screenshots can use a taller crop if needed; it does not need to fit entirely above the fold.
 
 ## Privacy Checklist Before Screenshots
 

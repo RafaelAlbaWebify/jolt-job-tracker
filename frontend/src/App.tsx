@@ -728,19 +728,14 @@ function App() {
           {activePage.id === 'capture' ? (
             <div className="capture-workspace">
               <div className="capture-controls">
-                <section className="control-section demo-note">
+                <section className="control-section demo-note compact-note">
                   <div className="section-heading">
                     <h2>Local portfolio demo</h2>
                     <span>Current milestone</span>
                   </div>
                   <p>
-                    Browser automation is intentionally disabled here. This screen reviews manual
-                    jobs or user-provided page text / HTML through the real backend parser and
-                    decision engine.
-                  </p>
-                  <p>
-                    Demo jobs are synthetic. Exports and history are local files under backend/data
-                    and should not be committed if they contain real job-search data.
+                    Review manual jobs or user-provided page text / HTML through the real backend
+                    parser, profile, and decision engine.
                   </p>
                 </section>
 
@@ -773,12 +768,12 @@ function App() {
                   ) : null}
                 </section>
 
-                <section className="control-section">
+                <section className="control-section compact-health">
                   <div className="section-heading">
                     <h2>Capture health</h2>
                     <span>{captureHealth?.capture_mode ?? 'unknown'}</span>
                   </div>
-                  <dl className="health-grid">
+                  <dl className="health-grid health-strip">
                     <div>
                       <dt>Mode</dt>
                       <dd>{captureHealth?.capture_mode ?? 'Unavailable'}</dd>
@@ -793,11 +788,18 @@ function App() {
                     </div>
                   </dl>
                   {captureHealthError ? <p className="status-message">{captureHealthError}</p> : null}
-                  {captureHealth?.warnings.map((warning) => (
-                    <p className="inline-warning" key={warning}>
-                      {warning}
+                  <details className="demo-safety-details">
+                    <summary>Demo safety notes</summary>
+                    <p>
+                      Demo jobs are synthetic. Exports and history are local files under backend/data.
+                      Do not commit real job-search data.
                     </p>
-                  ))}
+                    {captureHealth?.warnings.map((warning) => (
+                      <p className="inline-warning" key={warning}>
+                        {warning}
+                      </p>
+                    ))}
+                  </details>
                 </section>
 
                 <section className="control-section raw-input-section">
@@ -837,7 +839,7 @@ function App() {
                         id="raw-job-text"
                         value={rawJobText}
                         onChange={(event) => setRawJobText(event.target.value)}
-                        rows={9}
+                        rows={7}
                         placeholder="Paste one raw job listing here, then add it to the staged run."
                       />
                       <div className="button-row">
@@ -881,7 +883,7 @@ function App() {
                         id="page-capture-text"
                         value={pageCaptureText}
                         onChange={(event) => setPageCaptureText(event.target.value)}
-                        rows={13}
+                        rows={10}
                         placeholder={`Paste visible job-board text or copied HTML here.
 
 Title: Microsoft 365 Support Specialist
@@ -967,86 +969,88 @@ English required.`}
                       ) : null}
                     </section>
 
-                    <section className="export-panel">
-                      <div className="section-heading">
-                        <div>
-                          <h2>Export package</h2>
-                          <p>Generate local JSON, CSV, or XLSX files under backend/data/exports. Keep real job data out of Git.</p>
+                    <div className="run-action-grid">
+                      <section className="export-panel">
+                        <div className="section-heading">
+                          <div>
+                            <h2>Export package</h2>
+                            <p>Generate local JSON, CSV, or XLSX under backend/data/exports.</p>
+                          </div>
+                          <span>{exportResponses.length} generated</span>
                         </div>
-                        <span>{exportResponses.length} generated</span>
-                      </div>
-                      <label className="checkbox-row">
-                        <input
-                          type="checkbox"
-                          checked={includeRawTextInExport}
-                          onChange={(event) => setIncludeRawTextInExport(event.target.checked)}
-                        />
-                        Include raw job text
-                      </label>
-                      <div className="button-row">
-                        {(['json', 'csv', 'xlsx'] as ExportFormat[]).map((format) => (
-                          <button
-                            key={format}
-                            type="button"
-                            className="secondary-button"
-                            disabled={exportLoading !== null}
-                            onClick={() => runExport(format)}
-                          >
-                            {exportLoading === format ? `Exporting ${format.toUpperCase()}...` : `Export ${format.toUpperCase()}`}
-                          </button>
-                        ))}
-                      </div>
-                      {exportError ? <p className="status-message">{exportError}</p> : null}
-                      {exportResponses.length > 0 ? (
-                        <div className="export-results">
-                          {exportResponses.map((response) => (
-                            <article key={response.export_id}>
-                              <strong>{response.export_id}</strong>
-                              {response.files.map((file) => (
-                                <code key={file}>{file}</code>
-                              ))}
-                              {response.warnings.map((warning) => (
-                                <p key={warning}>{warning}</p>
-                              ))}
-                            </article>
+                        <label className="checkbox-row">
+                          <input
+                            type="checkbox"
+                            checked={includeRawTextInExport}
+                            onChange={(event) => setIncludeRawTextInExport(event.target.checked)}
+                          />
+                          Include raw job text
+                        </label>
+                        <div className="button-row">
+                          {(['json', 'csv', 'xlsx'] as ExportFormat[]).map((format) => (
+                            <button
+                              key={format}
+                              type="button"
+                              className="secondary-button"
+                              disabled={exportLoading !== null}
+                              onClick={() => runExport(format)}
+                            >
+                              {exportLoading === format ? `Exporting ${format.toUpperCase()}...` : `Export ${format.toUpperCase()}`}
+                            </button>
                           ))}
                         </div>
-                      ) : null}
-                    </section>
+                        {exportError ? <p className="status-message">{exportError}</p> : null}
+                        {exportResponses.length > 0 ? (
+                          <div className="export-results compact-export-results">
+                            {exportResponses.slice(0, 2).map((response) => (
+                              <article key={response.export_id}>
+                                <strong>{response.export_id}</strong>
+                                {response.files.map((file) => (
+                                  <code key={file}>{file}</code>
+                                ))}
+                                {response.warnings.map((warning) => (
+                                  <p key={warning}>{warning}</p>
+                                ))}
+                              </article>
+                            ))}
+                          </div>
+                        ) : null}
+                      </section>
 
-                    <section className="history-save-panel">
-                      <div className="section-heading">
-                        <div>
-                          <h2>Save to history</h2>
-                          <p>Persist this reviewed run under backend/data/history for local-only tracking. Do not commit real history.</p>
+                      <section className="history-save-panel">
+                        <div className="section-heading">
+                          <div>
+                            <h2>Save to history</h2>
+                            <p>Persist reviewed jobs under backend/data/history.</p>
+                          </div>
+                          <span>{historySaveSummary ? `${historySaveSummary.saved_count} saved` : 'Manual'}</span>
                         </div>
-                        <span>{historySaveSummary ? `${historySaveSummary.saved_count} saved` : 'Manual'}</span>
-                      </div>
-                      <label className="checkbox-row">
-                        <input
-                          type="checkbox"
-                          checked={includeRawTextInHistory}
-                          onChange={(event) => setIncludeRawTextInHistory(event.target.checked)}
-                        />
-                        Include raw job text in local history
-                      </label>
-                      <button
-                        type="button"
-                        className="primary-button"
-                        disabled={historySaveLoading}
-                        onClick={saveCurrentRunToHistory}
-                      >
-                        {historySaveLoading ? 'Saving to history...' : 'Save to history'}
-                      </button>
-                      {historySaveError ? <p className="status-message">{historySaveError}</p> : null}
-                      {historySaveSummary ? (
-                        <div className="save-summary">
-                          <span>Saved {historySaveSummary.saved_count}</span>
-                          <span>Duplicates {historySaveSummary.duplicate_count}</span>
-                          <span>Errors {historySaveSummary.errors.length}</span>
-                        </div>
-                      ) : null}
-                    </section>
+                        <label className="checkbox-row">
+                          <input
+                            type="checkbox"
+                            checked={includeRawTextInHistory}
+                            onChange={(event) => setIncludeRawTextInHistory(event.target.checked)}
+                          />
+                          Include raw job text in local history
+                        </label>
+                        <button
+                          type="button"
+                          className="primary-button"
+                          disabled={historySaveLoading}
+                          onClick={saveCurrentRunToHistory}
+                        >
+                          {historySaveLoading ? 'Saving to history...' : 'Save to history'}
+                        </button>
+                        {historySaveError ? <p className="status-message">{historySaveError}</p> : null}
+                        {historySaveSummary ? (
+                          <div className="save-summary">
+                            <span>Saved {historySaveSummary.saved_count}</span>
+                            <span>Duplicates {historySaveSummary.duplicate_count}</span>
+                            <span>Errors {historySaveSummary.errors.length}</span>
+                          </div>
+                        ) : null}
+                      </section>
+                    </div>
 
                     <section className="filter-bar" aria-label="Decision filters">
                       {decisionFilters.map((filter) => (

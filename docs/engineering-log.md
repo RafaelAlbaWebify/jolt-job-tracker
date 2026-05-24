@@ -724,3 +724,31 @@
   - Frontend production build passed.
 - Remaining risks / follow-up:
   - Actual screenshots still need to be captured manually from the local app using synthetic data before public sharing.
+
+## 2026-05-24 - Phase 14B Screenshot-Friendly Demo Layout Polish
+
+- Type: Cleanup / Docs
+- Files changed:
+  - `frontend/src/App.tsx`
+  - `frontend/src/styles.css`
+  - `docs/screenshots/README.md`
+  - `docs/engineering-log.md`
+- Problem / goal:
+  - Make the Capture page and History / Tracker more compact for 1920x1080 portfolio screenshots without changing backend behavior.
+- Root cause:
+  - The Capture page workflow was functional but vertically long, making capture mode, input, review summary, export controls, history save, and the first decision card hard to show in one screenshot.
+- Change made:
+  - Converted long Capture safety text into a compact milestone note and collapsible demo safety details.
+  - Changed Capture health into a compact status strip with mode, browser automation status, and last run.
+  - Reduced vertical spacing, card padding, heading scale, textarea height, empty-state height, and result-card detail density.
+  - Placed export package and save-to-history controls into a compact grid directly below the review summary.
+  - Lightly tightened History / Tracker spacing so the first rows and status controls are easier to capture.
+  - Updated screenshot guidance for fullscreen browser use, hidden bookmarks bar, 1920x1080 target, zoom guidance, and recommended crops.
+  - Did not change backend APIs, parser logic, decision rules, browser automation, scraping, or product behavior.
+- Tests/checks run:
+  - Ran `cd frontend && npm run build`.
+  - Backend tests were not run because no backend files or product logic changed.
+- Result:
+  - Frontend production build passed.
+- Remaining risks / follow-up:
+  - Visual verification should be done manually in a browser at 1920x1080 before committing final screenshots.

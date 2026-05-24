@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
+  cleanupDemoData,
   exportCaptureResult,
   fetchBackendHealth,
   fetchCaptureHealth,
@@ -14,6 +15,7 @@ import {
   type CaptureJobResult,
   type CaptureRunResult,
   type DecisionResult,
+  type DemoCleanupResponse,
   type ExportCaptureResultResponse,
   type ExportFormat,
   type HealthResponse,
@@ -357,6 +359,10 @@ function App() {
   const [historyError, setHistoryError] = useState<string | null>(null);
   const [activeHistoryFilter, setActiveHistoryFilter] = useState<HistoryFilter>('All');
   const [updatingHistoryId, setUpdatingHistoryId] = useState<string | null>(null);
+  const [cleanupConfirmed, setCleanupConfirmed] = useState<boolean>(false);
+  const [cleanupLoading, setCleanupLoading] = useState<boolean>(false);
+  const [cleanupError, setCleanupError] = useState<string | null>(null);
+  const [cleanupResult, setCleanupResult] = useState<DemoCleanupResponse | null>(null);
 
   const activePage = useMemo(
     () => pages.find((page) => page.id === activePageId) ?? pages[0],
@@ -641,6 +647,29 @@ function App() {
     }
   }
 
+  async function runDemoCleanup() {
+    if (!cleanupConfirmed) {
+      setCleanupError('Confirm that you understand this deletes local demo exports and history.');
+      return;
+    }
+
+    setCleanupLoading(true);
+    setCleanupError(null);
+
+    try {
+      const result = await cleanupDemoData();
+      setCleanupResult(result);
+      setHistoryJobs([]);
+      setExportResponses([]);
+      setHistorySaveSummary(null);
+      setCleanupConfirmed(false);
+    } catch (error: unknown) {
+      setCleanupError(error instanceof Error ? error.message : 'Demo cleanup failed');
+    } finally {
+      setCleanupLoading(false);
+    }
+  }
+
   return (
     <div className="app-shell">
       <aside className="sidebar" aria-label="Main navigation">
@@ -692,6 +721,10 @@ function App() {
                   <p>
                     Browser automation is intentionally disabled here. This screen stages raw jobs,
                     then sends them through the real backend parser and decision engine.
+                  </p>
+                  <p>
+                    Demo jobs are synthetic. Exports and history are local files under backend/data
+                    and should not be committed if they contain real job-search data.
                   </p>
                 </section>
 
@@ -851,7 +884,7 @@ function App() {
                       <div className="section-heading">
                         <div>
                           <h2>Export package</h2>
-                          <p>Generate local files under backend/data/exports.</p>
+                          <p>Generate local files under backend/data/exports. Keep real job data out of Git.</p>
                         </div>
                         <span>{exportResponses.length} generated</span>
                       </div>
@@ -898,7 +931,7 @@ function App() {
                       <div className="section-heading">
                         <div>
                           <h2>Save to history</h2>
-                          <p>Persist this reviewed run locally for duplicate checks and status tracking.</p>
+                          <p>Persist this reviewed run under backend/data/history for local-only tracking.</p>
                         </div>
                         <span>{historySaveSummary ? `${historySaveSummary.saved_count} saved` : 'Manual'}</span>
                       </div>
@@ -1165,11 +1198,99 @@ function App() {
                 <section className="empty-state large">
                   <h2>No saved jobs yet</h2>
                   <p>
-                    Run a capture review, click Save to history, then return here to update
-                    application statuses and revisit previous decisions.
+                    Run a capture review from the Capture page, click Save to history, then return
+                    here to track statuses across sessions.
                   </p>
                 </section>
               )}
+            </div>
+          ) : null}
+
+          {activePage.id === 'about' ? (
+            <div className="about-layout">
+              <section className="about-panel">
+                <h2>What LinkAut does</h2>
+                <p>
+                  LinkAut is a local job-offer decision assistant. It turns raw job text into
+                  normalized job records, applies a selected rule profile, and shows explainable
+                  Apply, Maybe, Discard, Manual Review, or Duplicate decisions.
+                </p>
+              </section>
+
+              <section className="about-grid">
+                <article>
+                  <h3>Current safe workflow</h3>
+                  <p>
+                    Manual raw jobs or demo jobs go through the backend parser, configurable
+                    profiles, decision engine, review dashboard, export package, and local history
+                    tracker.
+                  </p>
+                </article>
+                <article>
+                  <h3>Implemented modules</h3>
+                  <p>
+                    FastAPI health, profile loading, parser, classifier, capture boundary, export
+                    package, history store, React capture dashboard, Rule Profiles, and History /
+                    Tracker.
+                  </p>
+                </article>
+                <article>
+                  <h3>Intentionally disabled</h3>
+                  <p>
+                    Browser automation, LinkedIn scraping, profile editing, authentication,
+                    database storage, and auto-apply behavior are not part of this safe demo.
+                  </p>
+                </article>
+                <article>
+                  <h3>Local and private</h3>
+                  <p>
+                    Generated exports and history stay on this machine under backend/data. They are
+                    ignored by Git, and real captured job data should never be committed.
+                  </p>
+                </article>
+              </section>
+
+              <section className="cleanup-panel">
+                <div className="section-heading">
+                  <div>
+                    <h2>Demo safety cleanup</h2>
+                    <p>
+                      This deletes generated local demo artifacts from backend/data/exports and
+                      backend/data/history only. It never runs automatically.
+                    </p>
+                  </div>
+                  <span>Local only</span>
+                </div>
+                <label className="checkbox-row">
+                  <input
+                    type="checkbox"
+                    checked={cleanupConfirmed}
+                    onChange={(event) => setCleanupConfirmed(event.target.checked)}
+                  />
+                  I understand this deletes local demo exports and history
+                </label>
+                <button
+                  type="button"
+                  className="danger-button"
+                  disabled={!cleanupConfirmed || cleanupLoading}
+                  onClick={runDemoCleanup}
+                >
+                  {cleanupLoading ? 'Cleaning local demo data...' : 'Clean local demo data'}
+                </button>
+                {cleanupError ? <p className="status-message">{cleanupError}</p> : null}
+                {cleanupResult ? (
+                  <div className="save-summary">
+                    <span>Exports deleted {cleanupResult.exports_files_deleted}</span>
+                    <span>History deleted {cleanupResult.history_files_deleted}</span>
+                    <span>Folders cleaned {cleanupResult.directories_deleted}</span>
+                  </div>
+                ) : null}
+                {cleanupResult?.warnings.map((warning) => (
+                  <p className="inline-warning" key={warning}>
+                    {warning}
+                  </p>
+                ))}
+              </section>
             </div>
           ) : null}
         </section>

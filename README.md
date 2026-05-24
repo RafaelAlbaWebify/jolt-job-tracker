@@ -67,6 +67,7 @@ The goal is not to hide uncertainty. Low parser confidence, missing work mode, u
 - JSON, CSV, and XLSX export formats under ignored `backend/data/exports/`.
 - Local history/tracker persistence under ignored `backend/data/history/`.
 - Save reviewed capture runs to history and update application status locally.
+- Demo cleanup endpoint and UI button for clearing local exports/history.
 - Backend tests for profiles, parsing, classification, capture runner, export, history, and health.
 - Frontend production build with `npm run build`.
 
@@ -90,6 +91,7 @@ The goal is not to hide uncertainty. Low parser confidence, missing work mode, u
 - Capture runner for simulated capture runs over manual raw jobs.
 - Export service for JSON, CSV, and XLSX files generated from capture review results.
 - History store for local reviewed-job persistence, duplicate detection, and application status updates.
+- Demo cleanup service for removing generated local demo exports/history.
 
 ### Data Flow
 
@@ -127,6 +129,7 @@ Run the backend locally, then use `http://127.0.0.1:8000`.
 | GET | `/api/history/jobs` | List saved reviewed jobs. |
 | GET | `/api/history/jobs/{history_id}` | Load one saved job. |
 | PATCH | `/api/history/jobs/{history_id}/status` | Update a saved job's application status. |
+| POST | `/api/demo/cleanup` | Delete generated local demo files under `backend/data/exports/` and `backend/data/history/`. |
 
 Example capture request:
 
@@ -196,9 +199,16 @@ http://localhost:5173
 8. Review Apply / Discard / Manual Review result cards.
 9. Optionally click `Export JSON`, `Export CSV`, or `Export XLSX` to generate local files under `backend/data/exports/`.
 10. Optionally click `Save to history`, then open History / Tracker and update an application status.
-11. Open Rule Profiles to confirm Rafael Default is a demo/default profile, not a global hardcoded rule set.
+11. Open About to review demo safety and optionally clean local demo data.
+12. Open Rule Profiles to confirm Rafael Default is a demo/default profile, not a global hardcoded rule set.
 
 See [docs/demo-checklist.md](docs/demo-checklist.md) for a reviewer/demo checklist.
+
+## Demo Safety
+
+The built-in demo jobs are synthetic. Browser automation and LinkedIn scraping are disabled in the current safe boundary. Generated exports and history are local files under `backend/data/`, ignored by Git, and can be cleared from the About page with `Clean local demo data`.
+
+Do not commit real captured job text, recruiter notes, application history, or generated tracker files.
 
 ## Current Limitations
 

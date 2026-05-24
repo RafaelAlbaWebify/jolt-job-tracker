@@ -195,3 +195,11 @@ class SaveCaptureResultHistoryResponse(BaseModel):
 
 class UpdateApplicationStatusRequest(BaseModel):
     application_status: ApplicationStatus
+
+
+class DemoCleanupResponse(BaseModel):
+    status: str
+    exports_files_deleted: int
+    history_files_deleted: int
+    directories_deleted: int
+    warnings: list[str]

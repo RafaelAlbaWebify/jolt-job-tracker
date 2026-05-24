@@ -32,6 +32,7 @@ backend/
       capture_runner.py
       decision_engine.py
       export_package.py
+      demo_cleanup.py
       history_store.py
       parser.py
       profiles.py
@@ -111,6 +112,12 @@ Generated files are written under ignored `backend/data/exports/`. Raw job text 
 
 The current implementation uses JSONL file storage rather than a database. It can save reviewed capture results, list saved jobs, load one saved job, update application status, and detect duplicates by source URL, external ID, or normalized title/company/location fallback.
 
+### Demo Cleanup
+
+`backend/app/services/demo_cleanup.py` removes generated local demo artifacts from `backend/data/exports/` and `backend/data/history/` only.
+
+The cleanup endpoint is manual, local-only, and path-fenced so it cannot delete source code, specs, default profiles, or arbitrary filesystem paths.
+
 ## Frontend Pages
 
 The current frontend is a compact React app rather than a fully split page/component tree.
@@ -120,7 +127,8 @@ Implemented views:
 - Capture: primary demo workflow, profile selector, capture health, staged raw jobs, demo jobs, review dashboard, decision filters, decision cards.
 - Rule Profiles: profile list and profile detail view.
 - History / Tracker: saved reviewed jobs, simple filters, and application status updates.
-- Review Dashboard, Manual Paste / Debug, About: visible navigation placeholders for future phases.
+- About: project purpose, demo safety notes, intentionally disabled features, and local cleanup control.
+- Review Dashboard and Manual Paste / Debug: visible navigation placeholders for future phases.
 
 ## API Surface
 
@@ -139,6 +147,7 @@ Current local endpoints:
 - `GET /api/history/jobs`
 - `GET /api/history/jobs/{history_id}`
 - `PATCH /api/history/jobs/{history_id}/status`
+- `POST /api/demo/cleanup`
 
 ## Current Data Flow
 
@@ -156,6 +165,7 @@ Frontend Capture page
 -> user optionally saves reviewed jobs
 -> backend writes JSONL history under backend/data/history/
 -> History / Tracker displays saved jobs and updates application status
+-> About can manually clean generated local demo exports/history
 ```
 
 ## Intentionally Excluded Features
@@ -178,4 +188,4 @@ These exclusions keep the project honest and portfolio-safe while the parser/pro
 - Safer browser-assisted capture adapter behind the existing capture runner boundary.
 - Profile editing and validation UI.
 - Demo mode with committed fake/anonymized sample runs.
-- Privacy cleanup preview and cleanup command.
+- Broader privacy cleanup preview for logs, runs, and other generated private data.

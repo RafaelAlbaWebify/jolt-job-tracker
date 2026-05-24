@@ -172,6 +172,14 @@ export type SaveCaptureResultHistoryResponse = {
   history_ids: string[];
 };
 
+export type DemoCleanupResponse = {
+  status: string;
+  exports_files_deleted: number;
+  history_files_deleted: number;
+  directories_deleted: number;
+  warnings: string[];
+};
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000';
 
 async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
@@ -248,5 +256,11 @@ export async function updateHistoryJobStatus(
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({ application_status: applicationStatus }),
+  });
+}
+
+export async function cleanupDemoData(): Promise<DemoCleanupResponse> {
+  return fetchJson<DemoCleanupResponse>('/api/demo/cleanup', {
+    method: 'POST',
   });
 }

@@ -333,6 +333,7 @@ textarea {
 }
 
 .primary-button,
+.danger-button,
 .secondary-button,
 .run-button,
 .filter-button,
@@ -346,6 +347,13 @@ textarea {
 .run-button {
   background: #0f766e;
   border-color: #0f766e;
+  color: #ffffff;
+  font-weight: 700;
+}
+
+.danger-button {
+  background: #9f2d20;
+  border-color: #9f2d20;
   color: #ffffff;
   font-weight: 700;
 }
@@ -750,6 +758,49 @@ dd {
   margin-top: 24px;
 }
 
+.about-layout {
+  display: grid;
+  gap: 14px;
+  margin-top: 24px;
+}
+
+.about-panel,
+.cleanup-panel,
+.about-grid article {
+  border: 1px solid #d9e0e4;
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.about-panel {
+  background: #fbfcfc;
+}
+
+.about-panel p,
+.about-grid p,
+.cleanup-panel p {
+  color: #40545d;
+  line-height: 1.55;
+  margin-bottom: 0;
+}
+
+.about-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.about-grid h3,
+.about-panel h2,
+.cleanup-panel h2 {
+  margin-bottom: 8px;
+}
+
+.cleanup-panel {
+  display: grid;
+  gap: 12px;
+}
+
 .history-layout {
   display: grid;
   gap: 14px;
@@ -950,6 +1001,7 @@ dd {
   }
 
   .summary-grid,
+  .about-grid,
   .decision-overview-grid,
   .job-facts,
   .profiles-layout,

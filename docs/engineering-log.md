@@ -549,3 +549,41 @@
 - Remaining risks / follow-up:
   - History uses simple local JSONL storage, not a database.
   - Capture-time duplicate/already-reviewed labeling against history remains a future phase.
+
+## 2026-05-24 - Phase 10 Portfolio Demo Finishing Pass
+
+- Type: Feature / Cleanup / Test / Docs
+- Files changed:
+  - `backend/app/models.py`
+  - `backend/app/main.py`
+  - `backend/app/api/demo.py`
+  - `backend/app/services/demo_cleanup.py`
+  - `backend/tests/test_demo_cleanup.py`
+  - `frontend/src/api.ts`
+  - `frontend/src/App.tsx`
+  - `frontend/src/styles.css`
+  - `README.md`
+  - `docs/architecture.md`
+  - `docs/demo-checklist.md`
+  - `docs/engineering-log.md`
+- Problem / goal:
+  - Improve portfolio/demo presentation and add a safe local cleanup path for generated demo exports/history.
+  - Keep the phase focused on demo polish, safety, and usability without adding risky automation.
+- Root cause:
+  - The verified workflow was functional, but the About page was still a placeholder and generated demo data had to be cleaned manually.
+- Change made:
+  - Added `POST /api/demo/cleanup` for manual local cleanup of `backend/data/exports/` and `backend/data/history/` only.
+  - Added path-fenced cleanup logic with deleted file/directory counts and warnings.
+  - Added backend cleanup tests for allowed-folder deletion, missing folders, returned counts, and protection of files outside the allowed folders.
+  - Reworked the About page to explain LinkAut, the safe workflow, implemented modules, intentionally disabled features, local/privacy-first behavior, portfolio purpose, and cleanup controls.
+  - Added UI privacy notes for synthetic demo jobs, local exports, and local history.
+  - Improved the History empty state wording.
+  - Updated README, architecture docs, and demo checklist for demo safety and cleanup.
+- Tests/checks run:
+  - Ran `cd backend && .\.venv\Scripts\python.exe -m pytest`.
+  - Ran `cd frontend && npm run build`.
+- Result:
+  - Backend tests passed: 56 passed, 1 pytest cache warning.
+  - Frontend production build passed.
+- Remaining risks / follow-up:
+  - Cleanup intentionally covers only exports/history in this phase; broader privacy cleanup for logs, runs, captures, and preview mode remains future work.

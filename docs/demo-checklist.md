@@ -56,8 +56,22 @@ Expected result:
 15. Open History / Tracker.
 16. Confirm saved jobs appear with decision, score, parser confidence, saved date, and application status.
 17. Change one status to `Applied`, `Interview`, `Watchlist`, or `Archived`.
-18. Open the Rule Profiles page.
-19. Confirm Rafael Default is labeled as a demo/default preset, not global hardcoded behavior.
+18. Open About.
+19. Confirm the page explains local-only demo safety and intentionally disabled automation.
+20. Optionally check the cleanup confirmation and click `Clean local demo data`.
+21. Confirm deleted export/history file counts are shown.
+22. Open the Rule Profiles page.
+23. Confirm Rafael Default is labeled as a demo/default preset, not global hardcoded behavior.
+
+## Suggested Short Demo Flow
+
+1. Start backend and frontend.
+2. Load demo jobs.
+3. Run capture review.
+4. Export XLSX.
+5. Save to history.
+6. Update one status.
+7. Optionally clean local demo data from About.
 
 ## Expected Visible Results
 
@@ -69,6 +83,7 @@ Expected result:
 - Export controls should generate local JSON, CSV, and XLSX files under ignored `backend/data/exports/`.
 - Save to history should persist reviewed jobs under ignored `backend/data/history/`.
 - History / Tracker should allow local application status updates across page visits.
+- About should explain demo safety and allow manual cleanup of generated local demo exports/history.
 
 ## Useful Screenshots
 
@@ -82,6 +97,7 @@ For GitHub or LinkedIn, capture:
 - One Manual Review / uncertain result showing parser confidence or missing information.
 - Export package controls showing generated local file paths.
 - History / Tracker showing saved jobs and the application status selector.
+- About page showing local-only privacy notes and cleanup confirmation.
 - Rule Profiles page showing Rafael Default as a demo/default profile.
 
 ## What To Say During The Demo
@@ -92,6 +108,7 @@ For GitHub or LinkedIn, capture:
 - The real backend parser, configurable profiles, and decision engine are used.
 - Export files are local generated artifacts and are ignored by Git.
 - History is local generated data and is ignored by Git.
+- The cleanup button only removes generated local exports/history and does not touch source code.
 - The project is designed to make uncertainty visible rather than hide it.
 
 ## Do Not Demo As Implemented Yet

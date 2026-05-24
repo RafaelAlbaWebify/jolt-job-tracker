@@ -1,4 +1,4 @@
-# LinkAut Release Checklist
+# JOLT Release Checklist
 
 Use this before publishing, sharing, or recording a portfolio walkthrough.
 

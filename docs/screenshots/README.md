@@ -1,6 +1,6 @@
-# Screenshot Capture Guide
+# JOLT Screenshot Capture Guide
 
-Actual screenshots are not committed yet. Use this guide to capture real screenshots manually from the local app with synthetic demo data only.
+Real screenshots are committed in this folder. Use this guide when refreshing JOLT screenshots manually from the local app with synthetic demo data only.
 
 ## Recommended Setup
 

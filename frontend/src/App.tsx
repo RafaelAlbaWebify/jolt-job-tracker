@@ -73,7 +73,7 @@ const pages: Page[] = [
     eyebrow: 'Configuration',
     title: 'Rule profiles',
     body:
-      'Profiles make LinkAut reusable. Select a default profile to inspect its rules; editing and classification arrive in later phases.',
+      'Profiles make JOLT reusable. Select a default profile to inspect its rules; editing and classification arrive in later phases.',
   },
   {
     id: 'history',
@@ -95,9 +95,9 @@ const pages: Page[] = [
     id: 'about',
     label: 'About',
     eyebrow: 'Local assistant',
-    title: 'About LinkAut',
+    title: 'About JOLT',
     body:
-      'LinkAut is a local job-offer automation assistant for capture, parsing, configurable sorting, human review, and tracker-ready exports.',
+      'JOLT is a local job-offer automation assistant for capture, parsing, configurable sorting, human review, and tracker-ready exports.',
   },
 ];
 
@@ -689,10 +689,10 @@ function App() {
     <div className="app-shell">
       <aside className="sidebar" aria-label="Main navigation">
         <div className="brand">
-          <span className="brand-mark">LA</span>
+          <span className="brand-mark">J</span>
           <div>
-            <strong>LinkAut</strong>
-            <span>Local job assistant</span>
+            <strong>JOLT</strong>
+            <span>Job logic tracker</span>
           </div>
         </div>
 
@@ -1300,9 +1300,9 @@ English required.`}
           {activePage.id === 'about' ? (
             <div className="about-layout">
               <section className="about-panel">
-                <h2>What LinkAut does</h2>
+                <h2>What JOLT does</h2>
                 <p>
-                  LinkAut is a local job-offer decision assistant. It turns raw job text into
+                  JOLT is a local job-offer decision assistant. It turns raw job text into
                   normalized job records, applies a selected rule profile, and shows explainable
                   Apply, Maybe, Discard, Manual Review, or Duplicate decisions.
                 </p>

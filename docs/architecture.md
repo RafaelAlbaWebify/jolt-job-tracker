@@ -1,8 +1,8 @@
-# LinkAut Architecture
+# JOLT Architecture
 
 ## Purpose
 
-LinkAut is a local job-offer decision assistant for fast, explainable job review. The current implementation proves the core review chain:
+JOLT is a local job-offer decision assistant for fast, explainable job review. The current implementation proves the core review chain:
 
 ```text
 manual raw job text or pasted page text/HTML

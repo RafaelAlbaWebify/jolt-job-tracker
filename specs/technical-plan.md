@@ -1,4 +1,4 @@
-# Technical Plan: LinkAut / React Local Job Offer Automation Assistant
+# Technical Plan: JOLT / React Local Job Opportunity Tracker
 
 ## 1. Architecture Goal
 
@@ -24,7 +24,7 @@ Manual paste uses the same backend services as a fallback/debug flow.
 ## 2. Target Repository Structure
 
 ```text
-linkaut/
+JOLT/
   backend/
     main.py
     core/

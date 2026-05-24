@@ -2,7 +2,7 @@
 
 Local job-search decision assistant built with React and FastAPI.
 
-JOLT is a local React + FastAPI portfolio demo that turns raw job-offer text, pasted job-board page text, or copied HTML snippets into structured review results. It parses messy job content, applies a configurable rule profile, explains each Apply / Maybe / Discard / Manual Review / Duplicate decision, and lets the user export or save results locally.
+JOLT helps review job opportunities faster by parsing user-provided job text, applying configurable fit rules, explaining Apply / Maybe / Discard / Manual Review decisions, exporting results, and tracking reviewed jobs locally.
 
 Current milestone: local portfolio demo.
 
@@ -60,7 +60,7 @@ The Capture page is the primary workflow. Manual paste exists as a fallback/debu
 | Mode | Status | What it does |
 | --- | --- | --- |
 | Manual jobs | Implemented | User stages one or more raw job texts in the Capture page. |
-| Page text / HTML | Implemented | User pastes visible page text or copied HTML; LinkAut extracts local job blocks and sends them through the same parser and decision engine. |
+| Page text / HTML | Implemented | User pastes visible page text or copied HTML; JOLT extracts local job blocks and sends them through the same parser and decision engine. |
 | Browser-assisted experimental | Disabled placeholder | Shown honestly in the UI/API as not enabled; no browser automation is attempted. |
 
 Page text / HTML capture is local and user-controlled. It does not make external network calls, store credentials, bypass authentication, bypass CAPTCHA, or crawl websites.

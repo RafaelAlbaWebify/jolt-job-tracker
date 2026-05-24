@@ -7,6 +7,6 @@ router = APIRouter(prefix="/api", tags=["health"])
 def health_check() -> dict[str, str]:
     return {
         "status": "ok",
-        "service": "linkaut-backend",
-        "message": "LinkAut backend is running",
+        "service": "jolt-backend",
+        "message": "JOLT backend is running",
     }

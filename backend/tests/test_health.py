@@ -10,4 +10,4 @@ def test_health_check_returns_ok() -> None:
 
     assert response.status_code == 200
     assert response.json()["status"] == "ok"
-    assert response.json()["service"] == "linkaut-backend"
+    assert response.json()["service"] == "jolt-backend"

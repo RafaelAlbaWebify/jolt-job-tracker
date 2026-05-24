@@ -36,7 +36,7 @@ personal_rules.json
 job_preferences.json
 job_history_master.csv
 
-# LinkAut private/generated data
+# JOLT private/generated data
 captures/
 captures_id/
 captures_raw/

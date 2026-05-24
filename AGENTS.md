@@ -1,10 +1,10 @@
 # AGENTS.md
 
-## Project: LinkAut / Job Offer Automation & Decision Assistant
+## Project: JOLT / Job Opportunity Logic Tracker
 
 ## Purpose
 
-LinkAut is a local job-offer automation and decision-support tool. Its purpose is to speed up job-search filtering by automating the repetitive pipeline:
+JOLT is a local job-offer automation and decision-support tool. Its purpose is to speed up job-search filtering by automating the repetitive pipeline:
 
 ```text
 browser-assisted capture
@@ -44,7 +44,7 @@ Codex should migrate the existing Streamlit-based pipeline toward a React local-
 ```text
 User opens a supported job search/results page
 → User selects an active rule profile
-→ User starts Capture Jobs from LinkAut
+→ User starts Capture Jobs from JOLT
 → Backend runs browser-assisted capture
 → Raw job data is saved in a run folder
 → Parser extracts structured fields and parser confidence
@@ -304,7 +304,7 @@ runs/<timestamp_or_run_id>/
   parsed_jobs.csv
   classified_jobs.json
   classified_jobs.csv
-  LinkAut_job_tracker.xlsx
+  JOLT_job_tracker.xlsx
   classification_report.md
   rules_snapshot.json
   run_summary.json

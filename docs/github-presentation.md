@@ -4,6 +4,8 @@
 
 Local job-offer decision assistant built with React and FastAPI for explainable job review, export, and tracking.
 
+Suggested repository name: `jolt-job-tracker`
+
 ## Suggested GitHub Topics
 
 - `fastapi`
@@ -21,15 +23,15 @@ Local job-offer decision assistant built with React and FastAPI for explainable 
 
 ## Suggested Pinned Repo Description
 
-LinkAut is a local React + FastAPI app that parses user-provided job text, applies configurable rule profiles, explains Apply / Maybe / Discard / Manual Review decisions, exports XLSX / CSV / JSON, and saves reviewed jobs to a local tracker.
+JOLT is a local React + FastAPI app that parses user-provided job text, applies configurable rule profiles, explains Apply / Maybe / Discard / Manual Review decisions, exports XLSX / CSV / JSON, and saves reviewed jobs to a local tracker.
 
 ## Suggested README Opening Blurb
 
-LinkAut is a local job-offer decision assistant for fast, explainable job review. It turns manual job text or user-provided page text/HTML into structured parser output, applies configurable rule profiles, explains each decision, and supports local export and tracking.
+JOLT is a local job-offer decision assistant for fast, explainable job review. It turns manual job text or user-provided page text/HTML into structured parser output, applies configurable rule profiles, explains each decision, and supports local export and tracking.
 
 ## What To Say In An Interview
 
-LinkAut is a portfolio project that demonstrates a full local workflow, not just a UI mockup. The backend has separate services for parsing, profile loading, decision logic, capture boundaries, export, history, and cleanup. The frontend makes that chain visible through a Capture page, review dashboard, profile viewer, local tracker, and About/demo safety page.
+JOLT is a portfolio project that demonstrates a full local workflow, not just a UI mockup. The backend has separate services for parsing, profile loading, decision logic, capture boundaries, export, history, and cleanup. The frontend makes that chain visible through a Capture page, review dashboard, profile viewer, local tracker, and About/demo safety page.
 
 The important design decision is the safe boundary around capture. I did not build it as a scraper or mass automation tool. The current demo works with manual jobs and user-provided page text/HTML, while browser-assisted capture is clearly disabled and experimental. That keeps the project honest and lets the parser and decision engine be tested properly.
 

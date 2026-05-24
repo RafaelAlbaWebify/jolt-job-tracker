@@ -773,3 +773,43 @@
   - README now renders the committed screenshot assets directly.
 - Remaining risks / follow-up:
   - Future screenshot refreshes should continue using synthetic data only.
+
+## 2026-05-24 - Rename Public Project to JOLT
+
+- Type: Rename / Docs / Cleanup
+- Files changed:
+  - `AGENTS.md`
+  - `README.md`
+  - `backend/app/api/health.py`
+  - `backend/app/main.py`
+  - `backend/tests/test_health.py`
+  - `docs/architecture.md`
+  - `docs/demo-checklist.md`
+  - `docs/github-presentation.md`
+  - `docs/interview-explanation.md`
+  - `docs/linkedin-post-draft.md`
+  - `docs/portfolio-walkthrough.md`
+  - `docs/release-checklist.md`
+  - `docs/screenshots/README.md`
+  - `frontend/index.html`
+  - `frontend/package-lock.json`
+  - `frontend/package.json`
+  - `frontend/src/App.tsx`
+  - `specs/product-spec.md`
+  - `specs/tasks.md`
+  - `specs/technical-plan.md`
+  - `docs/engineering-log.md`
+- Problem / goal:
+  - Rename the public project from LinkAut to JOLT — Job Opportunity Logic Tracker for portfolio/repository presentation.
+- Change made:
+  - Updated user-facing README, docs, specs, frontend labels, package metadata, backend app title, and health-check labels to use JOLT / Job Opportunity Logic Tracker / `jolt-job-tracker`.
+  - Kept backend APIs, parser logic, decision rules, capture behavior, export behavior, and history behavior unchanged.
+  - Left older engineering-log entries with historical LinkAut wording so past phase notes remain understandable.
+- Tests/checks run:
+  - Ran `cd backend && .\.venv\Scripts\python.exe -m pytest`.
+  - Ran `cd frontend && npm run build`.
+- Result:
+  - Backend tests passed.
+  - Frontend production build passed.
+- Remaining risks / follow-up:
+  - Public repository rename to `jolt-job-tracker` still needs to happen on GitHub if not already completed there.

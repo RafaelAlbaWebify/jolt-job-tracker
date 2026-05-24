@@ -1,4 +1,4 @@
-# LinkAut Portfolio Walkthrough
+# JOLT Portfolio Walkthrough
 
 ## Problem
 
@@ -6,7 +6,7 @@ Job searching creates repetitive review work. Every listing has to be checked fo
 
 ## Solution
 
-LinkAut is a local job-offer decision assistant. It takes user-provided job text, parses it into a normalized job record, applies a selected rule profile, and returns an explainable decision that a human can review before exporting or saving.
+JOLT is a local job-offer decision assistant. It takes user-provided job text, parses it into a normalized job record, applies a selected rule profile, and returns an explainable decision that a human can review before exporting or saving.
 
 The current milestone is a local portfolio demo. It proves the core product chain without risky automation:
 
@@ -65,7 +65,7 @@ This keeps the valuable parser/profile/decision/review workflow testable while m
 
 ## Where The Real Value Is
 
-The strongest part of LinkAut is not scraping. The real value is the explainable review pipeline:
+The strongest part of JOLT is not scraping. The real value is the explainable review pipeline:
 
 - normalized job records;
 - configurable rule profiles;

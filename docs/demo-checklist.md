@@ -1,4 +1,4 @@
-# LinkAut Demo Checklist
+# JOLT Demo Checklist
 
 Use this checklist for a GitHub, LinkedIn, or portfolio walkthrough of the current safe local demo.
 
@@ -135,7 +135,7 @@ For GitHub or LinkedIn, capture:
 
 ## What To Say During The Demo
 
-- LinkAut is a local job-offer decision assistant.
+- JOLT is a local job-offer decision assistant.
 - The current demo uses manual raw job text and simulated capture runs.
 - Browser automation and LinkedIn scraping are intentionally disabled in this safe boundary.
 - Page text / HTML capture is local, user-controlled, and based on content the user supplies.

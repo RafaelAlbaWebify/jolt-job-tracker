@@ -2,11 +2,11 @@
 
 ## 30-Second Explanation
 
-LinkAut is a local job-offer decision assistant built with React and FastAPI. It helps review job listings faster by parsing manual job text or user-provided page text, applying configurable rule profiles, and explaining whether each role should be Apply, Maybe, Discard, or Manual Review. It also exports results and saves reviewed jobs to a local tracker.
+JOLT is a local job-offer decision assistant built with React and FastAPI. It helps review job listings faster by parsing manual job text or user-provided page text, applying configurable rule profiles, and explaining whether each role should be Apply, Maybe, Discard, or Manual Review. It also exports results and saves reviewed jobs to a local tracker.
 
 ## 90-Second Explanation
 
-I built LinkAut to make repetitive job-search review more structured. When you are looking at many Technical Support, IT Ops, or Infrastructure Support roles, the same questions come up repeatedly: Is the work mode clear? Is the location acceptable? Are the language requirements compatible? Is there 24/7, heavy on-call, or shift risk? Does the role match the profile?
+I built JOLT to make repetitive job-search review more structured. When you are looking at many Technical Support, IT Ops, or Infrastructure Support roles, the same questions come up repeatedly: Is the work mode clear? Is the location acceptable? Are the language requirements compatible? Is there 24/7, heavy on-call, or shift risk? Does the role match the profile?
 
 The app is local-first. The frontend is React and TypeScript, and the backend is FastAPI. The workflow is:
 
@@ -57,4 +57,4 @@ After that, I would only consider browser-assisted capture if it stays explicit,
 
 ## Safe Answer: Why Did You Build It?
 
-I built it because job-search review has a lot of repetitive operational checking. My background and target roles are around IT Operations, Technical Support, and Infrastructure Support, where structured triage matters. LinkAut applies that same mindset to job review: normalize the input, apply clear rules, surface risks, keep uncertainty visible, and make the output easy to track.
+I built it because job-search review has a lot of repetitive operational checking. My background and target roles are around IT Operations, Technical Support, and Infrastructure Support, where structured triage matters. JOLT applies that same mindset to job review: normalize the input, apply clear rules, surface risks, keep uncertainty visible, and make the output easy to track.

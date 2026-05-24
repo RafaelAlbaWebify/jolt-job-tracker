@@ -10,7 +10,7 @@ from app.api.history import router as history_router
 from app.api.parse import router as parse_router
 from app.api.profiles import router as profiles_router
 
-app = FastAPI(title="LinkAut API", version="0.1.0")
+app = FastAPI(title="JOLT API", version="0.1.0")
 
 app.add_middleware(
     CORSMiddleware,

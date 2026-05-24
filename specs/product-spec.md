@@ -1,8 +1,8 @@
-# Product Spec: LinkAut / Job Offer Automation & Decision Assistant
+# Product Spec: JOLT / Job Opportunity Logic Tracker
 
 ## 1. Summary
 
-LinkAut is a local job-offer automation and decision assistant. It helps users capture batches of job listings, parse messy job data, apply configurable rule profiles, and produce explainable job-search decisions:
+JOLT is a local job-offer automation and decision assistant. It helps users capture batches of job listings, parse messy job data, apply configurable rule profiles, and produce explainable job-search decisions:
 
 - Apply
 - Maybe
@@ -56,7 +56,7 @@ The app should help users:
 
 ```text
 Open supported job results page
-→ Start LinkAut local app
+→ Start JOLT local app
 → Select active rule profile
 → Capture jobs
 → Parse and normalize jobs
@@ -465,7 +465,7 @@ XLSX is a core export format.
 Required file name pattern:
 
 ```text
-LinkAut_job_tracker_<run_id_or_timestamp>.xlsx
+JOLT_job_tracker_<run_id_or_timestamp>.xlsx
 ```
 
 Required sheets:
@@ -545,7 +545,7 @@ runs/<run_id>/
   parsed_jobs.csv
   classified_jobs.json
   classified_jobs.csv
-  LinkAut_job_tracker_<run_id>.xlsx
+  JOLT_job_tracker_<run_id>.xlsx
   classification_report.md
   rules_snapshot.json
   run_summary.json

@@ -2,9 +2,9 @@
 
 ## Short Version
 
-I have been working on LinkAut, a local job-search decision assistant built with React and FastAPI.
+I have been working on JOLT, a local job-search decision assistant built with React and FastAPI.
 
-The idea is simple: job searching involves a lot of repetitive review. LinkAut takes manual job text or user-provided page text/HTML, parses it, applies configurable rules, and explains whether a role looks like Apply, Maybe, Discard, or Manual Review.
+The idea is simple: job searching involves a lot of repetitive review. JOLT takes manual job text or user-provided page text/HTML, parses it, applies configurable rules, and explains whether a role looks like Apply, Maybe, Discard, or Manual Review.
 
 It can export reviewed results to XLSX, CSV, or JSON, and save jobs into a local tracker.
 
@@ -14,11 +14,11 @@ The project is now at a local portfolio demo milestone.
 
 ## Slightly Longer Version
 
-I have been building LinkAut, a local job-search decision assistant with React and FastAPI.
+I have been building JOLT, a local job-search decision assistant with React and FastAPI.
 
 The problem it solves is very practical: reviewing job offers gets repetitive quickly. The same checks come up again and again: language requirements, location, work mode, shift/on-call risk, role fit, missing information, and whether a job is worth applying to now.
 
-LinkAut turns manual job text or user-provided page text/HTML into a structured review flow:
+JOLT turns manual job text or user-provided page text/HTML into a structured review flow:
 
 ```text
 raw job text

@@ -1,4 +1,4 @@
-# Tasks: LinkAut / Portfolio-Ready Automation-First React Local Server Version
+# Tasks: JOLT / Portfolio-Ready React Local Server Version
 
 ## Priority Groups
 
@@ -479,7 +479,7 @@ Acceptance criteria:
 Workbook name:
 
 ```text
-LinkAut_job_tracker_<run_id>.xlsx
+JOLT_job_tracker_<run_id>.xlsx
 ```
 
 Sheets:
@@ -507,7 +507,7 @@ raw_capture.jsonl
 parsed_jobs.csv
 classified_jobs.json
 classified_jobs.csv
-LinkAut_job_tracker_<run_id>.xlsx
+JOLT_job_tracker_<run_id>.xlsx
 classification_report.md
 rules_snapshot.json
 run_summary.json
@@ -714,7 +714,7 @@ Acceptance criteria:
 Ask Codex to implement the wrapper MVP first, not a full rewrite:
 
 ```text
-Create the React + FastAPI local-server skeleton for LinkAut.
+Create the React + FastAPI local-server skeleton for JOLT.
 Keep the current capture/parser/classifier scripts as legacy modules.
 Add strict .gitignore and docs/engineering-log.md.
 Implement backend health, profile loading, capture runner wrapper, latest run summary, and a React Capture page with profile selector and pipeline status.

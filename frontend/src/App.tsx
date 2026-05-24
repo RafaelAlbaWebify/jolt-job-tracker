@@ -315,6 +315,7 @@ function DecisionCard({ result, index }: { result: CaptureJobResult; index: numb
         <DetailSection title="Missing information" items={decision?.missing_information} />
         <DetailSection title="Matched positive keywords" items={decision?.matched_positive_keywords} />
         <DetailSection title="Matched risk keywords" items={decision?.matched_risk_keywords} />
+        <DetailSection title="Capture notes" items={result.raw_job.capture_notes} />
         <details className="detail-section">
           <summary>
             <span>Raw staged preview</span>
@@ -880,8 +881,26 @@ function App() {
                         value={pageCaptureText}
                         onChange={(event) => setPageCaptureText(event.target.value)}
                         rows={13}
-                        placeholder="Paste copied job-board page text or safe HTML here. Use repeated Title / Company / Location blocks for best extraction."
+                        placeholder={`Paste visible job-board text or copied HTML here.
+
+Title: Microsoft 365 Support Specialist
+Company: Example SaaS
+Location: Remote, Spain
+Work mode: Remote
+URL: https://example.test/jobs/123
+English required.
+---
+Job Card
+Role: IT Support Engineer
+Employer: Example Desk
+Location: Vigo, Spain
+Work mode: Onsite
+English required.`}
                       />
+                      <p className="helper-text">
+                        The backend extracts local user-provided content only. Clear labels, job
+                        card separators, or copied HTML cards produce cleaner review results.
+                      </p>
                     </>
                   )}
                 </section>

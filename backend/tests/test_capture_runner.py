@@ -185,6 +185,176 @@ English required. Support Microsoft 365 and endpoint tickets.
     ]
 
 
+def test_page_text_with_labelled_blocks_separated_by_dashes() -> None:
+    page_text = """
+Title: Microsoft 365 Support Specialist
+Company: Example SaaS
+Location: Remote, Spain
+Work mode: Remote
+URL: https://example.test/jobs/m365-support
+English required. Microsoft 365 support.
+---
+Title: Infrastructure Support Engineer
+Company: Example Infra
+Location: Vigo, Spain
+Work mode: Onsite
+English required. Endpoint and networking support.
+"""
+
+    response = client.post(
+        "/api/capture/run",
+        json={
+            "profile_id": "rafael_default",
+            "capture_mode": "page_text",
+            "source": "page_text",
+            "max_results": 5,
+            "dry_run": True,
+            "page_text": page_text,
+        },
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["total_captured"] == 2
+    assert data["results"][0]["raw_job"]["source_url"] == "https://example.test/jobs/m365-support"
+    assert any("labelled job block" in note for note in data["results"][0]["raw_job"]["capture_notes"])
+
+
+def test_page_text_with_job_card_separators_produces_multiple_results() -> None:
+    page_text = """
+Job Card
+Title: SaaS Support Analyst
+Employer: Example Cloud
+Location: Remote, Spain
+Work mode: Remote
+English required. SaaS and API support.
+Easy Apply
+Job Card
+Role: Service Desk Technician
+Company: Example Desk
+Location: Vigo, Spain
+Work mode: Onsite
+English required. Microsoft 365 and endpoint support.
+"""
+
+    response = client.post(
+        "/api/capture/run",
+        json={
+            "profile_id": "rafael_default",
+            "capture_mode": "page_text",
+            "source": "page_text",
+            "max_results": 5,
+            "dry_run": True,
+            "page_text": page_text,
+        },
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["total_captured"] == 2
+    assert data["results"][0]["parsed_job"]["company"] == "Example Cloud"
+    assert data["results"][1]["parsed_job"]["title"] == "Service Desk Technician"
+
+
+def test_compact_job_board_like_blocks_are_split_conservatively() -> None:
+    page_text = """
+Microsoft 365 Support Specialist
+Northstar SaaS
+Remote, Spain
+English required. Microsoft 365 and endpoint support.
+View job
+Infrastructure Support Engineer
+Metro Systems
+Vigo, Spain
+English required. Networking and endpoint troubleshooting.
+"""
+
+    response = client.post(
+        "/api/capture/run",
+        json={
+            "profile_id": "rafael_default",
+            "capture_mode": "page_text",
+            "source": "page_text",
+            "max_results": 5,
+            "dry_run": True,
+            "page_text": page_text,
+        },
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["total_captured"] == 2
+    assert data["results"][0]["parsed_job"]["title"] == "Microsoft 365 Support Specialist"
+    assert data["results"][0]["parsed_job"]["company"] == "Northstar SaaS"
+    assert any("compact job-board-like" in note for note in data["results"][0]["raw_job"]["capture_notes"])
+
+
+def test_html_with_two_article_blocks_extracts_two_jobs_and_strips_noise() -> None:
+    html_content = """
+<html>
+  <body>
+    <nav>Navigation should not become a job</nav>
+    <article>
+      <h2>Title: Microsoft 365 Support Specialist</h2>
+      <p>Company: Example SaaS</p>
+      <p>Location: Remote, Spain</p>
+      <p>Work mode: Remote</p>
+      <a href="https://example.test/jobs/123">View job</a>
+      <p>English required. Microsoft 365 support.</p>
+    </article>
+    <article>
+      <h2>Title: IT Support Engineer</h2>
+      <p>Company: Example Desk</p>
+      <p>Location: Vigo, Spain</p>
+      <p>Work mode: Onsite</p>
+      <a href="https://example.test/careers/456">Apply</a>
+      <p>English required. Endpoint support.</p>
+    </article>
+  </body>
+</html>
+"""
+
+    response = client.post(
+        "/api/capture/run",
+        json={
+            "profile_id": "rafael_default",
+            "capture_mode": "page_text",
+            "source": "page_html",
+            "max_results": 5,
+            "dry_run": True,
+            "html_content": html_content,
+        },
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["total_captured"] == 2
+    assert data["results"][0]["raw_job"]["source_url"] == "https://example.test/jobs/123"
+    assert data["results"][1]["raw_job"]["source_url"] == "https://example.test/careers/456"
+    assert "Navigation should not become a job" not in data["results"][0]["raw_job"]["raw_text"]
+    assert any("HTML block" in note for note in data["results"][0]["raw_job"]["capture_notes"])
+
+
+def test_global_source_url_fallback_is_used_when_block_has_no_link() -> None:
+    response = client.post(
+        "/api/capture/run",
+        json={
+            "profile_id": "rafael_default",
+            "capture_mode": "page_text",
+            "source": "page_text",
+            "source_url": "https://example.test/search-results",
+            "max_results": 5,
+            "dry_run": True,
+            "page_text": support_job(),
+        },
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["results"][0]["raw_job"]["source_url"] == "https://example.test/search-results"
+    assert any("fallback" in note.lower() for note in data["results"][0]["raw_job"]["capture_notes"])
+
+
 def test_unclear_page_text_returns_one_result_with_capture_note() -> None:
     response = client.post(
         "/api/capture/run",
@@ -202,6 +372,34 @@ def test_unclear_page_text_returns_one_result_with_capture_note() -> None:
     data = response.json()
     assert data["total_captured"] == 1
     assert any("unclear" in note.lower() for note in data["results"][0]["raw_job"]["capture_notes"])
+
+
+def test_page_text_avoids_over_splitting_tiny_fragments() -> None:
+    page_text = """
+Promoted
+Easy Apply
+View job
+Actively recruiting
+Support role. Tickets. Remote maybe.
+Apply
+"""
+
+    response = client.post(
+        "/api/capture/run",
+        json={
+            "profile_id": "rafael_default",
+            "capture_mode": "page_text",
+            "source": "page_text",
+            "max_results": 5,
+            "dry_run": True,
+            "page_text": page_text,
+        },
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["total_captured"] == 1
+    assert len(data["results"][0]["raw_job"]["raw_text"].splitlines()) <= 2
 
 
 def test_page_text_max_results_is_enforced() -> None:
@@ -235,6 +433,7 @@ English required. Microsoft 365 support.
     data = response.json()
     assert data["total_captured"] == 2
     assert any("only the first 2" in warning for warning in data["warnings"])
+    assert any("max_results applied" in note for note in data["results"][0]["raw_job"]["capture_notes"])
 
 
 def test_unsupported_capture_mode_returns_controlled_error() -> None:

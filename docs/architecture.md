@@ -107,6 +107,8 @@ Supported modes:
 
 The adapter does not store credentials, bypass protections, crawl pages, or hardcode LinkedIn as the core architecture.
 
+The page text/HTML extractor is dependency-light and conservative. It handles clear labelled fields, repeated `Job Card` or separator blocks, compact title/company/location listings, simple copied HTML card structures, and job-like links from visible URLs or anchor `href` values. When structure is unclear, it returns one captured job with capture notes instead of over-splitting noisy page fragments.
+
 ### Export Service
 
 `backend/app/services/export_package.py` writes local export files for a capture review result.

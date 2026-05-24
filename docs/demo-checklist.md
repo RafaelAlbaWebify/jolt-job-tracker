@@ -71,7 +71,27 @@ Expected result:
 4. Add an optional source URL.
 5. Click `Extract and review`.
 6. Confirm the same parser, decision engine, review cards, export, and history controls are used.
-7. Explain that this mode uses user-provided pasted content and does not automate a browser.
+7. Try a second synthetic sample using `---`, `Job Card`, or compact title/company/location blocks to show cleaner multi-job extraction.
+8. Open a result card's capture notes to show extraction hints and source URL inference.
+9. Explain that this mode uses user-provided pasted content and does not automate a browser.
+
+Example synthetic multi-job text:
+
+```text
+Title: Microsoft 365 Support Specialist
+Company: Example SaaS
+Location: Remote, Spain
+Work mode: Remote
+URL: https://example.test/jobs/123
+English required.
+---
+Job Card
+Role: IT Support Engineer
+Employer: Example Desk
+Location: Vigo, Spain
+Work mode: Onsite
+English required.
+```
 
 ## Suggested Short Demo Flow
 

@@ -59,7 +59,7 @@ The goal is not to hide uncertainty. Low parser confidence, missing work mode, u
 - Classification endpoint: `POST /api/classify/job`.
 - Backend decision engine with explainable scoring and hard-discard rules.
 - Safe capture runner boundary using manual `raw_jobs` or pasted page text/HTML.
-- Capture adapter for conservative page text/HTML extraction.
+- Capture adapter for conservative page text/HTML extraction from labelled blocks, compact job-card-like text, and copied HTML snippets.
 - Capture health endpoint showing browser automation disabled by default.
 - Frontend Capture dashboard with demo jobs.
 - Review result cards with decision, score, priority, parser confidence, reasons, warnings, missing information, matched keywords, and raw preview.
@@ -218,6 +218,8 @@ http://localhost:5173
 12. Open Rule Profiles to confirm Rafael Default is a demo/default profile, not a global hardcoded rule set.
 
 You can also switch Capture to `Page text / HTML`, paste copied job-board page text, and click `Extract and review`. Use only pages you are allowed to access.
+
+Page text / HTML capture remains local and user-provided. It can split clear labelled blocks, `Job Card` sections, compact title/company/location listings, and simple copied HTML cards, while preserving job-like source links when present. Browser automation remains disabled by default.
 
 See [docs/demo-checklist.md](docs/demo-checklist.md) for a reviewer/demo checklist.
 

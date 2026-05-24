@@ -625,3 +625,36 @@
 - Remaining risks / follow-up:
   - Page text splitting is intentionally conservative and may return one full-content job when structure is unclear.
   - Real browser automation remains future work and should stay opt-in, observable, rate-limited, and isolated.
+
+## 2026-05-24 - Phase 12A Page Text / HTML Capture Extraction Quality
+
+- Type: Feature / Test / Docs
+- Files changed:
+  - `backend/app/services/browser_capture.py`
+  - `backend/tests/test_capture_runner.py`
+  - `frontend/src/App.tsx`
+  - `README.md`
+  - `docs/architecture.md`
+  - `docs/demo-checklist.md`
+  - `docs/engineering-log.md`
+- Problem / goal:
+  - Improve local user-provided page text / HTML extraction so job-board-like pasted content splits into cleaner `CapturedRawJob` entries and preserves useful source links.
+- Root cause:
+  - Phase 11 introduced a safe page text adapter, but its extractor only handled a narrow set of labelled blocks and could lose useful HTML link context or fall back too quickly.
+- Change made:
+  - Strengthened the capture adapter to handle labelled fields, `---` and `Job Card` separators, compact title/company/location listings, copied HTML card structures, anchor `href` links, global source URL fallback, extraction notes, max-results notes, and noisy tiny fragments.
+  - Kept browser-assisted mode disabled by default and did not add Playwright, Selenium, scraping, credential storage, CAPTCHA bypass, auto-apply behavior, database changes, parser rule changes, or decision rule changes.
+  - Added capture-run tests for labelled blocks, `Job Card` blocks, compact blocks, HTML article blocks, anchor source URLs, global source URL fallback, unclear fallback, over-splitting protection, max-results notes, existing manual raw jobs, and disabled browser-assisted mode.
+  - Updated the Capture page with a richer Page text / HTML placeholder and visible capture notes on decision cards.
+  - Updated README, architecture notes, and demo checklist for the improved local extraction behavior.
+- Tests/checks run:
+  - Ran `cd backend && .\.venv\Scripts\python.exe -m pytest tests\test_capture_runner.py`.
+  - Ran `cd backend && .\.venv\Scripts\python.exe -m pytest`.
+  - Ran `cd frontend && npm run build`.
+- Result:
+  - Backend capture runner tests passed.
+  - Full backend test suite passed.
+  - Frontend production build passed.
+- Remaining risks / follow-up:
+  - Extraction remains intentionally conservative and local-only; unusual real job-board layouts may still fall back to one captured job with notes.
+  - Real browser automation remains future work and should stay opt-in, isolated, and explicit.

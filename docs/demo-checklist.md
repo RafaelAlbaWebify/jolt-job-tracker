@@ -63,6 +63,16 @@ Expected result:
 22. Open the Rule Profiles page.
 23. Confirm Rafael Default is labeled as a demo/default preset, not global hardcoded behavior.
 
+## Page Text / HTML Capture Demo
+
+1. Return to the Capture page.
+2. Select `Page text / HTML`.
+3. Paste synthetic page text with two job blocks, each using `Title:`, `Company:`, and `Location:` labels.
+4. Add an optional source URL.
+5. Click `Extract and review`.
+6. Confirm the same parser, decision engine, review cards, export, and history controls are used.
+7. Explain that this mode uses user-provided pasted content and does not automate a browser.
+
 ## Suggested Short Demo Flow
 
 1. Start backend and frontend.
@@ -84,6 +94,7 @@ Expected result:
 - Save to history should persist reviewed jobs under ignored `backend/data/history/`.
 - History / Tracker should allow local application status updates across page visits.
 - About should explain demo safety and allow manual cleanup of generated local demo exports/history.
+- Page text / HTML capture should split clear synthetic job blocks and fall back to one reviewed item when structure is unclear.
 
 ## Useful Screenshots
 
@@ -105,6 +116,7 @@ For GitHub or LinkedIn, capture:
 - LinkAut is a local job-offer decision assistant.
 - The current demo uses manual raw job text and simulated capture runs.
 - Browser automation and LinkedIn scraping are intentionally disabled in this safe boundary.
+- Page text / HTML capture is local, user-controlled, and based on content the user supplies.
 - The real backend parser, configurable profiles, and decision engine are used.
 - Export files are local generated artifacts and are ignored by Git.
 - History is local generated data and is ignored by Git.

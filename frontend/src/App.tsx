@@ -27,6 +27,7 @@ import {
 } from './api';
 
 type PageId = 'capture' | 'review' | 'profiles' | 'history' | 'manual' | 'about';
+type CaptureInputMode = 'manual_raw_jobs' | 'page_text';
 type DecisionFilter = 'All' | 'Apply' | 'Maybe' | 'Discard' | 'Manual Review' | 'Duplicate' | 'Errors';
 type DecisionCountKey = DecisionFilter | 'Errors';
 type HistoryFilter =
@@ -341,6 +342,9 @@ function App() {
   const [captureHealth, setCaptureHealth] = useState<CaptureHealthStatus | null>(null);
   const [captureHealthError, setCaptureHealthError] = useState<string | null>(null);
   const [rawJobText, setRawJobText] = useState<string>('');
+  const [captureInputMode, setCaptureInputMode] = useState<CaptureInputMode>('manual_raw_jobs');
+  const [pageCaptureText, setPageCaptureText] = useState<string>('');
+  const [pageCaptureSourceUrl, setPageCaptureSourceUrl] = useState<string>('');
   const [stagedJobs, setStagedJobs] = useState<string[]>([]);
   const [captureResult, setCaptureResult] = useState<CaptureRunResult | null>(null);
   const [captureError, setCaptureError] = useState<string | null>(null);
@@ -552,6 +556,10 @@ function App() {
       setCaptureError('Select a rule profile before running capture review.');
       return;
     }
+    if (captureInputMode === 'page_text' && !pageCaptureText.trim()) {
+      setCaptureError('Paste page text or HTML before extracting and reviewing.');
+      return;
+    }
 
     setCaptureLoading(true);
     setCaptureError(null);
@@ -559,15 +567,21 @@ function App() {
     try {
       const result = await runCaptureReview({
         profile_id: selectedProfileId,
-        source: 'manual_frontend',
+        capture_mode: captureInputMode,
+        source: captureInputMode === 'page_text' ? 'page_text_frontend' : 'manual_frontend',
+        source_url: pageCaptureSourceUrl.trim(),
         dry_run: true,
-        max_results: stagedJobs.length || 25,
-        raw_jobs: stagedJobs.map((rawText, index) => ({
-          source: 'manual_frontend',
-          raw_text: rawText,
-          external_id: `frontend_staged_${index + 1}`,
-          capture_notes: ['Staged from the Phase 6A frontend review dashboard.'],
-        })),
+        max_results: captureInputMode === 'page_text' ? 25 : stagedJobs.length || 25,
+        page_text: captureInputMode === 'page_text' ? pageCaptureText : '',
+        raw_jobs:
+          captureInputMode === 'manual_raw_jobs'
+            ? stagedJobs.map((rawText, index) => ({
+                source: 'manual_frontend',
+                raw_text: rawText,
+                external_id: `frontend_staged_${index + 1}`,
+                capture_notes: ['Staged from the frontend review dashboard.'],
+              }))
+            : [],
       });
       setCaptureResult(result);
       setCaptureHealth(result.capture_health);
@@ -786,44 +800,93 @@ function App() {
 
                 <section className="control-section raw-input-section">
                   <div className="section-heading">
-                    <h2>Staged raw jobs</h2>
-                    <span>{stagedJobs.length} staged</span>
+                    <h2>Capture input</h2>
+                    <span>{captureInputMode === 'page_text' ? 'Page text' : `${stagedJobs.length} staged`}</span>
                   </div>
-                  <label className="field-label" htmlFor="raw-job-text">
-                    Raw job text
-                  </label>
-                  <textarea
-                    id="raw-job-text"
-                    value={rawJobText}
-                    onChange={(event) => setRawJobText(event.target.value)}
-                    rows={9}
-                    placeholder="Paste one raw job listing here, then add it to the staged run."
-                  />
-                  <div className="button-row">
-                    <button type="button" className="primary-button" onClick={addJob}>
-                      Add job
-                    </button>
-                    <button type="button" className="secondary-button" onClick={loadDemoJobs}>
-                      Load demo jobs
+                  <div className="mode-switch" aria-label="Capture input mode">
+                    <button
+                      type="button"
+                      className={captureInputMode === 'manual_raw_jobs' ? 'filter-button active' : 'filter-button'}
+                      onClick={() => setCaptureInputMode('manual_raw_jobs')}
+                    >
+                      Manual jobs
                     </button>
                     <button
                       type="button"
-                      className="secondary-button"
-                      onClick={() => {
-                        setStagedJobs([]);
-                        setCaptureResult(null);
-                        setExportResponses([]);
-                        setExportError(null);
-                        setHistorySaveSummary(null);
-                        setHistorySaveError(null);
-                      }}
+                      className={captureInputMode === 'page_text' ? 'filter-button active' : 'filter-button'}
+                      onClick={() => setCaptureInputMode('page_text')}
                     >
-                      Clear
+                      Page text / HTML
+                    </button>
+                    <button type="button" className="filter-button" disabled>
+                      Browser-assisted experimental
                     </button>
                   </div>
+                  <p className="helper-text">
+                    Use only pages you are allowed to access. No credentials are stored, and browser
+                    automation is not used unless a future adapter explicitly enables it.
+                  </p>
+                  {captureInputMode === 'manual_raw_jobs' ? (
+                    <>
+                      <label className="field-label" htmlFor="raw-job-text">
+                        Raw job text
+                      </label>
+                      <textarea
+                        id="raw-job-text"
+                        value={rawJobText}
+                        onChange={(event) => setRawJobText(event.target.value)}
+                        rows={9}
+                        placeholder="Paste one raw job listing here, then add it to the staged run."
+                      />
+                      <div className="button-row">
+                        <button type="button" className="primary-button" onClick={addJob}>
+                          Add job
+                        </button>
+                        <button type="button" className="secondary-button" onClick={loadDemoJobs}>
+                          Load demo jobs
+                        </button>
+                        <button
+                          type="button"
+                          className="secondary-button"
+                          onClick={() => {
+                            setStagedJobs([]);
+                            setCaptureResult(null);
+                            setExportResponses([]);
+                            setExportError(null);
+                            setHistorySaveSummary(null);
+                            setHistorySaveError(null);
+                          }}
+                        >
+                          Clear
+                        </button>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <label className="field-label" htmlFor="page-source-url">
+                        Source URL
+                      </label>
+                      <input
+                        id="page-source-url"
+                        value={pageCaptureSourceUrl}
+                        onChange={(event) => setPageCaptureSourceUrl(event.target.value)}
+                        placeholder="https://example.test/jobs"
+                      />
+                      <label className="field-label" htmlFor="page-capture-text">
+                        Pasted page text or HTML
+                      </label>
+                      <textarea
+                        id="page-capture-text"
+                        value={pageCaptureText}
+                        onChange={(event) => setPageCaptureText(event.target.value)}
+                        rows={13}
+                        placeholder="Paste copied job-board page text or safe HTML here. Use repeated Title / Company / Location blocks for best extraction."
+                      />
+                    </>
+                  )}
                 </section>
 
-                {stagedJobs.length > 0 ? (
+                {captureInputMode === 'manual_raw_jobs' && stagedJobs.length > 0 ? (
                   <section className="staged-list" aria-label="Staged raw jobs">
                     {stagedJobs.map((job, index) => (
                       <article key={`${index}-${job.slice(0, 20)}`}>
@@ -845,7 +908,11 @@ function App() {
                   disabled={captureLoading}
                   onClick={runReview}
                 >
-                  {captureLoading ? 'Running capture review...' : 'Run capture review'}
+                  {captureLoading
+                    ? 'Running capture review...'
+                    : captureInputMode === 'page_text'
+                      ? 'Extract and review'
+                      : 'Run capture review'}
                 </button>
                 {captureError ? <p className="status-message">{captureError}</p> : null}
               </div>

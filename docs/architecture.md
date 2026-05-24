@@ -5,7 +5,7 @@
 LinkAut is a local job-offer decision assistant for fast, explainable job review. The current implementation proves the core review chain:
 
 ```text
-manual raw job text
+manual raw job text or pasted page text/HTML
 -> parser
 -> configurable rule profile
 -> decision engine
@@ -30,6 +30,7 @@ backend/
       default_profiles.json
     services/
       capture_runner.py
+      browser_capture.py
       decision_engine.py
       export_package.py
       demo_cleanup.py
@@ -92,7 +93,19 @@ Hard discard rules override positive scoring.
 
 `backend/app/services/capture_runner.py` is the current safe capture boundary.
 
-It accepts manually supplied `raw_jobs`, parses each job, classifies each parsed job, collects per-job errors, and returns one capture run result. Browser automation is disabled in this phase.
+It accepts manually supplied `raw_jobs` or raw jobs produced by capture adapters, parses each job, classifies each parsed job, collects per-job errors, and returns one capture run result.
+
+### Capture Adapter
+
+`backend/app/services/browser_capture.py` currently implements the safe capture adapter boundary for pasted page text/HTML.
+
+Supported modes:
+
+- `manual_raw_jobs`: existing explicit raw job input.
+- `page_text`: user-provided copied page text or HTML is normalized and conservatively split into job blocks.
+- `browser_assisted`: accepted as an experimental mode but not enabled; no browser automation is attempted.
+
+The adapter does not store credentials, bypass protections, crawl pages, or hardcode LinkedIn as the core architecture.
 
 ### Export Service
 
@@ -124,7 +137,7 @@ The current frontend is a compact React app rather than a fully split page/compo
 
 Implemented views:
 
-- Capture: primary demo workflow, profile selector, capture health, staged raw jobs, demo jobs, review dashboard, decision filters, decision cards.
+- Capture: primary demo workflow, profile selector, capture health, manual jobs, page text/HTML capture, demo jobs, review dashboard, decision filters, decision cards.
 - Rule Profiles: profile list and profile detail view.
 - History / Tracker: saved reviewed jobs, simple filters, and application status updates.
 - About: project purpose, demo safety notes, intentionally disabled features, and local cleanup control.
@@ -153,9 +166,9 @@ Current local endpoints:
 
 ```text
 Frontend Capture page
--> user loads demo jobs or stages raw text
+-> user loads demo jobs, stages raw text, or pastes page text/HTML
 -> POST /api/capture/run
--> capture runner validates raw jobs
+-> capture runner and adapter validate raw jobs/page content
 -> parser service normalizes raw text
 -> decision engine applies selected profile
 -> backend returns run summary and per-job results
@@ -172,8 +185,8 @@ Frontend Capture page
 
 The following are not implemented in the current safe demo:
 
-- real browser automation;
 - LinkedIn scraping;
+- real browser automation;
 - profile editing UI;
 - authentication;
 - production deployment.
@@ -185,7 +198,7 @@ These exclusions keep the project honest and portfolio-safe while the parser/pro
 - Richer XLSX tracker and auditable run package sheets.
 - Apply Today and Manual Review queues built from saved history.
 - Richer duplicate/already-reviewed labels using saved history during capture/classification.
-- Safer browser-assisted capture adapter behind the existing capture runner boundary.
+- Optional browser-assisted capture adapter with explicit user control and no credential storage.
 - Profile editing and validation UI.
 - Demo mode with committed fake/anonymized sample runs.
 - Broader privacy cleanup preview for logs, runs, and other generated private data.

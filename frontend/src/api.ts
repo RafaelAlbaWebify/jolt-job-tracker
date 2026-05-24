@@ -87,12 +87,16 @@ export type CaptureJobResult = {
 
 export type CaptureRunRequest = {
   profile_id: string;
+  capture_mode?: 'manual_raw_jobs' | 'page_text' | 'browser_assisted';
   source: string;
+  source_url?: string;
   query?: string;
   location?: string;
   work_mode_filter?: string;
   max_results?: number;
   dry_run: boolean;
+  page_text?: string;
+  html_content?: string;
   raw_jobs: CapturedRawJob[];
 };
 

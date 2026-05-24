@@ -17,6 +17,7 @@ body {
 }
 
 button,
+input,
 select,
 textarea {
   font: inherit;
@@ -256,6 +257,7 @@ p {
 }
 
 select,
+input,
 textarea {
   width: 100%;
   border: 1px solid #cfd9de;
@@ -311,11 +313,17 @@ textarea {
 }
 
 .button-row,
-.filter-bar {
+.filter-bar,
+.mode-switch {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
   margin-top: 12px;
+}
+
+.mode-switch {
+  margin-bottom: 12px;
+  margin-top: 0;
 }
 
 .checkbox-row {

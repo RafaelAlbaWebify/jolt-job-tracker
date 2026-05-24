@@ -587,3 +587,41 @@
   - Frontend production build passed.
 - Remaining risks / follow-up:
   - Cleanup intentionally covers only exports/history in this phase; broader privacy cleanup for logs, runs, captures, and preview mode remains future work.
+
+## 2026-05-24 - Phase 11 Safe Browser-Assisted Capture Adapter
+
+- Type: Feature / Test / Docs
+- Files changed:
+  - `backend/app/models.py`
+  - `backend/app/api/capture.py`
+  - `backend/app/services/browser_capture.py`
+  - `backend/app/services/capture_runner.py`
+  - `backend/tests/test_capture_runner.py`
+  - `frontend/src/api.ts`
+  - `frontend/src/App.tsx`
+  - `frontend/src/styles.css`
+  - `README.md`
+  - `docs/architecture.md`
+  - `docs/demo-checklist.md`
+  - `docs/engineering-log.md`
+- Problem / goal:
+  - Add a safe capture adapter boundary that can collect raw job text from user-provided page text/HTML and feed the existing parse/classify review flow.
+  - Avoid mass scraping, auto-apply behavior, credential storage, CAPTCHA bypass, rate-limit bypass, and LinkedIn-only architecture.
+- Root cause:
+  - The capture runner previously supported only manually staged `raw_jobs`, leaving no generic adapter boundary for copied job-board page content.
+- Change made:
+  - Extended capture requests with `capture_mode`, `page_text`, `html_content`, and `source_url`.
+  - Added a conservative page text/HTML extraction service that strips HTML, splits clear job blocks, preserves source URL hints, and falls back to one captured job when structure is unclear.
+  - Kept existing manual `raw_jobs` behavior intact.
+  - Kept `browser_assisted` explicit but disabled by default; no browser automation package or live website access was added.
+  - Updated the Capture page with Manual jobs and Page text / HTML modes, safety notes, source URL input, and `Extract and review`.
+  - Updated README, architecture notes, and demo checklist to describe the new mode accurately without claiming scraping.
+- Tests/checks run:
+  - Ran `cd backend && .\.venv\Scripts\python.exe -m pytest`.
+  - Ran `cd frontend && npm run build`.
+- Result:
+  - Backend tests passed: 62 passed, 1 pytest cache warning.
+  - Frontend production build passed.
+- Remaining risks / follow-up:
+  - Page text splitting is intentionally conservative and may return one full-content job when structure is unclear.
+  - Real browser automation remains future work and should stay opt-in, observable, rate-limited, and isolated.

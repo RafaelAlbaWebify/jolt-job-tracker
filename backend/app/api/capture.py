@@ -18,4 +18,7 @@ def run_capture_boundary(request: CaptureRunRequest) -> CaptureRunResult:
     if profile is None:
         raise HTTPException(status_code=404, detail="Profile not found")
 
-    return run_capture(request, profile)
+    try:
+        return run_capture(request, profile)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc

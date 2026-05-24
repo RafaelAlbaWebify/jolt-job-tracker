@@ -33,6 +33,7 @@ DecisionLabel = Literal["Apply", "Maybe", "Discard", "Manual Review", "Duplicate
 PriorityLabel = Literal["High", "Medium", "Low"]
 ParserConfidence = Literal["high", "medium", "low"]
 CaptureRunStatus = Literal["completed", "completed_with_errors", "failed"]
+CaptureMode = Literal["manual_raw_jobs", "page_text", "browser_assisted"]
 ExportFormat = Literal["json", "csv", "xlsx"]
 ExportStatus = Literal["completed", "failed"]
 ApplicationStatus = Literal["Not started", "Applied", "Interview", "Rejected", "Archived", "Watchlist"]
@@ -103,7 +104,7 @@ class CapturedRawJob(BaseModel):
 
 
 class CaptureHealthStatus(BaseModel):
-    capture_mode: str = "manual_raw_jobs"
+    capture_mode: str = "manual_raw_jobs,page_text"
     browser_automation_enabled: bool = False
     last_run_status: str | None = None
     warnings: list[str] = []
@@ -111,12 +112,16 @@ class CaptureHealthStatus(BaseModel):
 
 class CaptureRunRequest(BaseModel):
     profile_id: str
+    capture_mode: CaptureMode = "manual_raw_jobs"
     source: str = "manual_raw_jobs"
+    source_url: str = ""
     query: str = ""
     location: str = ""
     work_mode_filter: str = ""
     max_results: int = 25
     dry_run: bool = False
+    page_text: str = ""
+    html_content: str = ""
     raw_jobs: list[CapturedRawJob] = []
 
 

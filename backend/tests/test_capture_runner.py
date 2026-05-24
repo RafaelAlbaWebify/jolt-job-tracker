@@ -52,7 +52,8 @@ def test_capture_health_says_browser_automation_disabled() -> None:
 
     assert response.status_code == 200
     data = response.json()
-    assert data["capture_mode"] == "manual_raw_jobs"
+    assert "manual_raw_jobs" in data["capture_mode"]
+    assert "page_text" in data["capture_mode"]
     assert data["browser_automation_enabled"] is False
     assert any("not implemented" in warning for warning in data["warnings"])
 
@@ -125,3 +126,144 @@ def test_capture_run_does_not_create_persistence_or_history_files(tmp_path, monk
     assert data["classified_count"] == 1
     for path in ["runs", "outputs", "exports", "job_history_master.csv"]:
         assert not Path(path).exists()
+
+
+def test_page_text_with_one_job_produces_one_result() -> None:
+    response = client.post(
+        "/api/capture/run",
+        json={
+            "profile_id": "rafael_default",
+            "capture_mode": "page_text",
+            "source": "page_text",
+            "source_url": "https://example.test/page",
+            "max_results": 5,
+            "dry_run": True,
+            "page_text": support_job(),
+        },
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["total_captured"] == 1
+    assert data["classified_count"] == 1
+    assert data["results"][0]["raw_job"]["source"] == "page_text"
+    assert data["results"][0]["raw_job"]["source_url"] == "https://example.test/page"
+    assert any("Page text" in warning for warning in data["warnings"])
+
+
+def test_page_text_with_multiple_synthetic_job_blocks_produces_multiple_results() -> None:
+    page_text = f"""
+Job 1
+{support_job()}
+
+Job 2
+Title: IT Support Engineer
+Company: Example Desk
+Location: Remote, Spain
+Work mode: Remote
+English required. Support Microsoft 365 and endpoint tickets.
+"""
+
+    response = client.post(
+        "/api/capture/run",
+        json={
+            "profile_id": "rafael_default",
+            "capture_mode": "page_text",
+            "source": "page_text",
+            "max_results": 5,
+            "dry_run": True,
+            "page_text": page_text,
+        },
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["total_captured"] == 2
+    assert [result["parsed_job"]["title"] for result in data["results"]] == [
+        "Technical Support Specialist",
+        "IT Support Engineer",
+    ]
+
+
+def test_unclear_page_text_returns_one_result_with_capture_note() -> None:
+    response = client.post(
+        "/api/capture/run",
+        json={
+            "profile_id": "rafael_default",
+            "capture_mode": "page_text",
+            "source": "page_text",
+            "max_results": 5,
+            "dry_run": True,
+            "page_text": "Support role. Tickets. Help users. Remote maybe.",
+        },
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["total_captured"] == 1
+    assert any("unclear" in note.lower() for note in data["results"][0]["raw_job"]["capture_notes"])
+
+
+def test_page_text_max_results_is_enforced() -> None:
+    page_text = "\n".join(
+        [
+            f"""
+Job {index}
+Title: Technical Support Specialist {index}
+Company: Example SaaS
+Location: Vigo, Spain
+Work mode: Remote
+English required. Microsoft 365 support.
+"""
+            for index in range(1, 4)
+        ]
+    )
+
+    response = client.post(
+        "/api/capture/run",
+        json={
+            "profile_id": "rafael_default",
+            "capture_mode": "page_text",
+            "source": "page_text",
+            "max_results": 2,
+            "dry_run": True,
+            "page_text": page_text,
+        },
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["total_captured"] == 2
+    assert any("only the first 2" in warning for warning in data["warnings"])
+
+
+def test_unsupported_capture_mode_returns_controlled_error() -> None:
+    response = client.post(
+        "/api/capture/run",
+        json={
+            "profile_id": "rafael_default",
+            "capture_mode": "crawler",
+            "source": "page_text",
+            "dry_run": True,
+        },
+    )
+
+    assert response.status_code == 422
+
+
+def test_browser_assisted_does_not_attempt_automation_by_default() -> None:
+    response = client.post(
+        "/api/capture/run",
+        json={
+            "profile_id": "rafael_default",
+            "capture_mode": "browser_assisted",
+            "source": "browser_assisted",
+            "max_results": 5,
+            "dry_run": True,
+        },
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["total_captured"] == 0
+    assert any("not enabled" in warning for warning in data["warnings"])

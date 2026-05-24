@@ -33,6 +33,8 @@ DecisionLabel = Literal["Apply", "Maybe", "Discard", "Manual Review", "Duplicate
 PriorityLabel = Literal["High", "Medium", "Low"]
 ParserConfidence = Literal["high", "medium", "low"]
 CaptureRunStatus = Literal["completed", "completed_with_errors", "failed"]
+ExportFormat = Literal["json", "csv", "xlsx"]
+ExportStatus = Literal["completed", "failed"]
 
 
 class NormalizedJob(BaseModel):
@@ -135,3 +137,16 @@ class CaptureRunResult(BaseModel):
     results: list[CaptureJobResult]
     warnings: list[str]
     capture_health: CaptureHealthStatus
+
+
+class ExportCaptureResultRequest(BaseModel):
+    export_format: ExportFormat
+    include_raw_text: bool = False
+    capture_result: CaptureRunResult
+
+
+class ExportCaptureResultResponse(BaseModel):
+    export_id: str
+    status: ExportStatus
+    files: list[str]
+    warnings: list[str]

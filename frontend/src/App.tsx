@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
+  exportCaptureResult,
   fetchBackendHealth,
   fetchCaptureHealth,
   fetchProfile,
@@ -9,6 +10,8 @@ import {
   type CaptureJobResult,
   type CaptureRunResult,
   type DecisionResult,
+  type ExportCaptureResultResponse,
+  type ExportFormat,
   type HealthResponse,
   type NormalizedJob,
   type RuleProfile,
@@ -292,6 +295,10 @@ function App() {
   const [captureError, setCaptureError] = useState<string | null>(null);
   const [captureLoading, setCaptureLoading] = useState<boolean>(false);
   const [activeFilter, setActiveFilter] = useState<DecisionFilter>('All');
+  const [includeRawTextInExport, setIncludeRawTextInExport] = useState<boolean>(false);
+  const [exportLoading, setExportLoading] = useState<ExportFormat | null>(null);
+  const [exportError, setExportError] = useState<string | null>(null);
+  const [exportResponses, setExportResponses] = useState<ExportCaptureResultResponse[]>([]);
 
   const activePage = useMemo(
     () => pages.find((page) => page.id === activePageId) ?? pages[0],
@@ -430,8 +437,10 @@ function App() {
   function loadDemoJobs() {
     setStagedJobs(demoJobs);
     setCaptureResult(null);
+    setExportResponses([]);
     setActiveFilter('All');
     setCaptureError(null);
+    setExportError(null);
   }
 
   function removeStagedJob(indexToRemove: number) {
@@ -462,12 +471,37 @@ function App() {
       });
       setCaptureResult(result);
       setCaptureHealth(result.capture_health);
+      setExportResponses([]);
+      setExportError(null);
       setActiveFilter('All');
     } catch (error: unknown) {
       setCaptureResult(null);
       setCaptureError(error instanceof Error ? error.message : 'Capture review failed');
     } finally {
       setCaptureLoading(false);
+    }
+  }
+
+  async function runExport(exportFormat: ExportFormat) {
+    if (!captureResult) {
+      setExportError('Run capture review before exporting results.');
+      return;
+    }
+
+    setExportLoading(exportFormat);
+    setExportError(null);
+
+    try {
+      const result = await exportCaptureResult({
+        export_format: exportFormat,
+        include_raw_text: includeRawTextInExport,
+        capture_result: captureResult,
+      });
+      setExportResponses((current) => [result, ...current]);
+    } catch (error: unknown) {
+      setExportError(error instanceof Error ? error.message : 'Export failed');
+    } finally {
+      setExportLoading(null);
     }
   }
 
@@ -609,6 +643,8 @@ function App() {
                       onClick={() => {
                         setStagedJobs([]);
                         setCaptureResult(null);
+                        setExportResponses([]);
+                        setExportError(null);
                       }}
                     >
                       Clear
@@ -670,6 +706,53 @@ function App() {
                       </div>
                       {captureResult.warnings.length > 0 ? (
                         <TextList title="Run warnings" items={captureResult.warnings} />
+                      ) : null}
+                    </section>
+
+                    <section className="export-panel">
+                      <div className="section-heading">
+                        <div>
+                          <h2>Export package</h2>
+                          <p>Generate local files under backend/data/exports.</p>
+                        </div>
+                        <span>{exportResponses.length} generated</span>
+                      </div>
+                      <label className="checkbox-row">
+                        <input
+                          type="checkbox"
+                          checked={includeRawTextInExport}
+                          onChange={(event) => setIncludeRawTextInExport(event.target.checked)}
+                        />
+                        Include raw job text
+                      </label>
+                      <div className="button-row">
+                        {(['json', 'csv', 'xlsx'] as ExportFormat[]).map((format) => (
+                          <button
+                            key={format}
+                            type="button"
+                            className="secondary-button"
+                            disabled={exportLoading !== null}
+                            onClick={() => runExport(format)}
+                          >
+                            {exportLoading === format ? `Exporting ${format.toUpperCase()}...` : `Export ${format.toUpperCase()}`}
+                          </button>
+                        ))}
+                      </div>
+                      {exportError ? <p className="status-message">{exportError}</p> : null}
+                      {exportResponses.length > 0 ? (
+                        <div className="export-results">
+                          {exportResponses.map((response) => (
+                            <article key={response.export_id}>
+                              <strong>{response.export_id}</strong>
+                              {response.files.map((file) => (
+                                <code key={file}>{file}</code>
+                              ))}
+                              {response.warnings.map((warning) => (
+                                <p key={warning}>{warning}</p>
+                              ))}
+                            </article>
+                          ))}
+                        </div>
                       ) : null}
                     </section>
 

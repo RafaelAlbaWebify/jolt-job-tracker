@@ -470,3 +470,43 @@
   - Backend tests passed in the existing backend virtualenv: 35 passed, 1 pytest cache warning.
 - Remaining risks / follow-up:
   - Add screenshots or a short demo video after the UI is run locally with the backend.
+
+## 2026-05-24 - Phase 8 Capture Result Export Package
+
+- Type: Feature / Test / Docs
+- Files changed:
+  - `backend/app/models.py`
+  - `backend/app/main.py`
+  - `backend/app/api/export.py`
+  - `backend/app/services/export_package.py`
+  - `backend/tests/test_export_package.py`
+  - `backend/requirements.txt`
+  - `frontend/src/api.ts`
+  - `frontend/src/App.tsx`
+  - `frontend/src/styles.css`
+  - `README.md`
+  - `docs/architecture.md`
+  - `docs/demo-checklist.md`
+  - `docs/engineering-log.md`
+- Problem / goal:
+  - Add a safe local export package feature for already-reviewed capture results without adding browser automation, scraping, persistent history, profile editing, authentication, or decision-rule changes.
+- Root cause:
+  - Phase 7 documented export package / XLSX as the next roadmap item, but the verified capture review dashboard had no way to persist review results as local files.
+- Change made:
+  - Added export request/response models for capture result exports.
+  - Added `POST /api/export/capture-result`.
+  - Added an export service that writes JSON, CSV, or XLSX files under ignored `backend/data/exports/`.
+  - Added `openpyxl` as an explicit backend runtime dependency for XLSX generation.
+  - Added raw-text privacy handling: raw job text and parsed descriptions are excluded by default and included only when explicitly requested.
+  - Added frontend export controls for JSON, CSV, and XLSX after a successful capture review, plus display of generated local file paths and warnings.
+  - Updated README, architecture notes, and demo checklist for the implemented export flow.
+- Tests/checks run:
+  - Installed updated backend runtime requirements into the existing backend virtualenv.
+  - Ran `cd backend && .\.venv\Scripts\python.exe -m pytest`.
+  - Ran `cd frontend && npm run build`.
+- Result:
+  - Backend tests passed: 43 passed, 1 pytest cache warning.
+  - Frontend production build passed.
+- Remaining risks / follow-up:
+  - Export files are generated locally and paths are shown in the UI, but download streaming is intentionally not implemented yet.
+  - The XLSX is a focused capture review sheet; richer multi-sheet application tracker/export package remains a future phase.

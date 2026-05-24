@@ -109,6 +109,21 @@ export type CaptureRunResult = {
   capture_health: CaptureHealthStatus;
 };
 
+export type ExportFormat = 'json' | 'csv' | 'xlsx';
+
+export type ExportCaptureResultRequest = {
+  export_format: ExportFormat;
+  include_raw_text: boolean;
+  capture_result: CaptureRunResult;
+};
+
+export type ExportCaptureResultResponse = {
+  export_id: string;
+  status: 'completed' | 'failed';
+  files: string[];
+  warnings: string[];
+};
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000';
 
 async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
@@ -139,6 +154,18 @@ export async function fetchCaptureHealth(): Promise<CaptureHealthStatus> {
 
 export async function runCaptureReview(request: CaptureRunRequest): Promise<CaptureRunResult> {
   return fetchJson<CaptureRunResult>('/api/capture/run', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(request),
+  });
+}
+
+export async function exportCaptureResult(
+  request: ExportCaptureResultRequest,
+): Promise<ExportCaptureResultResponse> {
+  return fetchJson<ExportCaptureResultResponse>('/api/export/capture-result', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

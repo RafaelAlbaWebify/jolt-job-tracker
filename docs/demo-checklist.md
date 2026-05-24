@@ -50,8 +50,10 @@ Expected result:
 9. Review the dashboard counts for Apply, Maybe, Discard, Manual Review, Duplicate, and Errors.
 10. Use the decision filters to show Apply, Discard, Manual Review, and Errors.
 11. Open expandable card sections for warnings, missing information, matched keywords, and raw staged preview.
-12. Open the Rule Profiles page.
-13. Confirm Rafael Default is labeled as a demo/default preset, not global hardcoded behavior.
+12. Click `Export JSON`, `Export CSV`, or `Export XLSX`.
+13. Confirm the UI shows generated paths under `data/exports/`.
+14. Open the Rule Profiles page.
+15. Confirm Rafael Default is labeled as a demo/default preset, not global hardcoded behavior.
 
 ## Expected Visible Results
 
@@ -60,6 +62,7 @@ Expected result:
 - A far-away hybrid/onsite role should be discarded when distance/location rules apply.
 - A low-information job should produce Manual Review or Maybe-style uncertainty.
 - Decision cards should show score, priority, parser confidence, reasons, warnings, missing information, and matched keywords.
+- Export controls should generate local JSON, CSV, and XLSX files under ignored `backend/data/exports/`.
 
 ## Useful Screenshots
 
@@ -71,6 +74,7 @@ For GitHub or LinkedIn, capture:
 - One Apply decision card with reasons and positive keywords.
 - One Discard decision card showing a hard discard reason.
 - One Manual Review / uncertain result showing parser confidence or missing information.
+- Export package controls showing generated local file paths.
 - Rule Profiles page showing Rafael Default as a demo/default profile.
 
 ## What To Say During The Demo
@@ -79,6 +83,7 @@ For GitHub or LinkedIn, capture:
 - The current demo uses manual raw job text and simulated capture runs.
 - Browser automation and LinkedIn scraping are intentionally disabled in this safe boundary.
 - The real backend parser, configurable profiles, and decision engine are used.
+- Export files are local generated artifacts and are ignored by Git.
 - The project is designed to make uncertainty visible rather than hide it.
 
 ## Do Not Demo As Implemented Yet
@@ -88,7 +93,8 @@ These are future phases:
 - real browser automation;
 - LinkedIn scraping;
 - persistent history/tracker;
-- XLSX/export package;
+- downloadable export streaming;
+- full multi-sheet application tracker workflow;
 - profile editing UI;
 - authentication;
 - production deployment.

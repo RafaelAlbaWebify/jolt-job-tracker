@@ -14,6 +14,7 @@ raw job text / simulated capture
 -> configurable rule profile
 -> decision engine
 -> review dashboard
+-> local export package
 ```
 
 The frontend Capture page can load demo jobs, send them to the backend through `POST /api/capture/run`, and display parsed + classified results as decision cards.
@@ -61,6 +62,8 @@ The goal is not to hide uncertainty. Low parser confidence, missing work mode, u
 - Frontend Capture dashboard with demo jobs.
 - Review result cards with decision, score, priority, parser confidence, reasons, warnings, missing information, matched keywords, and raw preview.
 - Filtered result view by decision or errors.
+- Local export package generation for capture review results.
+- JSON, CSV, and XLSX export formats under ignored `backend/data/exports/`.
 - Backend tests for profiles, parsing, classification, capture runner, and health.
 - Frontend production build with `npm run build`.
 
@@ -82,6 +85,7 @@ The goal is not to hide uncertainty. Low parser confidence, missing work mode, u
 - Parser service for conservative raw-text normalization.
 - Decision engine for profile-based scoring and labels.
 - Capture runner for simulated capture runs over manual raw jobs.
+- Export service for JSON, CSV, and XLSX files generated from capture review results.
 
 ### Data Flow
 
@@ -92,6 +96,8 @@ manual raw jobs
 -> decision engine
 -> capture run result
 -> frontend review dashboard
+-> POST /api/export/capture-result
+-> backend/data/exports/
 ```
 
 For more detail, see [docs/architecture.md](docs/architecture.md).
@@ -110,6 +116,7 @@ Run the backend locally, then use `http://127.0.0.1:8000`.
 | POST | `/api/classify/job` | Classify an already-normalized job. |
 | GET | `/api/capture/health` | Report current safe capture mode and automation status. |
 | POST | `/api/capture/run` | Run a simulated capture batch from manual raw jobs. |
+| POST | `/api/export/capture-result` | Generate JSON, CSV, or XLSX files from a capture run result. |
 
 Example capture request:
 
@@ -177,7 +184,8 @@ http://localhost:5173
 6. Click `Load demo jobs`.
 7. Click `Run capture review`.
 8. Review Apply / Discard / Manual Review result cards.
-9. Open Rule Profiles to confirm Rafael Default is a demo/default profile, not a global hardcoded rule set.
+9. Optionally click `Export JSON`, `Export CSV`, or `Export XLSX` to generate local files under `backend/data/exports/`.
+10. Open Rule Profiles to confirm Rafael Default is a demo/default profile, not a global hardcoded rule set.
 
 See [docs/demo-checklist.md](docs/demo-checklist.md) for a reviewer/demo checklist.
 
@@ -188,7 +196,6 @@ These are intentionally not implemented yet:
 - real browser automation;
 - LinkedIn scraping;
 - persistent history/tracker storage;
-- XLSX/export package generation;
 - profile editing UI;
 - authentication;
 - production deployment.
@@ -198,7 +205,8 @@ These are future phases, not failed features. The current milestone focuses on a
 ## Roadmap
 
 - Phase 7: portfolio README and documentation.
-- Next: export package and XLSX tracker.
+- Phase 8: local export package for capture review results.
+- Next: richer XLSX tracker sheets and downloadable export UX.
 - Later: local history tracker and duplicate/already-reviewed persistence.
 - Later: safer browser-assisted capture adapter behind the existing capture boundary.
 - Later: profile editing and validation UI.

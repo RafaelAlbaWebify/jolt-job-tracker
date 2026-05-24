@@ -30,6 +30,7 @@ backend/
     services/
       capture_runner.py
       decision_engine.py
+      export_package.py
       parser.py
       profiles.py
     main.py
@@ -90,6 +91,18 @@ Hard discard rules override positive scoring.
 
 It accepts manually supplied `raw_jobs`, parses each job, classifies each parsed job, collects per-job errors, and returns one capture run result. Browser automation is disabled in this phase.
 
+### Export Service
+
+`backend/app/services/export_package.py` writes local export files for a capture review result.
+
+Supported formats:
+
+- JSON: structured capture result.
+- CSV: flattened review rows.
+- XLSX: workbook with a `Capture Review` sheet.
+
+Generated files are written under ignored `backend/data/exports/`. Raw job text is excluded by default and can be included explicitly for local/private review.
+
 ## Frontend Pages
 
 The current frontend is a compact React app rather than a fully split page/component tree.
@@ -112,6 +125,7 @@ Current local endpoints:
 - `POST /api/classify/job`
 - `GET /api/capture/health`
 - `POST /api/capture/run`
+- `POST /api/export/capture-result`
 
 ## Current Data Flow
 
@@ -124,6 +138,8 @@ Frontend Capture page
 -> decision engine applies selected profile
 -> backend returns run summary and per-job results
 -> frontend displays decision overview, filters, and cards
+-> user optionally exports JSON, CSV, or XLSX
+-> backend writes files under backend/data/exports/
 ```
 
 ## Intentionally Excluded Features
@@ -132,7 +148,6 @@ The following are not implemented in the current safe demo:
 
 - real browser automation;
 - LinkedIn scraping;
-- XLSX/export package generation;
 - persistent history/tracker storage;
 - profile editing UI;
 - authentication;
@@ -142,7 +157,7 @@ These exclusions keep the project honest and portfolio-safe while the parser/pro
 
 ## Future Extension Points
 
-- Export service for XLSX tracker and auditable run package.
+- Richer XLSX tracker and auditable run package sheets.
 - History/status service for duplicates, already-reviewed jobs, and application statuses.
 - Safer browser-assisted capture adapter behind the existing capture runner boundary.
 - Profile editing and validation UI.

@@ -752,3 +752,24 @@
   - Frontend production build passed.
 - Remaining risks / follow-up:
   - Visual verification should be done manually in a browser at 1920x1080 before committing final screenshots.
+
+## 2026-05-24 - README Screenshot Embed Update
+
+- Type: Docs
+- Files changed:
+  - `README.md`
+  - `docs/engineering-log.md`
+- Problem / goal:
+  - Update the README now that real portfolio screenshots are committed under `docs/screenshots/`.
+- Root cause:
+  - The README still described screenshots as placeholders after the real image files were added.
+- Change made:
+  - Replaced the placeholder screenshot table with embedded Markdown images and short captions for Capture, Page text / HTML capture, Review dashboard, Export package, History / Tracker, and Local demo safety.
+  - Removed the outdated roadmap wording about adding real screenshots.
+  - Did not change backend logic, frontend behavior, parser rules, decision rules, capture logic, export, or history.
+- Tests/checks run:
+  - Not run; documentation-only update.
+- Result:
+  - README now renders the committed screenshot assets directly.
+- Remaining risks / follow-up:
+  - Future screenshot refreshes should continue using synthetic data only.

@@ -184,16 +184,41 @@ Run the backend locally, then use `http://127.0.0.1:8000`.
 
 ## Screenshots
 
-Screenshot files are not committed yet. Suggested screenshots to add before public sharing:
+### Capture workflow
 
-| Placeholder path | Purpose |
-| --- | --- |
-| `docs/screenshots/01-capture-page.png` | Capture page with synthetic demo jobs and safe capture status. |
-| `docs/screenshots/02-page-text-capture.png` | Page text / HTML mode using user-provided synthetic content. |
-| `docs/screenshots/03-review-dashboard.png` | Decision counts and explainable review cards after a run. |
-| `docs/screenshots/04-export-controls.png` | Local JSON / CSV / XLSX export controls. |
-| `docs/screenshots/05-history-tracker.png` | Saved local jobs and application status controls. |
-| `docs/screenshots/06-about-demo-safety.png` | About page with local-only privacy and cleanup notes. |
+Capture starts from a local portfolio demo workflow with profile selection, capture health, and manual/page-text modes.
+
+![Capture page](docs/screenshots/01-capture-page.png)
+
+### Page text / HTML capture
+
+Page text mode accepts user-provided visible page text or copied HTML and keeps browser automation disabled.
+
+![Page text capture](docs/screenshots/02-page-text-capture.png)
+
+### Review dashboard
+
+Capture results are parsed, classified, filtered, and displayed as explainable decision cards.
+
+![Review dashboard](docs/screenshots/03-review-dashboard.png)
+
+### Export package
+
+Reviewed results can be exported locally as JSON, CSV, or XLSX files.
+
+![Export controls](docs/screenshots/04-export-controls.png)
+
+### History / Tracker
+
+Reviewed jobs can be saved locally and tracked with application statuses.
+
+![History tracker](docs/screenshots/05-history-tracker.png)
+
+### Local demo safety
+
+The About page documents the local-only demo boundary, disabled automation, and cleanup control.
+
+![About and demo safety](docs/screenshots/06-about-demo-safety.png)
 
 See [docs/screenshots/README.md](docs/screenshots/README.md) for the screenshot plan.
 
@@ -216,7 +241,7 @@ See [docs/screenshots/README.md](docs/screenshots/README.md) for the screenshot 
 - Add capture-time duplicate/already-reviewed labels from local history.
 - Add profile editing and validation UI.
 - Add optional browser-assisted capture only if it can remain explicit, local, recoverable, and respectful of site terms.
-- Add real screenshots and a short demo video.
+- Add a short demo video.
 
 ## Privacy And Repository Hygiene
 

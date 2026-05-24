@@ -1,12 +1,12 @@
-# LinkAut Job Search Assistant
+# JOLT — Job Opportunity Logic Tracker
 
-Local job-offer decision assistant for fast, explainable job review.
+Local job-search decision assistant built with React and FastAPI.
 
-LinkAut is a local React + FastAPI portfolio demo that turns raw job-offer text, pasted job-board page text, or copied HTML snippets into structured review results. It parses messy job content, applies a configurable rule profile, explains each Apply / Maybe / Discard / Manual Review / Duplicate decision, and lets the user export or save results locally.
+JOLT is a local React + FastAPI portfolio demo that turns raw job-offer text, pasted job-board page text, or copied HTML snippets into structured review results. It parses messy job content, applies a configurable rule profile, explains each Apply / Maybe / Discard / Manual Review / Duplicate decision, and lets the user export or save results locally.
 
 Current milestone: local portfolio demo.
 
-LinkAut is not a LinkedIn scraper, not a mass-apply bot, and not a black-box recommender. Browser-assisted capture is represented as an explicit disabled/experimental placeholder; the working capture modes use user-provided content.
+JOLT is not a LinkedIn scraper, not a mass-apply bot, and not a black-box recommender. Browser-assisted capture is represented as an explicit disabled/experimental placeholder; the working capture modes use user-provided content.
 
 ## What It Does
 

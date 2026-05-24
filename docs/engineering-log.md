@@ -435,3 +435,38 @@
   - Frontend production build passed.
 - Remaining risks / follow-up:
   - Browser automation, XLSX/export, persistent history/tracker, profile editing, and backend decision-rule changes remain intentionally out of scope.
+
+## 2026-05-24 - Phase 7 Portfolio Documentation
+
+- Type: Docs
+- Files changed:
+  - `README.md`
+  - `docs/architecture.md`
+  - `docs/demo-checklist.md`
+  - `docs/engineering-log.md`
+- Problem / goal:
+  - Make the repository portfolio-ready for GitHub reviewers by documenting the current verified local demo flow accurately.
+- Root cause:
+  - The previous README was brief and did not describe the current React + FastAPI workflow, safe capture boundary, API surface, setup, demo path, limitations, or roadmap in enough detail for reviewers.
+- Change made:
+  - Rewrote `README.md` around the positioning: local job-offer decision assistant for fast, explainable job review.
+  - Documented the implemented raw job text / simulated capture -> parser -> configurable profile -> decision engine -> review dashboard flow.
+  - Added current features, architecture, API endpoints, Windows-friendly setup commands, demo workflow, limitations, roadmap, and repository hygiene notes.
+  - Added `docs/architecture.md` with backend services, frontend views, current data flow, intentionally excluded features, and future extension points.
+  - Added `docs/demo-checklist.md` with setup commands, demo click path, expected visible results, useful screenshots, and what not to claim as implemented.
+  - Did not change backend logic, frontend behavior, browser automation, scraping, export, history, or profile editing.
+- Tests/checks run:
+  - Read `AGENTS.md`.
+  - Read `specs/product-spec.md`.
+  - Read `specs/technical-plan.md`.
+  - Read `specs/tasks.md`.
+  - Reviewed `docs/engineering-log.md`.
+  - Inspected current backend and frontend structure.
+  - Ran `cd frontend && npm run build`.
+  - Ran `cd backend && python -m pytest`; global Python did not have `pytest` installed.
+  - Ran `cd backend && .\.venv\Scripts\python.exe -m pytest`.
+- Result:
+  - Frontend production build passed.
+  - Backend tests passed in the existing backend virtualenv: 35 passed, 1 pytest cache warning.
+- Remaining risks / follow-up:
+  - Add screenshots or a short demo video after the UI is run locally with the backend.

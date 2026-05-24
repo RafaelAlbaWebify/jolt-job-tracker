@@ -184,13 +184,16 @@ Run the backend locally, then use `http://127.0.0.1:8000`.
 
 ## Screenshots
 
-Screenshot files are not committed yet. Suggested future paths:
+Screenshot files are not committed yet. Suggested screenshots to add before public sharing:
 
-- `docs/screenshots/capture-demo-jobs.png`
-- `docs/screenshots/review-dashboard.png`
-- `docs/screenshots/export-controls.png`
-- `docs/screenshots/history-tracker.png`
-- `docs/screenshots/about-demo-safety.png`
+| Placeholder path | Purpose |
+| --- | --- |
+| `docs/screenshots/01-capture-page.png` | Capture page with synthetic demo jobs and safe capture status. |
+| `docs/screenshots/02-page-text-capture.png` | Page text / HTML mode using user-provided synthetic content. |
+| `docs/screenshots/03-review-dashboard.png` | Decision counts and explainable review cards after a run. |
+| `docs/screenshots/04-export-controls.png` | Local JSON / CSV / XLSX export controls. |
+| `docs/screenshots/05-history-tracker.png` | Saved local jobs and application status controls. |
+| `docs/screenshots/06-about-demo-safety.png` | About page with local-only privacy and cleanup notes. |
 
 See [docs/screenshots/README.md](docs/screenshots/README.md) for the screenshot plan.
 
@@ -200,6 +203,9 @@ See [docs/screenshots/README.md](docs/screenshots/README.md) for the screenshot 
 - [Demo checklist](docs/demo-checklist.md)
 - [Release checklist](docs/release-checklist.md)
 - [Portfolio walkthrough](docs/portfolio-walkthrough.md)
+- [GitHub presentation notes](docs/github-presentation.md)
+- [Interview explanation](docs/interview-explanation.md)
+- [LinkedIn post draft](docs/linkedin-post-draft.md)
 - [Engineering log](docs/engineering-log.md)
 
 ## Roadmap

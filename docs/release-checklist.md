@@ -33,6 +33,7 @@ npm run dev
 - Save the run to history.
 - Open History / Tracker and update one application status.
 - Open About and confirm the current milestone and demo safety copy are visible.
+- Capture screenshots using `docs/screenshots/README.md` if preparing a public post or README update.
 - Optionally run `Clean local demo data`.
 
 ## Page Text / HTML Check

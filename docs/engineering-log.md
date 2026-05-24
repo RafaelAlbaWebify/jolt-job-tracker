@@ -691,3 +691,36 @@
   - Frontend production build passed.
 - Remaining risks / follow-up:
   - Actual screenshots and demo video are still future portfolio assets and should use synthetic data only.
+
+## 2026-05-24 - Phase 14 Screenshots and Public Presentation Assets
+
+- Type: Docs / Cleanup / Test
+- Files changed:
+  - `.gitignore`
+  - `README.md`
+  - `docs/screenshots/README.md`
+  - `docs/linkedin-post-draft.md`
+  - `docs/github-presentation.md`
+  - `docs/interview-explanation.md`
+  - `docs/release-checklist.md`
+  - `docs/engineering-log.md`
+- Problem / goal:
+  - Prepare public presentation assets for GitHub and LinkedIn without adding product functionality or fabricating screenshots.
+- Root cause:
+  - The app reached a local portfolio demo milestone, but the repository still needed concrete screenshot capture instructions and public-facing presentation copy.
+- Change made:
+  - Expanded `docs/screenshots/README.md` with manual screenshot instructions, recommended browser zoom/window size, demo data flow, target filenames, what each screenshot should show, and a privacy checklist.
+  - Updated README screenshot wording to reference expected screenshot paths as placeholders/checklist entries rather than broken image embeds.
+  - Added `docs/linkedin-post-draft.md` with short and longer professional post drafts that avoid scraper, mass-apply, production SaaS, or AI overclaims.
+  - Added `docs/github-presentation.md` with repository description, topics, pinned repo copy, README blurb, interview positioning, and what not to claim.
+  - Added `docs/interview-explanation.md` with 30-second, 90-second, technical, and safe-answer explanations aligned with IT Ops / Technical Support / Infrastructure Support positioning.
+  - Updated `.gitignore` so future portfolio-safe PNG screenshots under `docs/screenshots/` can be tracked intentionally while generic screenshot output remains ignored.
+  - Did not add Playwright, Selenium, scraping, authentication, database storage, auto-apply behavior, fake screenshots, or parser/decision-rule changes.
+- Tests/checks run:
+  - Ran `cd backend && .\.venv\Scripts\python.exe -m pytest`.
+  - Ran `cd frontend && npm run build`.
+- Result:
+  - Backend tests passed.
+  - Frontend production build passed.
+- Remaining risks / follow-up:
+  - Actual screenshots still need to be captured manually from the local app using synthetic data before public sharing.

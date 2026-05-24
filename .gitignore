@@ -109,6 +109,7 @@ html_snapshots/
 screenshots/
 !docs/screenshots/
 !docs/screenshots/README.md
+!docs/screenshots/*.png
 
 # OS / editor
 .DS_Store

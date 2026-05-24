@@ -406,3 +406,32 @@
   - Frontend lockfile tracking and TypeScript build-cache hygiene now match the locally verified build.
 - Remaining risks / follow-up:
   - Future frontend dependency changes should update both `frontend/package.json` and `frontend/package-lock.json`.
+
+## 2026-05-23 - Phase 6B Capture Review Dashboard UX Polish
+
+- Type: Feature / Cleanup / Docs
+- Files changed:
+  - `frontend/src/App.tsx`
+  - `frontend/src/styles.css`
+  - `docs/engineering-log.md`
+- Problem / goal:
+  - Improve the Capture page and review results so the verified parser/decision workflow reads as a portfolio-ready local job-offer decision assistant instead of a developer test screen.
+- Root cause:
+  - Phase 6A made the workflow functional, but the results area, filters, and decision cards had a flat visual hierarchy and exposed every detail at full length.
+- Change made:
+  - Added a safe demo workflow note that explains browser automation is intentionally disabled while the real backend parser and decision engine are used.
+  - Added compact decision overview counts for Apply, Maybe, Discard, Manual Review, Duplicate, and Errors.
+  - Added count-aware result filters.
+  - Reworked decision cards with compact top facts, score/priority, parser confidence, and expandable detail sections for warnings, missing information, matched keywords, and raw staged preview.
+  - Tightened Capture page spacing and card styling without changing backend calls, profile selection, capture health, demo loading, or Rule Profiles behavior.
+- Tests/checks run:
+  - Read `AGENTS.md`.
+  - Read `specs/product-spec.md`.
+  - Read `specs/technical-plan.md`.
+  - Read `specs/tasks.md`.
+  - Reviewed `docs/engineering-log.md`.
+  - Ran `cd frontend && npm run build`.
+- Result:
+  - Frontend production build passed.
+- Remaining risks / follow-up:
+  - Browser automation, XLSX/export, persistent history/tracker, profile editing, and backend decision-rule changes remain intentionally out of scope.

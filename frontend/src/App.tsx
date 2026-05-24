@@ -17,6 +17,7 @@ import {
 
 type PageId = 'capture' | 'review' | 'profiles' | 'history' | 'manual' | 'about';
 type DecisionFilter = 'All' | 'Apply' | 'Maybe' | 'Discard' | 'Manual Review' | 'Duplicate' | 'Errors';
+type DecisionCountKey = DecisionFilter | 'Errors';
 
 type Page = {
   id: PageId;
@@ -123,6 +124,33 @@ function hasErrors(result: CaptureJobResult): boolean {
   return result.errors.length > 0;
 }
 
+function buildDecisionCounts(results: CaptureJobResult[]): Record<DecisionCountKey, number> {
+  return results.reduce<Record<DecisionCountKey, number>>(
+    (counts, result) => {
+      counts.All += 1;
+      if (hasErrors(result)) {
+        counts.Errors += 1;
+      }
+
+      const decision = result.decision?.decision;
+      if (decision && decision in counts) {
+        counts[decision as DecisionFilter] += 1;
+      }
+
+      return counts;
+    },
+    {
+      All: 0,
+      Apply: 0,
+      Maybe: 0,
+      Discard: 0,
+      'Manual Review': 0,
+      Duplicate: 0,
+      Errors: 0,
+    },
+  );
+}
+
 function SummaryMetric({ label, value }: { label: string; value: number | string }) {
   return (
     <div className="summary-metric">
@@ -132,34 +160,46 @@ function SummaryMetric({ label, value }: { label: string; value: number | string
   );
 }
 
+function CompactList({ items }: { items: string[] | undefined }) {
+  if (!items || items.length === 0) {
+    return <p className="muted-text">None</p>;
+  }
+
+  return (
+    <ul>
+      {items.map((item) => (
+        <li key={item}>{item}</li>
+      ))}
+    </ul>
+  );
+}
+
 function TextList({ title, items }: { title: string; items: string[] | undefined }) {
   return (
     <section className="text-list">
       <h4>{title}</h4>
-      {items && items.length > 0 ? (
-        <ul>
-          {items.map((item) => (
-            <li key={item}>{item}</li>
-          ))}
-        </ul>
-      ) : (
-        <p>None</p>
-      )}
+      <CompactList items={items} />
     </section>
+  );
+}
+
+function DetailSection({ title, items }: { title: string; items: string[] | undefined }) {
+  const count = items?.length ?? 0;
+
+  return (
+    <details className="detail-section">
+      <summary>
+        <span>{title}</span>
+        <strong>{count}</strong>
+      </summary>
+      <CompactList items={items} />
+    </details>
   );
 }
 
 function JobFacts({ job }: { job: NormalizedJob | null }) {
   return (
     <dl className="job-facts">
-      <div>
-        <dt>Title</dt>
-        <dd>{job?.title || 'Unknown title'}</dd>
-      </div>
-      <div>
-        <dt>Company</dt>
-        <dd>{job?.company || 'Unknown company'}</dd>
-      </div>
       <div>
         <dt>Location</dt>
         <dd>{job?.location || 'Unknown location'}</dd>
@@ -172,18 +212,6 @@ function JobFacts({ job }: { job: NormalizedJob | null }) {
         <dt>Parser confidence</dt>
         <dd>{job?.parser_confidence || 'unknown'}</dd>
       </div>
-      <div>
-        <dt>Source URL</dt>
-        <dd>
-          {job?.source_url ? (
-            <a href={job.source_url} target="_blank" rel="noreferrer">
-              Open source
-            </a>
-          ) : (
-            'None'
-          )}
-        </dd>
-      </div>
     </dl>
   );
 }
@@ -191,14 +219,28 @@ function JobFacts({ job }: { job: NormalizedJob | null }) {
 function DecisionCard({ result, index }: { result: CaptureJobResult; index: number }) {
   const job = result.parsed_job;
   const decision: DecisionResult | null = result.decision;
+  const rawPreview = result.raw_job.raw_text.slice(0, 360);
 
   return (
     <article className="decision-card">
       <div className="decision-card-header">
         <div>
-          <span className={decisionClass(decision?.decision)}>{decision?.decision ?? 'Error'}</span>
+          <div className="decision-title-row">
+            <span className={decisionClass(decision?.decision)}>{decision?.decision ?? 'Error'}</span>
+            <span className="confidence-pill">{job?.parser_confidence ?? 'unknown confidence'}</span>
+          </div>
           <h3>{job?.title || `Raw job ${index + 1}`}</h3>
-          <p>{job?.company || 'No company parsed yet'}</p>
+          <p>
+            {job?.company || 'No company parsed yet'}
+            {job?.source_url ? (
+              <>
+                {' '}
+                <a href={job.source_url} target="_blank" rel="noreferrer">
+                  Source
+                </a>
+              </>
+            ) : null}
+          </p>
         </div>
         <div className="score-block">
           <span>{decision?.priority ?? 'No priority'}</span>
@@ -208,12 +250,27 @@ function DecisionCard({ result, index }: { result: CaptureJobResult; index: numb
 
       <JobFacts job={job} />
 
-      {result.errors.length > 0 ? <TextList title="Errors" items={result.errors} /> : null}
-      <TextList title="Reasons" items={decision?.reasons} />
-      <TextList title="Warnings" items={decision?.warnings} />
-      <TextList title="Missing information" items={decision?.missing_information} />
-      <TextList title="Matched positive keywords" items={decision?.matched_positive_keywords} />
-      <TextList title="Matched risk keywords" items={decision?.matched_risk_keywords} />
+      <div className="card-section-grid">
+        <TextList title="Reasons" items={decision?.reasons} />
+        {result.errors.length > 0 ? <TextList title="Errors" items={result.errors} /> : null}
+      </div>
+
+      <div className="detail-grid">
+        <DetailSection title="Warnings" items={decision?.warnings} />
+        <DetailSection title="Missing information" items={decision?.missing_information} />
+        <DetailSection title="Matched positive keywords" items={decision?.matched_positive_keywords} />
+        <DetailSection title="Matched risk keywords" items={decision?.matched_risk_keywords} />
+        <details className="detail-section">
+          <summary>
+            <span>Raw staged preview</span>
+            <strong>{result.raw_job.raw_text.length}</strong>
+          </summary>
+          <p className="raw-preview">
+            {rawPreview}
+            {result.raw_job.raw_text.length > rawPreview.length ? '...' : ''}
+          </p>
+        </details>
+      </div>
     </article>
   );
 }
@@ -256,6 +313,11 @@ function App() {
 
     return captureResult.results.filter((result) => result.decision?.decision === activeFilter);
   }, [activeFilter, captureResult]);
+
+  const decisionCounts = useMemo(
+    () => buildDecisionCounts(captureResult?.results ?? []),
+    [captureResult],
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -452,6 +514,17 @@ function App() {
           {activePage.id === 'capture' ? (
             <div className="capture-workspace">
               <div className="capture-controls">
+                <section className="control-section demo-note">
+                  <div className="section-heading">
+                    <h2>Demo workflow</h2>
+                    <span>Safe boundary</span>
+                  </div>
+                  <p>
+                    Browser automation is intentionally disabled here. This screen stages raw jobs,
+                    then sends them through the real backend parser and decision engine.
+                  </p>
+                </section>
+
                 <section className="control-section">
                   <div className="section-heading">
                     <h2>Profile</h2>
@@ -573,21 +646,31 @@ function App() {
               <div className="capture-results" aria-live="polite">
                 {captureResult ? (
                   <>
-                    <section className="run-summary">
+                    <section className="review-overview">
                       <div className="section-heading">
                         <div>
-                          <h2>Run summary</h2>
+                          <h2>Review dashboard</h2>
                           <p>{captureResult.run_id}</p>
                         </div>
                         <span>{captureResult.status}</span>
                       </div>
-                      <div className="summary-grid">
-                        <SummaryMetric label="Captured" value={captureResult.total_captured} />
-                        <SummaryMetric label="Parsed" value={captureResult.parsed_count} />
-                        <SummaryMetric label="Classified" value={captureResult.classified_count} />
-                        <SummaryMetric label="Failed" value={captureResult.failed_count} />
+                      <div className="decision-overview-grid">
+                        <SummaryMetric label="Apply" value={decisionCounts.Apply} />
+                        <SummaryMetric label="Maybe" value={decisionCounts.Maybe} />
+                        <SummaryMetric label="Discard" value={decisionCounts.Discard} />
+                        <SummaryMetric label="Manual Review" value={decisionCounts['Manual Review']} />
+                        <SummaryMetric label="Duplicate" value={decisionCounts.Duplicate} />
+                        <SummaryMetric label="Errors" value={decisionCounts.Errors} />
                       </div>
-                      <TextList title="Run warnings" items={captureResult.warnings} />
+                      <div className="run-compact-stats">
+                        <span>Captured {captureResult.total_captured}</span>
+                        <span>Parsed {captureResult.parsed_count}</span>
+                        <span>Classified {captureResult.classified_count}</span>
+                        <span>Failed {captureResult.failed_count}</span>
+                      </div>
+                      {captureResult.warnings.length > 0 ? (
+                        <TextList title="Run warnings" items={captureResult.warnings} />
+                      ) : null}
                     </section>
 
                     <section className="filter-bar" aria-label="Decision filters">
@@ -598,7 +681,7 @@ function App() {
                           className={filter === activeFilter ? 'filter-button active' : 'filter-button'}
                           onClick={() => setActiveFilter(filter)}
                         >
-                          {filter}
+                          {filter} ({decisionCounts[filter]})
                         </button>
                       ))}
                     </section>
@@ -617,8 +700,8 @@ function App() {
                   <section className="empty-state large">
                     <h2>Review results will appear here</h2>
                     <p>
-                      Stage raw job text or load demo jobs, then run capture review to call the backend
-                      parser and decision engine through `POST /api/capture/run`.
+                      Load demo jobs or paste raw job text, then run capture review to see parser +
+                      decision engine results.
                     </p>
                   </section>
                 )}

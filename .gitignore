@@ -107,6 +107,8 @@ playwright-report/
 test-results/
 html_snapshots/
 screenshots/
+!docs/screenshots/
+!docs/screenshots/README.md
 
 # OS / editor
 .DS_Store

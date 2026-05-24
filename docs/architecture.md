@@ -15,6 +15,8 @@ manual raw job text or pasted page text/HTML
 
 The project is intentionally local-first and human-in-the-loop. It helps a job seeker review and prioritize roles, but it does not apply to jobs automatically and does not currently scrape LinkedIn.
 
+Current milestone: local portfolio demo.
+
 ## Current Repository Shape
 
 ```text
@@ -23,7 +25,10 @@ backend/
     api/
       capture.py
       classify.py
+      demo.py
+      export.py
       health.py
+      history.py
       parse.py
       profiles.py
     config/

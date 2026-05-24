@@ -440,6 +440,7 @@
 
 - Type: Docs
 - Files changed:
+  - `.gitignore`
   - `README.md`
   - `docs/architecture.md`
   - `docs/demo-checklist.md`
@@ -658,3 +659,35 @@
 - Remaining risks / follow-up:
   - Extraction remains intentionally conservative and local-only; unusual real job-board layouts may still fall back to one captured job with notes.
   - Real browser automation remains future work and should stay opt-in, isolated, and explicit.
+
+## 2026-05-24 - Phase 13 Portfolio Release Polish
+
+- Type: Docs / Cleanup / Test
+- Files changed:
+  - `README.md`
+  - `docs/screenshots/README.md`
+  - `docs/release-checklist.md`
+  - `docs/portfolio-walkthrough.md`
+  - `docs/architecture.md`
+  - `docs/demo-checklist.md`
+  - `docs/engineering-log.md`
+  - `frontend/src/App.tsx`
+- Problem / goal:
+  - Polish the project for GitHub/portfolio release without adding major product features or risky automation.
+- Root cause:
+  - The app had a verified local workflow, but the README and support docs needed clearer release positioning, screenshot planning, and reviewer-oriented walkthrough/checklist material.
+- Change made:
+  - Rewrote `README.md` as a portfolio landing page with project description, current workflow, implemented features, safe capture modes, intentional non-goals, tech stack, setup, demo flow, screenshots plan, roadmap, and repository hygiene.
+  - Added `docs/screenshots/README.md` with suggested screenshots and no fabricated images.
+  - Added `docs/release-checklist.md` for backend tests, frontend build, local demo verification, export/history checks, cleanup, and generated-data hygiene.
+  - Added `docs/portfolio-walkthrough.md` for a concise recruiter/technical reviewer explanation of the problem, solution, workflow, architecture, safe capture boundary, value, non-goals, and roadmap.
+  - Lightly polished frontend copy on Capture, Export, History, and About to align with the local portfolio demo milestone and user-provided capture wording.
+  - Did not add Playwright, Selenium, scraping, authentication, database storage, auto-apply behavior, profile editing, or parser/decision-rule changes.
+- Tests/checks run:
+  - Ran `cd backend && .\.venv\Scripts\python.exe -m pytest`.
+  - Ran `cd frontend && npm run build`.
+- Result:
+  - Backend tests passed.
+  - Frontend production build passed.
+- Remaining risks / follow-up:
+  - Actual screenshots and demo video are still future portfolio assets and should use synthetic data only.

@@ -57,7 +57,7 @@ const pages: Page[] = [
     eyebrow: 'Primary workflow',
     title: 'Capture jobs',
     body:
-      'Run a simulated capture review from manually staged raw job text. The backend still uses the real parser, profile, and decision engine chain.',
+      'Run a local portfolio demo from manual jobs or user-provided page text / HTML. The backend uses the real parser, profile, and decision engine chain.',
   },
   {
     id: 'review',
@@ -730,12 +730,13 @@ function App() {
               <div className="capture-controls">
                 <section className="control-section demo-note">
                   <div className="section-heading">
-                    <h2>Demo workflow</h2>
-                    <span>Safe boundary</span>
+                    <h2>Local portfolio demo</h2>
+                    <span>Current milestone</span>
                   </div>
                   <p>
-                    Browser automation is intentionally disabled here. This screen stages raw jobs,
-                    then sends them through the real backend parser and decision engine.
+                    Browser automation is intentionally disabled here. This screen reviews manual
+                    jobs or user-provided page text / HTML through the real backend parser and
+                    decision engine.
                   </p>
                   <p>
                     Demo jobs are synthetic. Exports and history are local files under backend/data
@@ -824,8 +825,8 @@ function App() {
                     </button>
                   </div>
                   <p className="helper-text">
-                    Use only pages you are allowed to access. No credentials are stored, and browser
-                    automation is not used unless a future adapter explicitly enables it.
+                    Use only content you are allowed to access. Page text / HTML mode uses pasted
+                    visible text or copied HTML. Browser-assisted capture is disabled and experimental.
                   </p>
                   {captureInputMode === 'manual_raw_jobs' ? (
                     <>
@@ -970,7 +971,7 @@ English required.`}
                       <div className="section-heading">
                         <div>
                           <h2>Export package</h2>
-                          <p>Generate local files under backend/data/exports. Keep real job data out of Git.</p>
+                          <p>Generate local JSON, CSV, or XLSX files under backend/data/exports. Keep real job data out of Git.</p>
                         </div>
                         <span>{exportResponses.length} generated</span>
                       </div>
@@ -1017,7 +1018,7 @@ English required.`}
                       <div className="section-heading">
                         <div>
                           <h2>Save to history</h2>
-                          <p>Persist this reviewed run under backend/data/history for local-only tracking.</p>
+                          <p>Persist this reviewed run under backend/data/history for local-only tracking. Do not commit real history.</p>
                         </div>
                         <span>{historySaveSummary ? `${historySaveSummary.saved_count} saved` : 'Manual'}</span>
                       </div>
@@ -1301,15 +1302,16 @@ English required.`}
                   normalized job records, applies a selected rule profile, and shows explainable
                   Apply, Maybe, Discard, Manual Review, or Duplicate decisions.
                 </p>
+                <p className="helper-text">Current milestone: local portfolio demo.</p>
               </section>
 
               <section className="about-grid">
                 <article>
                   <h3>Current safe workflow</h3>
                   <p>
-                    Manual raw jobs or demo jobs go through the backend parser, configurable
-                    profiles, decision engine, review dashboard, export package, and local history
-                    tracker.
+                    Manual jobs, synthetic demo jobs, or user-provided page text / HTML go through
+                    the backend parser, configurable profiles, decision engine, review dashboard,
+                    export package, and local history tracker.
                   </p>
                 </article>
                 <article>

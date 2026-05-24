@@ -2,166 +2,101 @@
 
 Local job-offer decision assistant for fast, explainable job review.
 
-LinkAut is a local React + FastAPI app that helps turn messy job-offer text into structured, explainable decisions. It is built for a human-in-the-loop job search workflow: capture or paste job text, parse it, apply a configurable rule profile, review the result, and decide what deserves attention.
+LinkAut is a local React + FastAPI portfolio demo that turns raw job-offer text, pasted job-board page text, or copied HTML snippets into structured review results. It parses messy job content, applies a configurable rule profile, explains each Apply / Maybe / Discard / Manual Review / Duplicate decision, and lets the user export or save results locally.
 
-It is not a mass-apply bot, not a black-box recommender, and not a LinkedIn scraper. The current safe capture boundary supports manually supplied raw job text and pasted page text/HTML. Browser automation remains disabled by default and no credentials, CAPTCHA bypass, or background crawling are implemented.
+Current milestone: local portfolio demo.
+
+LinkAut is not a LinkedIn scraper, not a mass-apply bot, and not a black-box recommender. Browser-assisted capture is represented as an explicit disabled/experimental placeholder; the working capture modes use user-provided content.
+
+## What It Does
+
+- Reviews batches of job-offer text through one local workflow.
+- Parses title, company, location, work mode, languages, risk signals, parser confidence, and notes.
+- Applies reusable rule profiles instead of hardcoding one person's preferences globally.
+- Produces explainable decisions with score, priority, reasons, warnings, missing information, parser confidence, and matched keywords.
+- Exports reviewed results as JSON, CSV, or XLSX.
+- Saves reviewed jobs into a local history/tracker and supports application status updates.
+- Provides a local demo cleanup action for generated export/history files.
 
 ## Current Workflow
 
 ```text
-manual raw jobs or pasted page text/HTML
+manual jobs or pasted page text/HTML
 -> parser
 -> configurable rule profile
 -> decision engine
 -> review dashboard
--> local export package
--> local history / application tracker
+-> JSON / CSV / XLSX export
+-> local history / tracker
+-> optional demo cleanup
 ```
 
-The frontend Capture page can load demo jobs, send them to the backend through `POST /api/capture/run`, and display parsed + classified results as decision cards.
-
-Current decision labels:
-
-- Apply
-- Maybe
-- Discard
-- Manual Review
-- Duplicate
-
-Explainable outputs include:
-
-- score
-- priority
-- reasons
-- warnings
-- missing information
-- parser confidence
-- matched positive keywords
-- matched risk keywords
-
-## What Problem It Solves
-
-Job search review is repetitive: the same language, location, work-mode, schedule, and fit checks need to happen again and again. LinkAut makes that review faster and more consistent while keeping the user in control.
-
-The goal is not to hide uncertainty. Low parser confidence, missing work mode, unclear location, risky shift/on-call language, and unsupported mandatory languages are surfaced in the decision output so the user can review them honestly.
+The Capture page is the primary workflow. Manual paste exists as a fallback/debug mode, and page text / HTML capture is a safe local bridge for content the user supplies.
 
 ## Implemented Features
 
 - React + Vite local frontend.
 - FastAPI local backend.
 - Backend health check at `GET /api/health`.
-- Configurable rule profile system.
-- Rafael Default profile as one demo/default profile, not global hardcoded frontend logic.
-- Rule Profiles page for viewing available profiles and full profile details.
-- Rule-based parser with parser confidence.
-- Parser endpoint: `POST /api/parse/job`.
-- Combined parse/classify endpoint: `POST /api/parse-and-classify/job`.
-- Classification endpoint: `POST /api/classify/job`.
-- Backend decision engine with explainable scoring and hard-discard rules.
-- Safe capture runner boundary using manual `raw_jobs` or pasted page text/HTML.
-- Capture adapter for conservative page text/HTML extraction from labelled blocks, compact job-card-like text, and copied HTML snippets.
+- Configurable rule profiles loaded from backend JSON.
+- Rafael Default as one demo/default profile, not global frontend logic.
+- Rule Profiles page for inspecting available profiles and profile details.
+- Rule-based parser with parser confidence and parser notes.
+- Decision engine with explainable scoring and hard-discard rules.
+- Capture runner for manual `raw_jobs` and pasted page text/HTML.
+- Conservative page text/HTML extractor for labelled blocks, `Job Card` sections, compact job-board-like text, copied HTML cards, and job-like links.
 - Capture health endpoint showing browser automation disabled by default.
-- Frontend Capture dashboard with demo jobs.
-- Review result cards with decision, score, priority, parser confidence, reasons, warnings, missing information, matched keywords, and raw preview.
-- Filtered result view by decision or errors.
-- Local export package generation for capture review results.
-- JSON, CSV, and XLSX export formats under ignored `backend/data/exports/`.
-- Local history/tracker persistence under ignored `backend/data/history/`.
-- Save reviewed capture runs to history and update application status locally.
-- Demo cleanup endpoint and UI button for clearing local exports/history.
-- Backend tests for profiles, parsing, classification, capture runner, export, history, and health.
+- Frontend review dashboard with demo jobs, decision counts, filters, and decision cards.
+- Local export package generation under ignored `backend/data/exports/`.
+- JSON, CSV, and XLSX export formats.
+- Local JSONL history/tracker under ignored `backend/data/history/`.
+- Save-to-history and application status updates.
+- Demo cleanup endpoint and UI for local exports/history.
+- Backend tests for health, profiles, parser, decision engine, capture, export, history, and cleanup.
 - Frontend production build with `npm run build`.
 
-## Architecture
+## Safe Capture Modes
 
-### Frontend
-
-- React + Vite.
-- Capture page as the main workflow screen.
-- Rule Profiles page for profile inspection.
-- API client in `frontend/src/api.ts`.
-- App shell and dashboard UI in `frontend/src/App.tsx`.
-
-### Backend
-
-- FastAPI app under `backend/app`.
-- API routers under `backend/app/api`.
-- Profile service for loading default profiles.
-- Parser service for conservative raw-text normalization.
-- Decision engine for profile-based scoring and labels.
-- Capture runner for simulated capture runs over manual raw jobs.
-- Export service for JSON, CSV, and XLSX files generated from capture review results.
-- History store for local reviewed-job persistence, duplicate detection, and application status updates.
-- Demo cleanup service for removing generated local demo exports/history.
-
-### Data Flow
-
-```text
-manual raw jobs
--> POST /api/capture/run
--> parser service
--> decision engine
--> capture run result
--> frontend review dashboard
--> POST /api/export/capture-result
--> backend/data/exports/
--> optional POST /api/history/save-capture-result
--> backend/data/history/
-```
-
-For more detail, see [docs/architecture.md](docs/architecture.md).
-
-## API Endpoints
-
-Run the backend locally, then use `http://127.0.0.1:8000`.
-
-| Method | Endpoint | Purpose |
+| Mode | Status | What it does |
 | --- | --- | --- |
-| GET | `/api/health` | Backend health check. |
-| GET | `/api/profiles` | List rule profile summaries. |
-| GET | `/api/profiles/{profile_id}` | Load one full rule profile. |
-| POST | `/api/parse/job` | Parse raw job text into a normalized job object. |
-| POST | `/api/parse-and-classify/job` | Parse raw job text and classify it with a profile. |
-| POST | `/api/classify/job` | Classify an already-normalized job. |
-| GET | `/api/capture/health` | Report current safe capture mode and automation status. |
-| POST | `/api/capture/run` | Run a capture review from manual raw jobs or pasted page text/HTML. |
-| POST | `/api/export/capture-result` | Generate JSON, CSV, or XLSX files from a capture run result. |
-| POST | `/api/history/save-capture-result` | Save reviewed capture results into local history. |
-| GET | `/api/history/jobs` | List saved reviewed jobs. |
-| GET | `/api/history/jobs/{history_id}` | Load one saved job. |
-| PATCH | `/api/history/jobs/{history_id}/status` | Update a saved job's application status. |
-| POST | `/api/demo/cleanup` | Delete generated local demo files under `backend/data/exports/` and `backend/data/history/`. |
+| Manual jobs | Implemented | User stages one or more raw job texts in the Capture page. |
+| Page text / HTML | Implemented | User pastes visible page text or copied HTML; LinkAut extracts local job blocks and sends them through the same parser and decision engine. |
+| Browser-assisted experimental | Disabled placeholder | Shown honestly in the UI/API as not enabled; no browser automation is attempted. |
 
-Example capture request:
+Page text / HTML capture is local and user-controlled. It does not make external network calls, store credentials, bypass authentication, bypass CAPTCHA, or crawl websites.
 
-```json
-{
-  "profile_id": "rafael_default",
-  "source": "manual_frontend",
-  "dry_run": true,
-  "max_results": 3,
-  "raw_jobs": [
-    {
-      "source": "manual_frontend",
-      "raw_text": "Title: Microsoft 365 Support Specialist\nCompany: Example SaaS\nLocation: Remote, Spain\nWork mode: Remote\nEnglish required."
-    }
-  ]
-}
-```
+## What It Intentionally Does Not Do
 
-Example page text request:
+- No Playwright or Selenium automation.
+- No LinkedIn scraping.
+- No mass crawling.
+- No auto-apply behavior.
+- No credential storage.
+- No CAPTCHA, paywall, rate-limit, or authentication bypass.
+- No profile editing UI yet.
+- No database or cloud sync.
+- No production deployment.
 
-```json
-{
-  "profile_id": "rafael_default",
-  "capture_mode": "page_text",
-  "source": "page_text_frontend",
-  "source_url": "https://example.test/jobs",
-  "dry_run": true,
-  "max_results": 5,
-  "page_text": "Job 1\nTitle: Microsoft 365 Support Specialist\nCompany: Example SaaS\nLocation: Remote, Spain\nWork mode: Remote\nEnglish required."
-}
-```
+These are intentional boundaries for the current portfolio demo, not failed features.
+
+## Tech Stack
+
+Frontend:
+
+- React
+- TypeScript
+- Vite
+- Plain CSS
+
+Backend:
+
+- FastAPI
+- Pydantic models
+- Rule-based parser and decision services
+- JSON-backed profiles
+- JSONL local history
+- `openpyxl` for XLSX export
+- `pytest` + FastAPI `TestClient`
 
 ## Local Setup
 
@@ -179,7 +114,7 @@ python -m pytest
 uvicorn app.main:app --reload --no-use-colors
 ```
 
-The backend runs at:
+Backend URL:
 
 ```text
 http://127.0.0.1:8000
@@ -196,64 +131,96 @@ npm run build
 npm run dev
 ```
 
-Open:
+Frontend URL:
 
 ```text
 http://localhost:5173
 ```
 
-## Demo Workflow
+## Demo Flow
 
 1. Start the backend.
 2. Start the frontend.
 3. Open `http://localhost:5173`.
-4. Go to the Capture page.
-5. Confirm the backend health badge is online.
+4. Confirm the backend badge is online.
+5. On Capture, select `Rafael Default` or another profile.
 6. Click `Load demo jobs`.
 7. Click `Run capture review`.
-8. Review Apply / Discard / Manual Review result cards.
-9. Optionally click `Export JSON`, `Export CSV`, or `Export XLSX` to generate local files under `backend/data/exports/`.
-10. Optionally click `Save to history`, then open History / Tracker and update an application status.
-11. Open About to review demo safety and optionally clean local demo data.
-12. Open Rule Profiles to confirm Rafael Default is a demo/default profile, not a global hardcoded rule set.
+8. Review Apply / Discard / Manual Review cards.
+9. Export JSON, CSV, or XLSX.
+10. Click `Save to history`.
+11. Open History / Tracker and update one application status.
+12. Open About and optionally clean local demo data.
 
-You can also switch Capture to `Page text / HTML`, paste copied job-board page text, and click `Extract and review`. Use only pages you are allowed to access.
+Page text / HTML demo:
 
-Page text / HTML capture remains local and user-provided. It can split clear labelled blocks, `Job Card` sections, compact title/company/location listings, and simple copied HTML cards, while preserving job-like source links when present. Browser automation remains disabled by default.
+1. Switch Capture to `Page text / HTML`.
+2. Paste synthetic labelled job blocks or copied HTML.
+3. Click `Extract and review`.
+4. Open capture notes on a result card to see extraction hints.
 
-See [docs/demo-checklist.md](docs/demo-checklist.md) for a reviewer/demo checklist.
+More demo steps are in [docs/demo-checklist.md](docs/demo-checklist.md).
 
-## Demo Safety
+## API Endpoints
 
-The built-in demo jobs are synthetic. Page text/HTML capture uses user-provided pasted content. Browser automation and LinkedIn scraping are disabled in the current safe boundary. Generated exports and history are local files under `backend/data/`, ignored by Git, and can be cleared from the About page with `Clean local demo data`.
+Run the backend locally, then use `http://127.0.0.1:8000`.
 
-Do not commit real captured job text, recruiter notes, application history, or generated tracker files.
+| Method | Endpoint | Purpose |
+| --- | --- | --- |
+| GET | `/api/health` | Backend health check. |
+| GET | `/api/profiles` | List rule profile summaries. |
+| GET | `/api/profiles/{profile_id}` | Load one full rule profile. |
+| POST | `/api/parse/job` | Parse raw job text into a normalized job object. |
+| POST | `/api/parse-and-classify/job` | Parse raw job text and classify it with a profile. |
+| POST | `/api/classify/job` | Classify an already-normalized job. |
+| GET | `/api/capture/health` | Report safe capture modes and automation status. |
+| POST | `/api/capture/run` | Run capture review from manual jobs or pasted page text/HTML. |
+| POST | `/api/export/capture-result` | Generate JSON, CSV, or XLSX files from a capture result. |
+| POST | `/api/history/save-capture-result` | Save reviewed capture results into local history. |
+| GET | `/api/history/jobs` | List saved reviewed jobs. |
+| GET | `/api/history/jobs/{history_id}` | Load one saved job. |
+| PATCH | `/api/history/jobs/{history_id}/status` | Update a saved job's application status. |
+| POST | `/api/demo/cleanup` | Delete generated local demo files under `backend/data/exports/` and `backend/data/history/`. |
 
-## Current Limitations
+## Screenshots
 
-These are intentionally not implemented yet:
+Screenshot files are not committed yet. Suggested future paths:
 
-- LinkedIn scraping;
-- real browser automation;
-- profile editing UI;
-- authentication;
-- production deployment.
+- `docs/screenshots/capture-demo-jobs.png`
+- `docs/screenshots/review-dashboard.png`
+- `docs/screenshots/export-controls.png`
+- `docs/screenshots/history-tracker.png`
+- `docs/screenshots/about-demo-safety.png`
 
-These are future phases, not failed features. The current milestone focuses on a safe local demo boundary and the verified parser -> profile -> decision engine -> review dashboard chain.
+See [docs/screenshots/README.md](docs/screenshots/README.md) for the screenshot plan.
+
+## Documentation
+
+- [Architecture](docs/architecture.md)
+- [Demo checklist](docs/demo-checklist.md)
+- [Release checklist](docs/release-checklist.md)
+- [Portfolio walkthrough](docs/portfolio-walkthrough.md)
+- [Engineering log](docs/engineering-log.md)
 
 ## Roadmap
 
-- Phase 7: portfolio README and documentation.
-- Phase 8: local export package for capture review results.
-- Phase 9: local history tracker and application status persistence.
-- Phase 11: safe page text/HTML capture adapter behind the existing capture boundary.
-- Next: richer XLSX tracker sheets and downloadable export UX.
-- Later: optional browser-assisted capture adapter with explicit user control.
-- Later: profile editing and validation UI.
-- Later: packaging, demo screenshots, and portfolio walkthrough materials.
+- Add richer XLSX tracker sheets and export package metadata.
+- Add downloadable export UX.
+- Add Apply Today and Manual Review queues derived from saved history.
+- Add capture-time duplicate/already-reviewed labels from local history.
+- Add profile editing and validation UI.
+- Add optional browser-assisted capture only if it can remain explicit, local, recoverable, and respectful of site terms.
+- Add real screenshots and a short demo video.
 
-## Repository Hygiene
+## Privacy And Repository Hygiene
 
-Private/generated job-search data is ignored by Git, including logs, real captures, real exports, XLSX trackers, CSV/JSONL outputs, private run folders, local env files, and user-specific profiles.
+Generated/private job-search data is ignored by Git, including real exports, CSV/JSONL outputs, XLSX trackers, local history, private run folders, logs, local env files, and user-specific profiles.
 
-Do not commit real captured job text, private job history, recruiter notes, personal application data, access tokens, or real tracker exports.
+Do not commit real captured job text, recruiter notes, application history, personal data, access tokens, generated trackers, or private exports.
+
+The demo cleanup button removes generated local files under:
+
+```text
+backend/data/exports/
+backend/data/history/
+```

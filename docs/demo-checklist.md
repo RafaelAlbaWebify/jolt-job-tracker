@@ -2,6 +2,8 @@
 
 Use this checklist for a GitHub, LinkedIn, or portfolio walkthrough of the current safe local demo.
 
+Current milestone: local portfolio demo. For pre-release verification, also see `docs/release-checklist.md`.
+
 ## Start The Backend
 
 From the repository root:

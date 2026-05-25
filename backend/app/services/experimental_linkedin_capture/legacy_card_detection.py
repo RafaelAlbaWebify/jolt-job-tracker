@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 import re
+from typing import Any
 
 
 _LOCATION_HINTS = (
@@ -35,6 +36,87 @@ class LegacyLeftPanelCard:
     card_index: int
     click_x: int
     click_y: int
+
+
+@dataclass(frozen=True)
+class LegacyScreenContext:
+    screenshot_width: int = 0
+    screenshot_height: int = 0
+    active_window_title: str = ""
+    active_window_left: int = 0
+    active_window_top: int = 0
+    active_window_width: int = 0
+    active_window_height: int = 0
+
+
+def estimate_cards_from_screen_context(
+    context: LegacyScreenContext,
+    *,
+    max_cards: int,
+) -> list[LegacyLeftPanelCard]:
+    """Generate left-panel click candidates before clipboard text capture.
+
+    The legacy tool used screenshot/pixel card rectangles. Phase 18A keeps that
+    ordering and produces conservative candidates from active-window geometry so
+    Ctrl+A is not sent until after a card click.
+    """
+    width = context.active_window_width or context.screenshot_width
+    height = context.active_window_height or context.screenshot_height
+    if width < 700 or height < 500:
+        return []
+
+    left = context.active_window_left
+    top = context.active_window_top
+    click_x = left + max(250, min(430, int(width * 0.22)))
+    first_y = top + max(180, int(height * 0.20))
+    spacing = 96
+    bottom_limit = top + height - 120
+    candidates: list[LegacyLeftPanelCard] = []
+    for index in range(max_cards):
+        click_y = first_y + index * spacing
+        if click_y >= bottom_limit:
+            break
+        candidates.append(
+            LegacyLeftPanelCard(
+                title=f"visible_card_candidate_{index + 1}",
+                company="",
+                location="",
+                signature=f"screen_candidate_{index + 1}_{click_x}_{click_y}",
+                card_index=index,
+                click_x=click_x,
+                click_y=click_y,
+            )
+        )
+    return candidates
+
+
+def screen_context_from_pyautogui(py_auto: Any) -> LegacyScreenContext:
+    screenshot = py_auto.screenshot()
+    screenshot_width, screenshot_height = getattr(screenshot, "size", (0, 0))
+    active_window_title = ""
+    active_window_left = 0
+    active_window_top = 0
+    active_window_width = screenshot_width
+    active_window_height = screenshot_height
+    try:
+        active_window = py_auto.getActiveWindow()
+        if active_window is not None:
+            active_window_title = getattr(active_window, "title", "") or ""
+            active_window_left = int(getattr(active_window, "left", 0) or 0)
+            active_window_top = int(getattr(active_window, "top", 0) or 0)
+            active_window_width = int(getattr(active_window, "width", screenshot_width) or screenshot_width)
+            active_window_height = int(getattr(active_window, "height", screenshot_height) or screenshot_height)
+    except Exception:
+        pass
+    return LegacyScreenContext(
+        screenshot_width=screenshot_width,
+        screenshot_height=screenshot_height,
+        active_window_title=active_window_title,
+        active_window_left=active_window_left,
+        active_window_top=active_window_top,
+        active_window_width=active_window_width,
+        active_window_height=active_window_height,
+    )
 
 
 def normalize_card_signature(title: str, company: str, location: str) -> str:

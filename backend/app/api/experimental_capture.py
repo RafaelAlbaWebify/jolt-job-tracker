@@ -12,6 +12,7 @@ from app.services.experimental_linkedin_capture.runner import (
     start_capture,
     status_response,
     stop_capture,
+    test_mouse_control,
 )
 from app.services.profiles import get_profile
 
@@ -36,6 +37,11 @@ def experimental_linkedin_stop() -> ExperimentalCaptureResponse:
 @router.get("/status", response_model=ExperimentalCaptureResponse)
 def experimental_linkedin_status() -> ExperimentalCaptureResponse:
     return status_response()
+
+
+@router.post("/test-mouse-control", response_model=ExperimentalCaptureResponse)
+def experimental_linkedin_test_mouse_control() -> ExperimentalCaptureResponse:
+    return test_mouse_control()
 
 
 @router.post("/review-latest", response_model=CaptureRunResult)

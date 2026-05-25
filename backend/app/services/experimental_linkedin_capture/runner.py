@@ -12,23 +12,36 @@ from app.services.experimental_linkedin_capture.diagnostics import (
     EXP_CAPTURE_FAILED,
     EXP_CAPTURE_STOPPED,
     EXP_LEGACY_PACKAGE_WRITTEN,
+    EXP_MOUSE_CONTROL_DEPENDENCIES_MISSING,
+    EXP_MOUSE_CONTROL_DEPENDENCIES_OK,
+    EXP_MOUSE_CONTROL_TEST_STARTED,
+    EXP_MOUSE_MOVEMENT_ATTEMPTED,
+    EXP_MOUSE_MOVEMENT_COMPLETED,
+    EXP_MOUSE_MOVEMENT_FAILED,
+    EXP_MOUSE_POSITION_CAPTURED,
+    EXP_SCREEN_SIZE_CAPTURED,
     diagnostic_event,
     utc_now_iso,
 )
 from app.services.experimental_linkedin_capture.legacy_batch_adapter import LegacyBatchCaptureAdapter
 from app.services.experimental_linkedin_capture.legacy_diagnostics import write_legacy_run_package
+from app.services.experimental_linkedin_capture.legacy_mouse_control import LegacyMouseControl
 from app.services.experimental_linkedin_capture.models import (
     ExperimentalCaptureResponse,
     ExperimentalCaptureRunPackage,
     ExperimentalCaptureStartRequest,
 )
-from app.services.experimental_linkedin_capture.windows_selected_job_adapter import WindowsSelectedJobCaptureAdapter
+from app.services.experimental_linkedin_capture.windows_selected_job_adapter import (
+    WindowsSelectedJobCaptureAdapter,
+    _focus_handoff_events,
+)
 
 _LATEST_RUN: ExperimentalCaptureRunPackage | None = None
 _STOP_REQUESTED = False
 EXPERIMENTAL_CAPTURE_ROOT = Path(__file__).resolve().parents[3] / "data" / "experimental_capture"
 SELECTED_JOB_ADAPTER_FACTORY = WindowsSelectedJobCaptureAdapter
 LEGACY_BATCH_ADAPTER_FACTORY = LegacyBatchCaptureAdapter
+MOUSE_CONTROL_FACTORY = LegacyMouseControl
 
 
 def experimental_capture_enabled() -> bool:
@@ -140,6 +153,72 @@ def status_response() -> ExperimentalCaptureResponse:
         captured_count=len(_LATEST_RUN.captured_jobs) if _LATEST_RUN else 0,
         can_review=bool(_LATEST_RUN and _LATEST_RUN.captured_jobs),
     )
+
+
+def test_mouse_control() -> ExperimentalCaptureResponse:
+    if not experimental_capture_enabled():
+        response = disabled_response("test_mouse_control")
+        response.message = "Experimental LinkedIn capture is disabled; mouse-control test is unavailable."
+        return response
+
+    diagnostics = [diagnostic_event(EXP_MOUSE_CONTROL_TEST_STARTED, "Mouse-control test started.")]
+    mouse = MOUSE_CONTROL_FACTORY()
+    dependency_error = mouse.dependency_error()
+    if dependency_error:
+        diagnostics.append(
+            diagnostic_event(EXP_MOUSE_CONTROL_DEPENDENCIES_MISSING, dependency_error, level="error")
+        )
+        return ExperimentalCaptureResponse(
+            enabled=True,
+            status="failed",
+            message="Mouse-control test failed because experimental dependencies are missing.",
+            diagnostics=diagnostics,
+            warnings=[dependency_error],
+        )
+    diagnostics.append(diagnostic_event(EXP_MOUSE_CONTROL_DEPENDENCIES_OK, "pyautogui mouse control is available."))
+    diagnostics.extend(_focus_handoff_events(3))
+    try:
+        screen_width, screen_height = mouse.screen_size()
+        mouse_x, mouse_y = mouse.mouse_position()
+        diagnostics.append(
+            diagnostic_event(
+                EXP_SCREEN_SIZE_CAPTURED,
+                "Captured screen size.",
+                details={"screen_width": screen_width, "screen_height": screen_height},
+            )
+        )
+        diagnostics.append(
+            diagnostic_event(
+                EXP_MOUSE_POSITION_CAPTURED,
+                "Captured current mouse position.",
+                details={"mouse_x": mouse_x, "mouse_y": mouse_y},
+            )
+        )
+        diagnostics.append(diagnostic_event(EXP_MOUSE_MOVEMENT_ATTEMPTED, "Moving mouse 20px right and back."))
+        mouse.test_small_movement()
+        diagnostics.append(diagnostic_event(EXP_MOUSE_MOVEMENT_COMPLETED, "Mouse movement test completed."))
+        return ExperimentalCaptureResponse(
+            enabled=True,
+            status="completed",
+            message="Mouse-control test completed without clicking.",
+            diagnostics=diagnostics,
+        )
+    except Exception as exc:
+        diagnostics.append(
+            diagnostic_event(
+                EXP_MOUSE_MOVEMENT_FAILED,
+                "Mouse-control test failed during movement.",
+                level="error",
+                details={"error": str(exc)[:300]},
+            )
+        )
+        return ExperimentalCaptureResponse(
+            enabled=True,
+            status="failed",
+            message="Mouse-control test failed during movement.",
+            diagnostics=diagnostics,
+            warnings=[str(exc)],
+        )
 
 
 def review_latest_capture(profile: RuleProfile) -> CaptureRunResult:

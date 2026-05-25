@@ -3,7 +3,13 @@ from fastapi.testclient import TestClient
 from app.main import app
 from app.services.experimental_linkedin_capture.diagnostics import (
     EXP_BROWSER_URL_CAPTURED,
+    EXP_BROWSER_URL_CAPTURE_STARTED,
     EXP_CARD_CLICK_ATTEMPTED,
+    EXP_CARD_CLICK_COMPLETED,
+    EXP_CARD_CLICK_SEQUENCE_STARTED,
+    EXP_CARD_DETECTION_COMPLETED,
+    EXP_CARD_DETECTION_STARTED,
+    EXP_CARD_DETECTION_ZERO_CARDS,
     EXP_CURRENT_JOB_ID_EXTRACTED,
     EXP_CURRENT_JOB_ID_MISSING,
     EXP_CAPTURE_DISABLED,
@@ -15,10 +21,19 @@ from app.services.experimental_linkedin_capture.diagnostics import (
     EXP_FOCUS_HANDOFF_STARTED,
     EXP_FOCUS_HANDOFF_WAITING,
     EXP_JOB_LIMIT_REACHED,
+    EXP_LEGACY_BATCH_DEPENDENCIES_MISSING,
+    EXP_LEGACY_BATCH_DEPENDENCIES_OK,
     EXP_LEGACY_BATCH_CAPTURE_COMPLETED,
     EXP_LEGACY_BATCH_CAPTURE_STARTED,
+    EXP_MOUSE_CONTROL_DEPENDENCIES_OK,
+    EXP_MOUSE_CONTROL_TEST_STARTED,
+    EXP_MOUSE_MOVEMENT_COMPLETED,
+    EXP_MOUSE_POSITION_CAPTURED,
     EXP_NON_LINKEDIN_URL_CAPTURED,
     EXP_PAGE_LIMIT_REACHED,
+    EXP_SCREENSHOT_CAPTURED,
+    EXP_SCREENSHOT_CAPTURE_STARTED,
+    EXP_SCREEN_SIZE_CAPTURED,
     EXP_SELECTED_JOB_ADAPTER_DEPENDENCY_MISSING,
     EXP_SELECTED_JOB_CAPTURE_STARTED,
     EXP_VISIBLE_TEXT_CAPTURED,
@@ -29,6 +44,7 @@ from app.services.experimental_linkedin_capture.diagnostics import (
 from app.services.experimental_linkedin_capture import runner
 from app.services.experimental_linkedin_capture import windows_selected_job_adapter
 from app.services.experimental_linkedin_capture.legacy_batch_adapter import LegacyBatchCaptureAdapter
+from app.services.experimental_linkedin_capture.legacy_card_detection import LegacyScreenContext
 from app.services.experimental_linkedin_capture.models import (
     ExperimentalCapturedJobRecord,
     ExperimentalCaptureRunPackage,
@@ -543,6 +559,145 @@ def test_legacy_batch_missing_dependencies_return_clear_error(monkeypatch) -> No
     assert "requirements-experimental.txt" in payload["run"]["errors"][0]
 
 
+def test_legacy_batch_dependency_missing_code_is_explicit() -> None:
+    class MissingClipboard:
+        def dependency_error(self) -> str:
+            return "Install experimental dependencies from backend/requirements-experimental.txt."
+
+    class UnusedMouse:
+        def dependency_error(self) -> str:
+            return ""
+
+    run = LegacyBatchCaptureAdapter(clipboard=MissingClipboard(), mouse=UnusedMouse()).run(
+        run_id="legacy_missing_deps",
+        max_pages=1,
+        max_jobs=1,
+        focus_delay_seconds=2,
+        delay_between_cards_seconds=0.25,
+        include_pagination=False,
+        capture_detail_phase=True,
+        debug_screenshots=False,
+        timeout_seconds=30,
+        stop_requested=lambda: False,
+    )
+
+    codes = {event.code for event in run.diagnostics}
+    assert run.status == "failed"
+    assert EXP_LEGACY_BATCH_DEPENDENCIES_MISSING in codes
+    assert EXP_SELECTED_JOB_ADAPTER_DEPENDENCY_MISSING in codes
+
+
+def test_legacy_batch_real_adapter_detects_before_ctrl_a_and_then_clicks(monkeypatch) -> None:
+    monkeypatch.setattr(windows_selected_job_adapter.time, "sleep", lambda seconds: None)
+    call_order: list[str] = []
+
+    class FakeClipboard:
+        def dependency_error(self) -> str:
+            return ""
+
+        def copy_current_url(self) -> str:
+            call_order.append("copy_url")
+            return "https://www.linkedin.com/jobs/search/?currentJobId=9010"
+
+        def copy_visible_text(self) -> str:
+            call_order.append("copy_visible_text")
+            return (
+                "Title: Runtime Diagnostics Support Engineer\n"
+                "Company: Demo Runtime Co\n"
+                "Location: Remote\n"
+                "About the job Easy Apply Save applicants remote company job "
+                + ("support endpoint troubleshooting " * 30)
+            )
+
+    class FakeMouse:
+        def dependency_error(self) -> str:
+            return ""
+
+        def screen_context(self) -> LegacyScreenContext:
+            call_order.append("screen_context")
+            return LegacyScreenContext(
+                screenshot_width=1600,
+                screenshot_height=900,
+                active_window_title="LinkedIn Jobs - Chrome",
+                active_window_width=1600,
+                active_window_height=900,
+            )
+
+        def click_card(self, x: int, y: int) -> None:
+            call_order.append(f"click:{x}:{y}")
+
+        def scroll_left_panel(self, amount: int = -5) -> None:
+            call_order.append("scroll")
+
+    adapter = LegacyBatchCaptureAdapter(clipboard=FakeClipboard(), mouse=FakeMouse())
+
+    run = adapter.run(
+        run_id="legacy_real_fake",
+        max_pages=1,
+        max_jobs=1,
+        focus_delay_seconds=2,
+        delay_between_cards_seconds=0.25,
+        include_pagination=False,
+        capture_detail_phase=True,
+        debug_screenshots=False,
+        timeout_seconds=30,
+        stop_requested=lambda: False,
+    )
+
+    assert run.status == "completed"
+    assert len(run.captured_jobs) == 1
+    assert call_order[0] == "screen_context"
+    assert call_order[1].startswith("click:")
+    assert call_order.index("copy_visible_text") > call_order.index("copy_url")
+    codes = {event.code for event in run.diagnostics}
+    assert EXP_LEGACY_BATCH_DEPENDENCIES_OK in codes
+    assert EXP_SCREENSHOT_CAPTURE_STARTED in codes
+    assert EXP_SCREENSHOT_CAPTURED in codes
+    assert EXP_CARD_DETECTION_STARTED in codes
+    assert EXP_CARD_DETECTION_COMPLETED in codes
+    assert EXP_CARD_CLICK_SEQUENCE_STARTED in codes
+    assert EXP_CARD_CLICK_ATTEMPTED in codes
+    assert EXP_CARD_CLICK_COMPLETED in codes
+    assert EXP_BROWSER_URL_CAPTURE_STARTED in codes
+
+
+def test_legacy_batch_zero_cards_has_explicit_diagnostic(monkeypatch) -> None:
+    monkeypatch.setattr(windows_selected_job_adapter.time, "sleep", lambda seconds: None)
+
+    class FakeClipboard:
+        def dependency_error(self) -> str:
+            return ""
+
+    class FakeMouse:
+        def dependency_error(self) -> str:
+            return ""
+
+        def screen_context(self) -> LegacyScreenContext:
+            return LegacyScreenContext(screenshot_width=300, screenshot_height=200, active_window_title="Tiny")
+
+    adapter = LegacyBatchCaptureAdapter(clipboard=FakeClipboard(), mouse=FakeMouse())
+
+    run = adapter.run(
+        run_id="legacy_zero_cards",
+        max_pages=1,
+        max_jobs=3,
+        focus_delay_seconds=2,
+        delay_between_cards_seconds=0.25,
+        include_pagination=False,
+        capture_detail_phase=True,
+        debug_screenshots=False,
+        timeout_seconds=30,
+        stop_requested=lambda: False,
+    )
+
+    codes = {event.code for event in run.diagnostics}
+    assert run.status == "failed"
+    assert EXP_CARD_DETECTION_ZERO_CARDS in codes
+    zero_event = next(event for event in run.diagnostics if event.code == EXP_CARD_DETECTION_ZERO_CARDS)
+    assert zero_event.details["screenshot_width"] == 300
+    assert zero_event.details["active_window_title"] == "Tiny"
+
+
 def test_legacy_batch_stop_condition_is_respected(monkeypatch) -> None:
     monkeypatch.setenv("JOLT_ENABLE_EXPERIMENTAL_LINKEDIN_CAPTURE", "true")
 
@@ -584,6 +739,53 @@ def test_legacy_batch_review_latest_uses_existing_capture_pipeline(monkeypatch) 
     assert payload["total_captured"] == 2
     assert payload["results"][0]["raw_job"]["source"] == "experimental_linkedin_legacy_batch"
     assert "legacy batch experimental capture" in payload["results"][0]["raw_job"]["capture_notes"]
+
+
+def test_mouse_control_test_feature_flag_disabled(monkeypatch) -> None:
+    monkeypatch.delenv("JOLT_ENABLE_EXPERIMENTAL_LINKEDIN_CAPTURE", raising=False)
+    client = TestClient(app)
+
+    response = client.post("/api/experimental-capture/linkedin/test-mouse-control")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["enabled"] is False
+    assert payload["status"] == "disabled"
+
+
+def test_mouse_control_test_with_fake_mouse(monkeypatch) -> None:
+    monkeypatch.setenv("JOLT_ENABLE_EXPERIMENTAL_LINKEDIN_CAPTURE", "true")
+    monkeypatch.setattr(windows_selected_job_adapter.time, "sleep", lambda seconds: None)
+    movements: list[str] = []
+
+    class FakeMouseControl:
+        def dependency_error(self) -> str:
+            return ""
+
+        def screen_size(self) -> tuple[int, int]:
+            return 1920, 1080
+
+        def mouse_position(self) -> tuple[int, int]:
+            return 400, 300
+
+        def test_small_movement(self) -> None:
+            movements.append("moved")
+
+    monkeypatch.setattr(runner, "MOUSE_CONTROL_FACTORY", FakeMouseControl)
+    client = TestClient(app)
+
+    response = client.post("/api/experimental-capture/linkedin/test-mouse-control")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["status"] == "completed"
+    assert movements == ["moved"]
+    codes = {event["code"] for event in payload["diagnostics"]}
+    assert EXP_MOUSE_CONTROL_TEST_STARTED in codes
+    assert EXP_MOUSE_CONTROL_DEPENDENCIES_OK in codes
+    assert EXP_SCREEN_SIZE_CAPTURED in codes
+    assert EXP_MOUSE_POSITION_CAPTURED in codes
+    assert EXP_MOUSE_MOVEMENT_COMPLETED in codes
 
 
 def test_extract_current_job_id_from_query_variants() -> None:

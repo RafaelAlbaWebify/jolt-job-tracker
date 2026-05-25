@@ -110,6 +110,7 @@ Expected result:
 10. For legacy batch capture, explain that the user manually opens LinkedIn Jobs, keeps the list/detail panels visible, starts capture, switches focus during the countdown, and reviews the package before saving.
 11. State clearly that legacy batch capture is a port of a local workflow, remains disabled/experimental, and may click detected left-panel cards, copy URL/text, scroll, and optionally use start-offset pagination within max limits.
 12. State clearly that no experimental mode logs in, stores credentials, bypasses CAPTCHA/rate limits, auto-applies, or messages anyone.
+13. For Phase 18A debugging, point out the compact control surface, full scrollable diagnostics, Copy diagnostics button, latest diagnostic callout, and no-click Test mouse control action.
 
 Example synthetic multi-job text:
 

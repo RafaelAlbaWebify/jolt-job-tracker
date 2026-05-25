@@ -69,3 +69,21 @@ Phase 18 ports the legacy LinkedIn Jobs capture workflow into JOLT as an experim
 - LinkedIn DOM, visual styling, and URL behavior may change.
 - Estimated card targets are less exact than the legacy pixel detector until live-browser QA restores deeper screenshot parity.
 - This mode controls only a user-supervised already-open browser; it does not log in, store credentials, bypass CAPTCHA or rate limits, auto-apply, or message recruiters.
+
+## Phase 18A Debugging Notes
+
+The first live legacy batch test showed the LinkedIn page turning blue with no visible mouse movement and zero captured jobs. That matched a sequencing problem in the Phase 18 adapter: it used Ctrl+A/Ctrl+C to copy page text for card detection before any screenshot/card click step. If text-based detection returned zero candidates, the run stopped after selecting the page and never moved the mouse.
+
+Phase 18A changes the runtime order to:
+
+1. focus handoff countdown;
+2. dependency diagnostics;
+3. active window and screenshot metadata capture;
+4. card click candidate generation;
+5. card click sequence;
+6. URL/currentJobId capture;
+7. detail text capture with Ctrl+A/Ctrl+C;
+8. duplicate/status diagnostics;
+9. scroll/pagination/stop handling.
+
+Phase 18A also adds full diagnostics visibility in the UI and a no-click mouse-control test. The next debugging target is live validation of the estimated card coordinates versus the browser's left result panel. Pixel-perfect legacy screenshot rectangle detection and annotated screenshots remain deferred.

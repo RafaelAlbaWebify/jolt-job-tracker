@@ -483,10 +483,25 @@ textarea {
   background: #fffdf7;
 }
 
+.experimental-capture-card p {
+  margin-bottom: 6px;
+}
+
+.experimental-operational-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: minmax(320px, 0.9fr) minmax(360px, 1.1fr);
+  min-width: 0;
+}
+
 .experimental-controls {
   display: grid;
   gap: 8px;
   margin-top: 10px;
+}
+
+.compact-experimental-controls {
+  margin-top: 0;
 }
 
 .experimental-option {
@@ -520,11 +535,31 @@ textarea {
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
 }
 
+.legacy-control-grid {
+  grid-template-columns: repeat(2, minmax(130px, 1fr));
+}
+
+.experimental-controls select {
+  border: 1px solid #d5cdb8;
+  border-radius: 6px;
+  color: #25343a;
+  font-size: 0.85rem;
+  min-width: 0;
+  padding: 6px 8px;
+}
+
+.experimental-checkbox-grid {
+  display: grid;
+  gap: 5px;
+  grid-template-columns: 1fr;
+}
+
 .experimental-controls .checkbox-label {
   align-items: center;
   display: flex;
   gap: 8px;
   line-height: 1.25;
+  min-width: 0;
 }
 
 .experimental-controls .checkbox-label input {
@@ -542,6 +577,90 @@ textarea {
 
 .experimental-buttons {
   margin-top: 0;
+}
+
+.selected-job-details {
+  border-top: 1px solid #eee1c8;
+  color: #40545d;
+  font-size: 0.84rem;
+  padding-top: 5px;
+}
+
+.selected-job-details summary {
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.experimental-diagnostics-panel {
+  border: 1px solid #e7dfc9;
+  border-radius: 8px;
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  padding: 8px;
+}
+
+.experimental-diagnostics-panel h4 {
+  margin: 0;
+}
+
+.compact-action-button {
+  padding: 6px 9px;
+}
+
+.latest-diagnostic {
+  margin: 0;
+}
+
+.diagnostics-scrollbox {
+  background: #16262c;
+  border-radius: 7px;
+  color: #eef7f5;
+  display: grid;
+  gap: 6px;
+  max-height: 360px;
+  min-height: 220px;
+  overflow: auto;
+  padding: 8px;
+}
+
+.diagnostic-line {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  display: grid;
+  gap: 2px;
+  padding-bottom: 5px;
+}
+
+.diagnostic-line span,
+.diagnostic-line p,
+.diagnostic-line code {
+  font-size: 0.76rem;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.diagnostic-line strong {
+  color: #ffffff;
+  font-size: 0.76rem;
+}
+
+.diagnostic-line.warning strong {
+  color: #ffd98a;
+}
+
+.diagnostic-line.error strong {
+  color: #ffb0a8;
+}
+
+.diagnostic-line code {
+  color: #b6e7d7;
+  white-space: pre-wrap;
+}
+
+@media (max-width: 980px) {
+  .experimental-operational-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .experimental-stats {

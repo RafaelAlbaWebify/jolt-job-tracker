@@ -2,18 +2,33 @@ import time
 
 from app.services.experimental_linkedin_capture.diagnostics import (
     EXP_BROWSER_URL_CAPTURED,
+    EXP_BROWSER_URL_CAPTURE_STARTED,
     EXP_CAPTURE_FAILED,
     EXP_CARD_CLICK_ATTEMPTED,
+    EXP_CARD_CLICK_COMPLETED,
+    EXP_CARD_CLICK_SEQUENCE_STARTED,
+    EXP_CARD_CANDIDATES_LISTED,
+    EXP_CARD_DETECTION_COMPLETED,
+    EXP_CARD_DETECTION_STARTED,
+    EXP_CARD_DETECTION_ZERO_CARDS,
     EXP_CARD_SELECTED,
     EXP_CURRENT_JOB_ID_EXTRACTED,
     EXP_CURRENT_JOB_ID_MISSING,
+    EXP_DETAIL_TEXT_CAPTURED,
+    EXP_DETAIL_TEXT_CAPTURE_STARTED,
+    EXP_DETAIL_TEXT_EQUALS_URL,
     EXP_DETAIL_TEXT_NOT_READY,
     EXP_DETAIL_TEXT_READY,
+    EXP_DETAIL_TEXT_TOO_SHORT,
     EXP_DUPLICATE_JOB_ID,
     EXP_JOB_LIMIT_REACHED,
+    EXP_ACTIVE_WINDOW_CAPTURED,
+    EXP_ACTIVE_WINDOW_TITLE_CAPTURED,
     EXP_LEGACY_BATCH_CAPTURE_COMPLETED,
     EXP_LEGACY_BATCH_CAPTURE_FAILED,
     EXP_LEGACY_BATCH_CAPTURE_STARTED,
+    EXP_LEGACY_BATCH_DEPENDENCIES_MISSING,
+    EXP_LEGACY_BATCH_DEPENDENCIES_OK,
     EXP_LEGACY_CARD_CLICK_SKIPPED,
     EXP_LEGACY_CARD_DETECTED,
     EXP_LEGACY_PAGE_TRANSITION_ATTEMPTED,
@@ -21,8 +36,13 @@ from app.services.experimental_linkedin_capture.diagnostics import (
     EXP_LEGACY_SCROLL_ATTEMPTED,
     EXP_LEGACY_SCROLL_COMPLETED,
     EXP_LEFT_PANEL_NOT_FOUND,
+    EXP_LEFT_PANEL_SCROLL_COMPLETED,
+    EXP_LEFT_PANEL_SCROLL_NO_MOVEMENT,
+    EXP_LEFT_PANEL_SCROLL_STARTED,
     EXP_NEXT_PAGE_NOT_FOUND,
     EXP_PAGE_LIMIT_REACHED,
+    EXP_SCREENSHOT_CAPTURED,
+    EXP_SCREENSHOT_CAPTURE_STARTED,
     EXP_SELECTED_JOB_ADAPTER_DEPENDENCY_MISSING,
     EXP_VISIBLE_TEXT_CAPTURED,
     EXP_VISIBLE_TEXT_TOO_SHORT,
@@ -31,6 +51,8 @@ from app.services.experimental_linkedin_capture.diagnostics import (
 )
 from app.services.experimental_linkedin_capture.legacy_card_detection import (
     LegacyLeftPanelCard,
+    LegacyScreenContext,
+    estimate_cards_from_screen_context,
     parse_left_panel_cards_from_text,
 )
 from app.services.experimental_linkedin_capture.legacy_clipboard_capture import (
@@ -90,6 +112,13 @@ class LegacyBatchCaptureAdapter:
         if dependency_error:
             diagnostics.append(
                 diagnostic_event(
+                    EXP_LEGACY_BATCH_DEPENDENCIES_MISSING,
+                    dependency_error,
+                    level="error",
+                )
+            )
+            diagnostics.append(
+                diagnostic_event(
                     EXP_SELECTED_JOB_ADAPTER_DEPENDENCY_MISSING,
                     dependency_error,
                     level="error",
@@ -104,6 +133,9 @@ class LegacyBatchCaptureAdapter:
                 max_jobs=max_jobs,
                 errors=[dependency_error],
             )
+        diagnostics.append(
+            diagnostic_event(EXP_LEGACY_BATCH_DEPENDENCIES_OK, "Legacy batch dependencies are available.")
+        )
 
         diagnostics.extend(_focus_handoff_events(focus_delay_seconds))
         captured: list[ExperimentalCapturedJobRecord] = []
@@ -132,15 +164,50 @@ class LegacyBatchCaptureAdapter:
                     )
                     break
 
-                page_text = self.clipboard.copy_visible_text()
+                diagnostics.append(
+                    diagnostic_event(EXP_SCREENSHOT_CAPTURE_STARTED, "Capturing active screen context before card detection.")
+                )
+                screen_context = self.capture_screen_context()
+                diagnostics.extend(
+                    [
+                        diagnostic_event(
+                            EXP_ACTIVE_WINDOW_CAPTURED,
+                            "Captured active window geometry.",
+                            details={
+                                "left": screen_context.active_window_left,
+                                "top": screen_context.active_window_top,
+                                "width": screen_context.active_window_width,
+                                "height": screen_context.active_window_height,
+                            },
+                        ),
+                        diagnostic_event(
+                            EXP_ACTIVE_WINDOW_TITLE_CAPTURED,
+                            "Captured active window title.",
+                            details={"title": screen_context.active_window_title[:160]},
+                        ),
+                        diagnostic_event(
+                            EXP_SCREENSHOT_CAPTURED,
+                            "Captured screenshot metadata for card detection.",
+                            details={
+                                "screenshot_width": screen_context.screenshot_width,
+                                "screenshot_height": screen_context.screenshot_height,
+                            },
+                        ),
+                        diagnostic_event(
+                            EXP_CARD_DETECTION_STARTED,
+                            "Detecting left-panel click candidates from screenshot/window geometry.",
+                            details={"page_index": page_index},
+                        ),
+                    ]
+                )
+                cards = self.detect_cards(screen_context, max_cards=max_jobs - len(captured))
                 diagnostics.append(
                     diagnostic_event(
-                        EXP_VISIBLE_TEXT_CAPTURED,
-                        "Copied visible page text for left-panel card detection.",
-                        details={"page_index": page_index, "characters": len(page_text)},
+                        EXP_CARD_DETECTION_COMPLETED,
+                        "Card detection completed.",
+                        details={"page_index": page_index, "candidate_count": len(cards)},
                     )
                 )
-                cards = self.detect_cards(page_text, max_cards=max_jobs - len(captured))
                 diagnostics.extend(
                     diagnostic_event(
                         EXP_LEGACY_CARD_DETECTED,
@@ -148,23 +215,55 @@ class LegacyBatchCaptureAdapter:
                         details={
                             "page_index": page_index,
                             "card_index": card.card_index,
+                            "click_x": card.click_x,
+                            "click_y": card.click_y,
                             "title": card.title,
                             "company": card.company,
+                            "signature": card.signature,
                         },
                     )
                     for card in cards
                 )
+                if cards:
+                    diagnostics.append(
+                        diagnostic_event(
+                            EXP_CARD_CANDIDATES_LISTED,
+                            "Card candidates listed with approximate click coordinates.",
+                            details={"candidate_count": len(cards)},
+                        )
+                    )
                 if not cards:
                     diagnostics.append(
                         diagnostic_event(
+                            EXP_CARD_DETECTION_ZERO_CARDS,
+                            "Card detection produced zero click candidates.",
+                            level="warning",
+                            details={
+                                "page_index": page_index,
+                                "screenshot_width": screen_context.screenshot_width,
+                                "screenshot_height": screen_context.screenshot_height,
+                                "active_window_title": screen_context.active_window_title[:160],
+                                "reason": "window/screenshot too small or unavailable",
+                            },
+                        )
+                    )
+                    diagnostics.append(
+                        diagnostic_event(
                             EXP_LEFT_PANEL_NOT_FOUND,
-                            "No left-panel card candidates were detected from copied page text.",
+                            "No left-panel card candidates were detected before clicking.",
                             level="warning",
                             details={"page_index": page_index},
                         )
                     )
                     break
 
+                diagnostics.append(
+                    diagnostic_event(
+                        EXP_CARD_CLICK_SEQUENCE_STARTED,
+                        "Starting card click sequence.",
+                        details={"page_index": page_index, "candidate_count": len(cards)},
+                    )
+                )
                 for card in cards:
                     if len(captured) >= max_jobs:
                         diagnostics.append(
@@ -189,15 +288,28 @@ class LegacyBatchCaptureAdapter:
                         diagnostic_event(
                             EXP_CARD_CLICK_ATTEMPTED,
                             "Clicking detected left-panel card candidate.",
-                            details={"page_index": page_index, "card_index": card.card_index},
+                            details={
+                                "page_index": page_index,
+                                "card_index": card.card_index,
+                                "click_x": card.click_x,
+                                "click_y": card.click_y,
+                                "signature": card.signature,
+                            },
                         )
                     )
                     self.mouse.click_card(card.click_x, card.click_y)
                     time.sleep(delay_between_cards_seconds)
                     diagnostics.append(
                         diagnostic_event(
+                            EXP_CARD_CLICK_COMPLETED,
+                            "Mouse moved to the candidate and click completed.",
+                            details={"page_index": page_index, "card_index": card.card_index},
+                        )
+                    )
+                    diagnostics.append(
+                        diagnostic_event(
                             EXP_CARD_SELECTED,
-                            "Card click completed; copying URL and detail text.",
+                            "Card selected; copying URL and detail text next.",
                             details={"page_index": page_index, "card_index": card.card_index},
                         )
                     )
@@ -220,14 +332,20 @@ class LegacyBatchCaptureAdapter:
 
                 diagnostics.append(
                     diagnostic_event(
-                        EXP_LEGACY_SCROLL_ATTEMPTED,
+                        EXP_LEFT_PANEL_SCROLL_STARTED,
                         "Scrolling the left results panel to reveal more cards.",
                         details={"page_index": page_index},
                     )
                 )
                 self.mouse.scroll_left_panel()
                 diagnostics.append(
-                    diagnostic_event(EXP_LEGACY_SCROLL_COMPLETED, "Left-panel scroll command completed.")
+                    diagnostic_event(EXP_LEFT_PANEL_SCROLL_COMPLETED, "Left-panel scroll command completed.")
+                )
+                diagnostics.append(
+                    diagnostic_event(EXP_LEGACY_SCROLL_ATTEMPTED, "Legacy scroll step attempted.")
+                )
+                diagnostics.append(
+                    diagnostic_event(EXP_LEGACY_SCROLL_COMPLETED, "Legacy scroll step completed.")
                 )
 
                 if include_pagination and base_url:
@@ -297,7 +415,13 @@ class LegacyBatchCaptureAdapter:
                 errors=[str(exc)],
             )
 
-    def detect_cards(self, page_text: str, *, max_cards: int) -> list[LegacyLeftPanelCard]:
+    def capture_screen_context(self) -> LegacyScreenContext:
+        return self.mouse.screen_context()
+
+    def detect_cards(self, screen_context: LegacyScreenContext, *, max_cards: int) -> list[LegacyLeftPanelCard]:
+        return estimate_cards_from_screen_context(screen_context, max_cards=max_cards)
+
+    def detect_cards_from_text(self, page_text: str, *, max_cards: int) -> list[LegacyLeftPanelCard]:
         return parse_left_panel_cards_from_text(page_text, max_cards=max_cards)
 
     def capture_selected_card(
@@ -309,6 +433,13 @@ class LegacyBatchCaptureAdapter:
         seen_job_ids: dict[str, int],
         diagnostics: list[ExperimentalCaptureDiagnostic],
     ) -> ExperimentalCapturedJobRecord:
+        diagnostics.append(
+            diagnostic_event(
+                EXP_BROWSER_URL_CAPTURE_STARTED,
+                "Capturing browser URL from selected card.",
+                details={"page_index": page_index, "card_index": card.card_index},
+            )
+        )
         source_url = self.clipboard.copy_current_url()
         diagnostics.append(
             diagnostic_event(
@@ -335,14 +466,36 @@ class LegacyBatchCaptureAdapter:
                 )
             )
 
+        diagnostics.append(
+            diagnostic_event(
+                EXP_DETAIL_TEXT_CAPTURE_STARTED,
+                "Capturing selected job detail text with Ctrl+A/Ctrl+C after card click.",
+                details={"page_index": page_index, "card_index": card.card_index},
+            )
+        )
         raw_text = self.clipboard.copy_visible_text()
         diagnostics.append(
             diagnostic_event(
-                EXP_VISIBLE_TEXT_CAPTURED,
+                EXP_DETAIL_TEXT_CAPTURED,
                 "Copied selected job detail text.",
                 details={"characters": len(raw_text)},
             )
         )
+        diagnostics.append(
+            diagnostic_event(
+                EXP_VISIBLE_TEXT_CAPTURED,
+                "Visible text copied after card click.",
+                details={"characters": len(raw_text)},
+            )
+        )
+        if source_url and raw_text.strip() == source_url.strip():
+            diagnostics.append(
+                diagnostic_event(
+                    EXP_DETAIL_TEXT_EQUALS_URL,
+                    "Detail text equals the URL; clipboard likely did not receive page text.",
+                    level="warning",
+                )
+            )
         ready = raw_text_has_job_panel(raw_text)
         diagnostics.append(
             diagnostic_event(
@@ -354,6 +507,14 @@ class LegacyBatchCaptureAdapter:
             )
         )
         if len(raw_text) < 600:
+            diagnostics.append(
+                diagnostic_event(
+                    EXP_DETAIL_TEXT_TOO_SHORT,
+                    "Selected job detail text was shorter than expected.",
+                    level="warning",
+                    details={"characters": len(raw_text)},
+                )
+            )
             diagnostics.append(
                 diagnostic_event(
                     EXP_VISIBLE_TEXT_TOO_SHORT,

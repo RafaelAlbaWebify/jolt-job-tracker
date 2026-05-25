@@ -15,6 +15,7 @@ import {
   startExperimentalLinkedInLegacyBatchCapture,
   startExperimentalLinkedInSelectedJobCapture,
   stopExperimentalLinkedInDryRun,
+  testExperimentalLinkedInMouseControl,
   reviewExperimentalLinkedInDryRun,
   updateHistoryJobStatus,
   type ApplicationStatus,
@@ -452,6 +453,7 @@ function App() {
   const [experimentalLoading, setExperimentalLoading] = useState<boolean>(false);
   const [experimentalSelectedJobLoading, setExperimentalSelectedJobLoading] = useState<boolean>(false);
   const [experimentalLegacyBatchLoading, setExperimentalLegacyBatchLoading] = useState<boolean>(false);
+  const [experimentalMouseTestLoading, setExperimentalMouseTestLoading] = useState<boolean>(false);
   const [experimentalHandoffMessage, setExperimentalHandoffMessage] = useState<string | null>(null);
   const [experimentalReviewLoading, setExperimentalReviewLoading] = useState<boolean>(false);
   const [rawJobText, setRawJobText] = useState<string>('');
@@ -966,6 +968,33 @@ function App() {
     } finally {
       setExperimentalLegacyBatchLoading(false);
     }
+  }
+
+  async function runExperimentalMouseControlTest() {
+    setExperimentalMouseTestLoading(true);
+    setExperimentalCaptureHealthError(null);
+    setExperimentalHandoffMessage('Switch to LinkedIn now... mouse test starts in 3 seconds. It will not click.');
+    try {
+      const result = await testExperimentalLinkedInMouseControl();
+      setExperimentalCaptureHealth(result);
+      setExperimentalHandoffMessage(null);
+    } catch (error) {
+      setExperimentalCaptureHealthError(
+        error instanceof Error ? error.message : 'Could not run mouse-control test',
+      );
+      setExperimentalHandoffMessage(null);
+    } finally {
+      setExperimentalMouseTestLoading(false);
+    }
+  }
+
+  async function copyExperimentalDiagnostics() {
+    const events = experimentalCaptureHealth?.run?.diagnostics ?? experimentalCaptureHealth?.diagnostics ?? [];
+    const lines = events.map((event) => {
+      const details = Object.keys(event.details ?? {}).length > 0 ? ` ${JSON.stringify(event.details)}` : '';
+      return `[${event.timestamp}] ${event.level.toUpperCase()} ${event.code}: ${event.message}${details}`;
+    });
+    await navigator.clipboard.writeText(lines.join('\n'));
   }
 
   async function reviewExperimentalDryRun() {
@@ -1851,98 +1880,62 @@ English required.`
                     <span>{experimentalCaptureHealth?.status ?? 'unknown'}</span>
                   </div>
                   <p>
-                    Disabled by default. When explicitly enabled, this panel supports fake mock dry
-                    runs, selected-job-only capture, and an experimental legacy batch capture port.
-                    Batch mode uses local user-supervised browser control only. It does not log in,
-                    store credentials, bypass CAPTCHA or rate limits, auto-apply, or send messages.
+                    Disabled by default. Legacy batch is the active experimental workflow: local,
+                    user-supervised browser control with review before saving.
                   </p>
                   <p className="helper-text">
                     Backend flag: JOLT_ENABLE_EXPERIMENTAL_LINKEDIN_CAPTURE. Current status:{' '}
                     {experimentalCaptureHealth?.enabled ? 'experimental options enabled' : 'disabled'}.
                   </p>
                   {experimentalCaptureHealth?.enabled ? (
-                    <div className="experimental-controls">
-                      <div className="experimental-option">
-                        <h4>Mock dry run</h4>
-                        <p className="helper-text compact-helper">
-                          Uses fake demo jobs to test package diagnostics and review conversion.
-                        </p>
-                        <label>
-                          <span>Max pages</span>
-                          <input
-                            type="number"
-                            min="1"
-                            max="10"
-                            value={experimentalMaxPages}
-                            onChange={(event) => setExperimentalMaxPages(Number(event.target.value))}
-                          />
-                        </label>
-                        <label>
-                          <span>Max jobs</span>
-                          <input
-                            type="number"
-                            min="1"
-                            max="250"
-                            value={experimentalMaxJobs}
-                            onChange={(event) => setExperimentalMaxJobs(Number(event.target.value))}
-                          />
-                        </label>
-                        <div className="button-row experimental-buttons">
-                          <button type="button" className="secondary-button" disabled={experimentalLoading} onClick={startExperimentalDryRun}>
-                            {experimentalLoading ? 'Running dry run...' : 'Start dry run'}
-                          </button>
-                          <button type="button" className="secondary-button" disabled={experimentalLoading} onClick={stopExperimentalDryRun}>
-                            Stop
-                          </button>
+                    <div className="experimental-operational-grid">
+                      <div className="experimental-controls compact-experimental-controls">
+                        <div className="run-compact-stats experimental-stats">
+                          <span>Status: {experimentalCaptureHealth.status}</span>
+                          <span>{experimentalCaptureHealth.captured_count} captured</span>
+                          <span>
+                            {(experimentalCaptureHealth.run?.diagnostics ?? experimentalCaptureHealth.diagnostics).length} diagnostics
+                          </span>
                         </div>
-                      </div>
-                      <div className="experimental-option selected-job-option">
-                        <h4>Capture selected job only</h4>
-                        <p className="helper-text compact-helper">
-                          Open LinkedIn Jobs in another tab, select one job manually, click this
-                          button, then switch back during the countdown. Do not click Apply; keep
-                          LinkedIn focused until capture completes.
-                        </p>
-                        <ol className="compact-steps selected-job-steps">
-                          <li>Open LinkedIn Jobs in another tab.</li>
-                          <li>Select one job manually.</li>
-                          <li>Click capture here.</li>
-                          <li>Switch back to LinkedIn during the countdown.</li>
-                          <li>Keep the LinkedIn tab focused.</li>
-                        </ol>
-                        <label>
-                          <span>Countdown seconds</span>
-                          <input
-                            type="number"
-                            min="2"
-                            max="15"
-                            value={experimentalFocusDelaySeconds}
-                            onChange={(event) => setExperimentalFocusDelaySeconds(Number(event.target.value))}
-                          />
-                        </label>
-                        <button
-                          type="button"
-                          className="secondary-button"
-                          disabled={experimentalSelectedJobLoading}
-                          onClick={captureSelectedExperimentalJob}
-                        >
-                          {experimentalSelectedJobLoading ? 'Capturing selected job...' : 'Capture selected job'}
-                        </button>
-                        {experimentalHandoffMessage ? (
-                          <p className="inline-warning helper-warning">{experimentalHandoffMessage}</p>
-                        ) : null}
-                      </div>
-                      <div className="experimental-option selected-job-option">
-                        <h4>Legacy batch capture</h4>
-                        <p className="helper-text compact-helper">
-                          Port of the legacy local workflow. Open LinkedIn Jobs manually, keep the
-                          left list and right detail panel visible, start capture, then switch back
-                          during the countdown. It clicks detected left-panel cards and reads URL/text
-                          only; review before saving.
-                        </p>
-                        <div className="compact-form-grid">
+                        <div className="compact-form-grid legacy-control-grid">
                           <label>
-                            <span>Delay between cards</span>
+                            <span>Mode</span>
+                            <select value="legacy_batch_capture" disabled>
+                              <option>legacy_batch_capture</option>
+                            </select>
+                          </label>
+                          <label>
+                            <span>Max jobs</span>
+                            <input
+                              type="number"
+                              min="1"
+                              max="250"
+                              value={experimentalMaxJobs}
+                              onChange={(event) => setExperimentalMaxJobs(Number(event.target.value))}
+                            />
+                          </label>
+                          <label>
+                            <span>Max pages</span>
+                            <input
+                              type="number"
+                              min="1"
+                              max="10"
+                              value={experimentalMaxPages}
+                              onChange={(event) => setExperimentalMaxPages(Number(event.target.value))}
+                            />
+                          </label>
+                          <label>
+                            <span>Countdown</span>
+                            <input
+                              type="number"
+                              min="2"
+                              max="15"
+                              value={experimentalFocusDelaySeconds}
+                              onChange={(event) => setExperimentalFocusDelaySeconds(Number(event.target.value))}
+                            />
+                          </label>
+                          <label>
+                            <span>Card delay</span>
                             <input
                               type="number"
                               min="0.25"
@@ -1954,6 +1947,8 @@ English required.`
                               }
                             />
                           </label>
+                        </div>
+                        <div className="experimental-checkbox-grid">
                           <label className="checkbox-label">
                             <input
                               type="checkbox"
@@ -1976,31 +1971,96 @@ English required.`
                               checked={experimentalDebugScreenshots}
                               onChange={(event) => setExperimentalDebugScreenshots(event.target.checked)}
                             />
-                            <span>Debug screenshots flag</span>
+                            <span>Debug screenshots</span>
                           </label>
                         </div>
-                        <button
-                          type="button"
-                          className="secondary-button"
-                          disabled={experimentalLegacyBatchLoading}
-                          onClick={startExperimentalLegacyBatchCapture}
-                        >
-                          {experimentalLegacyBatchLoading ? 'Running legacy batch...' : 'Start legacy batch capture'}
-                        </button>
+                        <p className="helper-text compact-helper">
+                          Open LinkedIn Jobs manually, keep list/detail panels visible, start capture,
+                          then switch back during countdown. No login, auto-apply, or messages.
+                        </p>
+                        <div className="button-row experimental-buttons">
+                          <button
+                            type="button"
+                            className="secondary-button"
+                            disabled={experimentalLegacyBatchLoading}
+                            onClick={startExperimentalLegacyBatchCapture}
+                          >
+                            {experimentalLegacyBatchLoading ? 'Running legacy batch...' : 'Start legacy batch capture'}
+                          </button>
+                          <button type="button" className="secondary-button" disabled={experimentalLoading} onClick={stopExperimentalDryRun}>
+                            Stop
+                          </button>
+                          <button
+                            type="button"
+                            className="secondary-button"
+                            disabled={experimentalMouseTestLoading}
+                            onClick={runExperimentalMouseControlTest}
+                          >
+                            {experimentalMouseTestLoading ? 'Testing mouse...' : 'Test mouse control'}
+                          </button>
+                          <button
+                            type="button"
+                            className="secondary-button"
+                            disabled={!experimentalCaptureHealth.can_review || experimentalReviewLoading}
+                            onClick={reviewExperimentalDryRun}
+                          >
+                            {experimentalReviewLoading ? 'Preparing review...' : 'Review latest package'}
+                          </button>
+                        </div>
+                        <details className="selected-job-details">
+                          <summary>Selected-job-only prototype</summary>
+                          <div className="button-row experimental-buttons">
+                            <button
+                              type="button"
+                              className="secondary-button"
+                              disabled={experimentalSelectedJobLoading}
+                              onClick={captureSelectedExperimentalJob}
+                            >
+                              {experimentalSelectedJobLoading ? 'Capturing selected job...' : 'Capture selected job'}
+                            </button>
+                            <button type="button" className="secondary-button" disabled={experimentalLoading} onClick={startExperimentalDryRun}>
+                              {experimentalLoading ? 'Running dry run...' : 'Start mock dry run'}
+                            </button>
+                          </div>
+                        </details>
                       </div>
-                      <div className="button-row experimental-buttons">
-                        <button
-                          type="button"
-                          className="secondary-button"
-                          disabled={!experimentalCaptureHealth.can_review || experimentalReviewLoading}
-                          onClick={reviewExperimentalDryRun}
-                        >
-                          {experimentalReviewLoading ? 'Preparing review...' : 'Review latest package'}
-                        </button>
-                      </div>
-                      <div className="run-compact-stats experimental-stats">
-                        <span>{experimentalCaptureHealth.captured_count} captured</span>
-                        <span>{experimentalCaptureHealth.run?.diagnostics.length ?? 0} diagnostics</span>
+                      <div className="experimental-diagnostics-panel">
+                        <div className="section-heading compact-heading">
+                          <h4>Diagnostics</h4>
+                          <button
+                            type="button"
+                            className="secondary-button compact-action-button"
+                            onClick={copyExperimentalDiagnostics}
+                            disabled={(experimentalCaptureHealth.run?.diagnostics ?? experimentalCaptureHealth.diagnostics).length === 0}
+                          >
+                            Copy diagnostics
+                          </button>
+                        </div>
+                        {(() => {
+                          const events = experimentalCaptureHealth.run?.diagnostics ?? experimentalCaptureHealth.diagnostics;
+                          const latest = events.length > 0 ? events[events.length - 1] : null;
+                          return (
+                            <>
+                              {latest ? (
+                                <p className="inline-warning latest-diagnostic">
+                                  Latest: {latest.code} - {latest.message}
+                                </p>
+                              ) : null}
+                              <div className="diagnostics-scrollbox">
+                                {events.map((event, index) => (
+                                  <div className={`diagnostic-line ${event.level}`} key={`${event.code}-${event.timestamp}-${index}`}>
+                                    <span>{event.timestamp}</span>
+                                    <strong>{event.level.toUpperCase()} {event.code}</strong>
+                                    <p>{event.message}</p>
+                                    {Object.keys(event.details ?? {}).length > 0 ? (
+                                      <code>{JSON.stringify(event.details)}</code>
+                                    ) : null}
+                                  </div>
+                                ))}
+                              </div>
+                            </>
+                          );
+                        })()}
                       </div>
                     </div>
                   ) : null}
@@ -2010,11 +2070,9 @@ English required.`
                   {experimentalCaptureHealth?.message ? (
                     <p className="inline-warning">{experimentalCaptureHealth.message}</p>
                   ) : null}
-                  {experimentalCaptureHealth?.run?.diagnostics.slice(0, 4).map((event) => (
-                    <p className="helper-text compact-helper" key={`${event.code}-${event.timestamp}-${event.message}`}>
-                      {event.code}: {event.message}
-                    </p>
-                  ))}
+                  {experimentalHandoffMessage ? (
+                    <p className="inline-warning helper-warning">{experimentalHandoffMessage}</p>
+                  ) : null}
                 </article>
                 <article>
                   <h3>Local and private</h3>

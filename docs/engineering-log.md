@@ -1346,3 +1346,43 @@
   - Phase 18 adapts rather than fully reproduces the legacy pixel-perfect screenshot/card rectangle detector; live-browser QA is still required for exact card targeting.
   - Debug screenshot annotation, pywin32 HWND targeting, visual footer next-click detection, and full second-pass reload recovery remain deferred.
   - The mode remains disabled by default and must not be presented as public scraping or auto-apply behavior.
+
+## 2026-05-26 - Phase 18A Legacy Batch Diagnostics And UI Fix
+
+- Type: Experimental capture debugging / UI repair / Tests / Docs
+- Files changed:
+  - `backend/app/api/experimental_capture.py`
+  - `backend/app/services/experimental_linkedin_capture/diagnostics.py`
+  - `backend/app/services/experimental_linkedin_capture/legacy_batch_adapter.py`
+  - `backend/app/services/experimental_linkedin_capture/legacy_card_detection.py`
+  - `backend/app/services/experimental_linkedin_capture/legacy_mouse_control.py`
+  - `backend/app/services/experimental_linkedin_capture/runner.py`
+  - `backend/tests/test_experimental_capture.py`
+  - `frontend/src/App.tsx`
+  - `frontend/src/api.ts`
+  - `frontend/src/styles.css`
+  - `docs/engineering-log.md`
+  - `docs/legacy-capture-port.md`
+  - `docs/demo-checklist.md`
+  - `specs/tasks.md`
+- Problem / goal:
+  - The first real legacy batch test selected the LinkedIn page blue, showed no visible mouse movement, captured zero jobs, and exposed only a few diagnostics in a cramped UI.
+- Root cause found:
+  - The Phase 18 adapter copied visible page text with Ctrl+A/Ctrl+C for card detection before it had captured screenshot/window context or clicked any job card. If text-based detection returned zero candidates, the run stopped before mouse movement.
+- Approach taken:
+  - Reordered legacy batch runtime so dependencies, focus handoff, active window/screenshot metadata, and card candidate generation happen before any Ctrl+A detail-text capture.
+  - Added runtime checkpoint diagnostics for dependencies, active window, screenshot, card detection start/completion/zero, candidate coordinates, click sequence, URL capture, detail-text capture, too-short/equal-URL text, scrolling, and completion/failure.
+  - Added `POST /api/experimental-capture/linkedin/test-mouse-control`, gated by the existing feature flag, to wait three seconds, report screen/mouse position, move 20px right and back, and never click.
+  - Rebuilt the About experimental panel into a compact two-column operational layout with status/counts, legacy controls, no-click mouse test, stop/review actions, collapsed selected-job/mock controls, full scrollable diagnostics, latest diagnostic, and Copy diagnostics.
+  - Added fake-adapter/mouse tests so no real LinkedIn or browser interaction is required.
+- Tests/checks run:
+  - Ran focused backend tests from `backend/`: `.\.venv\Scripts\python.exe -m pytest tests\test_experimental_capture.py`.
+  - Ran full backend tests from `backend/`: `.\.venv\Scripts\python.exe -m pytest`.
+  - Ran frontend build from `frontend/`: `npm run build`.
+- Result:
+  - Focused experimental capture tests passed: 32 passed, 1 pytest cache warning.
+  - Full backend tests passed: 120 passed, 1 pytest cache warning.
+  - Frontend production build passed after replacing `Array.at()` with target-compatible index access.
+- Remaining risks / follow-up:
+  - Live validation is still needed to confirm estimated click coordinates align with the LinkedIn left panel on the user's browser size/zoom.
+  - Pixel-perfect legacy screenshot card rectangle detection and debug screenshot annotation remain deferred.

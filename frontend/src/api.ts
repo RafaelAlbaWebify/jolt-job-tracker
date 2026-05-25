@@ -379,6 +379,12 @@ export async function stopExperimentalLinkedInDryRun(): Promise<ExperimentalCapt
   });
 }
 
+export async function testExperimentalLinkedInMouseControl(): Promise<ExperimentalCaptureResponse> {
+  return fetchJson<ExperimentalCaptureResponse>('/api/experimental-capture/linkedin/test-mouse-control', {
+    method: 'POST',
+  });
+}
+
 export async function reviewExperimentalLinkedInDryRun(profileId: string): Promise<CaptureRunResult> {
   return fetchJson<CaptureRunResult>('/api/experimental-capture/linkedin/review-latest', {
     method: 'POST',

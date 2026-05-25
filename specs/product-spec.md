@@ -287,7 +287,7 @@ Already Reviewed
 
 Backward-compatible saved statuses such as `Not started`, `Interview`, `Watchlist`, and `Discarded` may remain readable for old local history, but the active queue UI should emphasize the statuses above.
 
-The user should be able to update status from the Results/History view. Status changes should persist locally and appear in XLSX exports.
+The user should be able to update status from the History / Tracker view. Status changes should persist immediately through the history API, survive refresh, and appear in tracker/history XLSX exports. `Save to History` is only required after a new capture result; capture export uses the current run payload, while tracker export uses saved history with latest statuses.
 
 Needs confirmation:
 
@@ -461,7 +461,7 @@ Legacy A/B/C/D labels may remain only as internal priority bands if needed. Expo
 
 ## 19. XLSX Tracker Export
 
-XLSX is a core export format.
+XLSX is a core export format. Capture XLSX exports the current reviewed run; tracker/history XLSX exports saved local history with the latest application statuses.
 
 Required file name pattern:
 

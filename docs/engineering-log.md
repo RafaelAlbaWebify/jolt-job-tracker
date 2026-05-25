@@ -944,3 +944,46 @@
   - Export files are generated locally and remain ignored/private under `backend/data/exports/`.
   - Download streaming is still not implemented in the frontend.
   - The workbook is generated from the capture result payload, not from a database-backed run package.
+
+## 2026-05-25 - Phase 15D Persist Tracker Status Updates
+
+- Type: Bug fix / Feature / Test / Docs
+- Files changed:
+  - `backend/app/models.py`
+  - `backend/app/api/export.py`
+  - `backend/app/services/export_package.py`
+  - `backend/tests/test_export_package.py`
+  - `backend/tests/test_history_store.py`
+  - `frontend/src/api.ts`
+  - `frontend/src/App.tsx`
+  - `frontend/src/styles.css`
+  - `README.md`
+  - `docs/architecture.md`
+  - `docs/demo-checklist.md`
+  - `docs/portfolio-walkthrough.md`
+  - `docs/engineering-log.md`
+  - `specs/product-spec.md`
+  - `specs/technical-plan.md`
+  - `specs/tasks.md`
+- Problem / goal:
+  - Status changes in History / Tracker needed to persist immediately and exports needed to distinguish current capture-run export from saved tracker/history export.
+- Root cause:
+  - The backend history PATCH path already rewrote saved JSONL records, but export only accepted a current capture-result payload. Later tracker status changes were not represented in exports unless the user rebuilt/saved capture state again.
+- Change made:
+  - Added `POST /api/export/history` for local JSON, CSV, and multi-sheet XLSX exports sourced from saved History / Tracker data.
+  - Reused the workflow export sheet structure for tracker exports, including Summary, queue sheets, Decision Explanations, and a lightweight Capture Diagnostics sheet noting the history source.
+  - Added frontend API support and compact History / Tracker export controls.
+  - Added immediate status-save success/error feedback in History / Tracker.
+  - Clarified Capture export versus Tracker export copy and documented that `Save to history` is only needed after capture results.
+- Tests/checks run:
+  - Ran focused backend tests for export/history before full verification: `.\.venv\Scripts\python.exe -m pytest tests\test_export_package.py tests\test_history_store.py`.
+  - Ran full backend tests from `backend/`: `.\.venv\Scripts\python.exe -m pytest`.
+  - Ran frontend build from `frontend/`: `npm run build`.
+- Result:
+  - Focused backend tests passed: 24 passed, 1 pytest cache warning.
+  - Full backend tests passed: 81 passed, 1 pytest cache warning.
+  - Frontend production build passed.
+- Remaining risks / follow-up:
+  - Tracker export is still local file generation rather than streamed/downloaded export links.
+  - History storage remains JSONL, not database-backed or cloud-synced.
+  - Browser automation remains disabled/experimental.

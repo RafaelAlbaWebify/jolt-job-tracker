@@ -121,6 +121,14 @@ def test_updating_application_status_works(tmp_path, monkeypatch) -> None:
     assert response.status_code == 200
     assert response.json()["application_status"] == "Applied"
 
+    listed = client.get("/api/history/jobs")
+    assert listed.status_code == 200
+    assert listed.json()[0]["application_status"] == "Applied"
+
+    loaded = client.get(f"/api/history/jobs/{saved['history_ids'][0]}")
+    assert loaded.status_code == 200
+    assert loaded.json()["application_status"] == "Applied"
+
 
 def test_duplicate_source_url_or_external_id_is_detected(tmp_path, monkeypatch) -> None:
     monkeypatch.setattr(history_store, "HISTORY_ROOT", tmp_path / "backend" / "data" / "history")

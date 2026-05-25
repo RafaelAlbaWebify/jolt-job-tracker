@@ -338,9 +338,9 @@ Duplicate
 Already Reviewed
 ```
 
-User can update status from the History / Tracker queue view. Legacy local statuses such as `Not started`, `Interview`, `Watchlist`, and `Discarded` remain accepted for backward compatibility.
+User can update status from the History / Tracker queue view. The update persists immediately through the history API and survives refresh. Legacy local statuses such as `Not started`, `Interview`, `Watchlist`, and `Discarded` remain accepted for backward compatibility.
 
-Status persists locally and exports to XLSX.
+Status persists locally and exports to tracker/history XLSX.
 
 ---
 
@@ -529,6 +529,7 @@ Acceptance criteria:
 - User can generate/download XLSX tracker.
 - User can generate/download full run package.
 - UI shows included files and active profile.
+- Capture export uses the current capture result; tracker export uses saved History / Tracker data with latest statuses.
 - Demo exports are clearly marked as demo if demo mode is active.
 
 ---

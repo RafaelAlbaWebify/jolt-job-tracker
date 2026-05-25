@@ -52,20 +52,21 @@ Expected result:
 9. Review the dashboard counts for Apply, Maybe, Discard, Manual Review, Duplicate, and Errors.
 10. Use the decision filters to show Apply, Discard, Manual Review, and Errors.
 11. Open expandable card sections for warnings, missing information, matched keywords, and raw staged preview.
-12. Click `Export JSON`, `Export CSV`, or `Export XLSX`.
+12. Click `Export JSON`, `Export CSV`, or `Export XLSX` on Capture.
 13. Confirm the UI shows generated paths under `data/exports/`.
-14. For XLSX, explain that the workbook contains Summary, reviewed jobs, queue sheets, explanations, and diagnostics.
+14. For Capture XLSX, explain that the workbook contains Summary, reviewed jobs, queue sheets, explanations, and diagnostics for the current capture run.
 15. Click `Save to history`.
 16. Open History / Tracker.
 17. Confirm saved jobs appear with decision, score, parser confidence, saved date, and application status.
 18. Use the queue cards for `Apply Today`, `Manual Review`, `Waiting`, `Follow Up`, and `Duplicates / Reviewed`.
-19. Change one status to `Apply Today`, `Waiting`, `Follow Up`, `Applied`, or `Archived`.
-20. Open About.
-21. Confirm the page explains local-only demo safety and intentionally disabled automation.
-22. Optionally check the cleanup confirmation and click `Clean local demo data`.
-23. Confirm deleted export/history file counts are shown.
-24. Open the Rule Profiles page.
-25. Confirm Rafael Default is labeled as a demo/default preset, not global hardcoded behavior.
+19. Change one status to `Apply Today`, `Waiting`, `Follow Up`, `Applied`, or `Archived` and confirm `Status saved`.
+20. Click a Tracker export button and explain that it exports saved tracker data with the latest statuses.
+21. Open About.
+22. Confirm the page explains local-only demo safety and intentionally disabled automation.
+23. Optionally check the cleanup confirmation and click `Clean local demo data`.
+24. Confirm deleted export/history file counts are shown.
+25. Open the Rule Profiles page.
+26. Confirm Rafael Default is labeled as a demo/default preset, not global hardcoded behavior.
 
 ## Page Text / HTML Capture Demo
 
@@ -123,9 +124,9 @@ For HTML fragment capture:
 - A far-away hybrid/onsite role should be discarded when distance/location rules apply.
 - A low-information job should produce Manual Review or Maybe-style uncertainty.
 - Decision cards should show score, priority, parser confidence, reasons, warnings, missing information, and matched keywords.
-- Export controls should generate local JSON, CSV, and multi-sheet XLSX files under ignored `backend/data/exports/`.
-- Save to history should persist reviewed jobs under ignored `backend/data/history/`.
-- History / Tracker should allow local application status updates across page visits.
+- Capture export controls should generate local JSON, CSV, and multi-sheet XLSX files under ignored `backend/data/exports/`.
+- Save to history should persist reviewed capture results under ignored `backend/data/history/`.
+- History / Tracker should allow local application status updates across page visits and tracker export should include the latest saved statuses.
 - About should explain demo safety and allow manual cleanup of generated local demo exports/history.
 - Page text / HTML capture should split clear synthetic job blocks, reject tiny/noisy fragments, and fall back to one reviewed item when structure is unclear.
 - Capture diagnostics should show input size, candidate cards, accepted/rejected cards, source URL notes, and capture confidence.

@@ -333,7 +333,7 @@ Tracks run ID, timestamps, active profile, input/output files, counts, diagnosti
 - Save application statuses.
 - Support active statuses: `New`, `Apply Today`, `Manual Review`, `Waiting`, `Follow Up`, `Applied`, `Rejected`, `Archived`, `Duplicate`, and `Already Reviewed`.
 - Continue accepting older local statuses such as `Not started`, `Interview`, `Watchlist`, and `Discarded`.
-- Support updating statuses from UI.
+- Support updating statuses from UI through the history API with immediate local persistence.
 - Preserve profile and run ID for auditability.
 
 ### `apply_queue.py`
@@ -347,6 +347,7 @@ Tracks run ID, timestamps, active profile, input/output files, counts, diagnosti
 - Generate multi-sheet XLSX tracker.
 - Include Summary, All Reviewed Jobs, Apply Today, Manual Review, Waiting / Follow Up, Duplicates / Already Reviewed, Decision Explanations, and Capture Diagnostics.
 - Add filters, frozen headers, adjusted widths, clickable URLs, and status columns.
+- Support separate capture-result export and saved tracker/history export so latest persisted statuses are included.
 
 ### `exporter.py`
 
@@ -431,7 +432,8 @@ Shown before export:
 - saved jobs;
 - application status tracker;
 - duplicates/already-reviewed state;
-- filters.
+- filters;
+- tracker export for saved history with latest statuses.
 
 ### Exports Page
 
@@ -547,8 +549,8 @@ Required frontend/manual checks:
 - Capture page starts pipeline or shows controlled failure.
 - Review dashboard shows counts.
 - Decision cards show reasons/rules/warnings/missing info.
-- Status update persists.
-- XLSX export downloads.
+- Status update persists immediately and survives refresh.
+- XLSX export supports both current capture result and saved tracker/history data.
 - Demo mode uses fake data only.
 - Cleanup preview does not include source/spec files.
 

@@ -138,6 +138,11 @@ export type ExportCaptureResultRequest = {
   capture_result: CaptureRunResult;
 };
 
+export type ExportHistoryRequest = {
+  export_format: ExportFormat;
+  include_raw_text: boolean;
+};
+
 export type ExportCaptureResultResponse = {
   export_id: string;
   status: 'completed' | 'failed';
@@ -251,6 +256,18 @@ export async function exportCaptureResult(
   request: ExportCaptureResultRequest,
 ): Promise<ExportCaptureResultResponse> {
   return fetchJson<ExportCaptureResultResponse>('/api/export/capture-result', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(request),
+  });
+}
+
+export async function exportHistoryTracker(
+  request: ExportHistoryRequest,
+): Promise<ExportCaptureResultResponse> {
+  return fetchJson<ExportCaptureResultResponse>('/api/export/history', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

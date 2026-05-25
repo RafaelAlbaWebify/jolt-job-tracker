@@ -29,9 +29,9 @@ manual jobs, pasted page text, or copied HTML content
 4. The parser extracts structured fields and parser confidence.
 5. The decision engine applies profile rules and returns Apply, Maybe, Discard, Manual Review, or Duplicate.
 6. The frontend shows decision counts, filters, and explainable cards.
-7. The user can export JSON / CSV / XLSX or save the reviewed run to local history.
+7. The user can export the current capture result as JSON / CSV / XLSX or save the reviewed run to local history.
 8. The History / Tracker page shows Apply Today, Manual Review, Waiting, Follow Up, and Duplicates / Reviewed queues.
-9. The user updates application status locally without auto-applying or hiding duplicates.
+9. The user updates application status locally; changes persist immediately and tracker export uses those latest saved statuses without auto-applying or hiding duplicates.
 
 ## Architecture
 
@@ -51,8 +51,8 @@ Backend:
 - Rule-based parser service.
 - Decision engine service.
 - Capture runner and page text / HTML adapter with diagnostics and duplicate preview.
-- Export package service for JSON, CSV, and workflow-oriented multi-sheet XLSX.
-- JSONL local history store with backward-compatible statuses.
+- Export package service for capture-result and saved-tracker JSON, CSV, and workflow-oriented multi-sheet XLSX.
+- JSONL local history store with backward-compatible statuses and immediate status updates.
 
 ## Why The Safe Capture Boundary Exists
 
@@ -80,7 +80,7 @@ The strongest part of JOLT is not scraping. The real value is the explainable re
 - parser confidence;
 - visible missing information;
 - review dashboard before export;
-- local tracker queues and export package.
+- local tracker queues and separate capture/tracker export package paths.
 - auditable local workbook sheets for summary, queues, explanations, and diagnostics.
 
 That is what makes the app reusable and portfolio-safe.

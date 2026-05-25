@@ -8,6 +8,7 @@ from openpyxl import load_workbook
 
 from app.main import app
 from app.services.export_package import BACKEND_ROOT, EXPORT_ROOT
+from app.services import history_store
 
 client = TestClient(app)
 
@@ -92,6 +93,18 @@ def export_result(
             "export_format": export_format,
             "include_raw_text": include_raw_text,
             "capture_result": capture_result or sample_capture_result(),
+        },
+    )
+    assert response.status_code == 200
+    return response.json()
+
+
+def export_history_result(export_format: str, include_raw_text: bool) -> dict[str, object]:
+    response = client.post(
+        "/api/export/history",
+        json={
+            "export_format": export_format,
+            "include_raw_text": include_raw_text,
         },
     )
     assert response.status_code == 200
@@ -286,3 +299,68 @@ def test_generated_exports_are_ignored_by_git() -> None:
 
     assert "backend/data/" in gitignore
     assert "*.xlsx" in gitignore
+
+
+def test_history_export_includes_latest_updated_status(tmp_path, monkeypatch) -> None:
+    monkeypatch.setattr(history_store, "HISTORY_ROOT", tmp_path / "backend" / "data" / "history")
+    monkeypatch.setattr(history_store, "HISTORY_FILE", tmp_path / "backend" / "data" / "history" / "jobs.jsonl")
+    capture_result = sample_capture_result()
+    saved = client.post(
+        "/api/history/save-capture-result",
+        json={
+            "capture_result": capture_result,
+            "include_raw_text": False,
+            "default_application_status": "New",
+        },
+    )
+    assert saved.status_code == 200
+    history_id = saved.json()["history_ids"][0]
+    update = client.patch(
+        f"/api/history/jobs/{history_id}/status",
+        json={"application_status": "Follow Up"},
+    )
+    assert update.status_code == 200
+
+    data = export_history_result("xlsx", include_raw_text=False)
+    try:
+        path = export_file_path(data)
+        workbook = load_workbook(path)
+        statuses = sheet_column_values(workbook, "All Reviewed Jobs", "status")
+        follow_up_statuses = sheet_column_values(workbook, "Waiting Follow Up", "status")
+
+        assert "Follow Up" in statuses
+        assert "Follow Up" in follow_up_statuses
+        assert any("latest statuses" in warning for warning in data["warnings"])
+    finally:
+        cleanup_export(data)
+
+
+def test_history_export_json_and_csv_use_saved_tracker_data(tmp_path, monkeypatch) -> None:
+    monkeypatch.setattr(history_store, "HISTORY_ROOT", tmp_path / "backend" / "data" / "history")
+    monkeypatch.setattr(history_store, "HISTORY_FILE", tmp_path / "backend" / "data" / "history" / "jobs.jsonl")
+    capture_result = sample_capture_result()
+    saved = client.post(
+        "/api/history/save-capture-result",
+        json={
+            "capture_result": capture_result,
+            "include_raw_text": False,
+            "default_application_status": "Apply Today",
+        },
+    )
+    assert saved.status_code == 200
+
+    json_data = export_history_result("json", include_raw_text=False)
+    csv_data = export_history_result("csv", include_raw_text=False)
+    try:
+        json_path = export_file_path(json_data)
+        csv_path = export_file_path(csv_data)
+        payload = json.loads(json_path.read_text(encoding="utf-8"))
+        rows = list(csv.DictReader(csv_path.read_text(encoding="utf-8").splitlines()))
+
+        assert payload["export_source"] == "history_tracker"
+        assert payload["jobs"][0]["application_status"] == "Apply Today"
+        assert rows[0]["status"] == "Apply Today"
+        assert rows[0]["title"] == "Microsoft 365 Support Specialist"
+    finally:
+        cleanup_export(json_data)
+        cleanup_export(csv_data)

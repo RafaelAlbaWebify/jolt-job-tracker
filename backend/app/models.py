@@ -189,6 +189,11 @@ class ExportCaptureResultRequest(BaseModel):
     capture_result: CaptureRunResult
 
 
+class ExportHistoryRequest(BaseModel):
+    export_format: ExportFormat
+    include_raw_text: bool = False
+
+
 class ExportCaptureResultResponse(BaseModel):
     export_id: str
     status: ExportStatus

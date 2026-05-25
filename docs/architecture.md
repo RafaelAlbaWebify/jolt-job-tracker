@@ -121,7 +121,7 @@ Phase 15B also reuses safe text-only lessons from the legacy pipeline: copied le
 
 ### Export Service
 
-`backend/app/services/export_package.py` writes local export files for a capture review result.
+`backend/app/services/export_package.py` writes local export files for either a current capture review result or saved History / Tracker records.
 
 Supported formats:
 
@@ -129,13 +129,13 @@ Supported formats:
 - CSV: flattened review rows.
 - XLSX: workflow-oriented workbook with `Summary`, `All Reviewed Jobs`, `Apply Today`, `Manual Review`, `Waiting Follow Up`, `Duplicates Reviewed`, `Decision Explanations`, and `Capture Diagnostics` sheets.
 
-Generated files are written under ignored `backend/data/exports/`. Raw job text is excluded by default and can be included explicitly for local/private review. Exporting does not publish, upload, apply, or contact anyone.
+Capture export uses the current review payload. Tracker export reads saved history first, so it includes the latest persisted application statuses without requiring another Capture-page `Save to history` action. Generated files are written under ignored `backend/data/exports/`. Raw job text is excluded by default and can be included explicitly for local/private review. Exporting does not publish, upload, apply, or contact anyone.
 
 ### History Store
 
 `backend/app/services/history_store.py` persists reviewed jobs locally under ignored `backend/data/history/`.
 
-The current implementation uses JSONL file storage rather than a database. It can save reviewed capture results, list saved jobs, load one saved job, update application status, and detect duplicates by normalized source URL, external ID, normalized title/company/location fallback, or normalized title/company fallback. Capture runs also use this duplicate logic as a preview so likely duplicates are labelled before save rather than silently removed. Duplicate saves are retained as visible `Duplicate` or `Already Reviewed` history entries instead of disappearing.
+The current implementation uses JSONL file storage rather than a database. It can save reviewed capture results, list saved jobs, load one saved job, update application status immediately from the History / Tracker page, and detect duplicates by normalized source URL, external ID, normalized title/company/location fallback, or normalized title/company fallback. Capture runs also use this duplicate logic as a preview so likely duplicates are labelled before save rather than silently removed. Duplicate saves are retained as visible `Duplicate` or `Already Reviewed` history entries instead of disappearing.
 
 Current user-facing workflow statuses are `New`, `Apply Today`, `Manual Review`, `Waiting`, `Follow Up`, `Applied`, `Rejected`, `Archived`, `Duplicate`, and `Already Reviewed`. Legacy saved statuses such as `Not started`, `Interview`, and `Watchlist` still validate so old local history remains readable.
 
@@ -170,6 +170,7 @@ Current local endpoints:
 - `GET /api/capture/health`
 - `POST /api/capture/run`
 - `POST /api/export/capture-result`
+- `POST /api/export/history`
 - `POST /api/history/save-capture-result`
 - `GET /api/history/jobs`
 - `GET /api/history/jobs/{history_id}`
@@ -188,11 +189,12 @@ Frontend Capture page
 -> history duplicate preview labels likely already-saved jobs
 -> backend returns run summary, diagnostics, and per-job results
 -> frontend displays decision overview, filters, and cards
--> user optionally exports JSON, CSV, or XLSX
+-> user optionally exports the current capture result as JSON, CSV, or XLSX
 -> backend writes files under backend/data/exports/
 -> user optionally saves reviewed jobs
 -> backend writes JSONL history under backend/data/history/
--> History / Tracker displays queue cards, saved jobs, duplicate/reviewed entries, and status updates
+-> History / Tracker displays queue cards, saved jobs, duplicate/reviewed entries, and immediate status updates
+-> user optionally exports saved tracker/history data with latest statuses
 -> About can manually clean generated local demo exports/history
 ```
 

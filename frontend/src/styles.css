@@ -203,6 +203,7 @@ p {
 .review-overview,
 .export-panel,
 .history-save-panel,
+.tracker-export-panel,
 .empty-state.large {
   border: 1px solid #d9e0e4;
   border-radius: 8px;
@@ -364,6 +365,15 @@ textarea {
   border-radius: 8px;
   background: #fff8ea;
   color: #6c4b13;
+  margin: 8px 0 0;
+  padding: 8px 10px;
+}
+
+.success-message {
+  border: 1px solid #a7c9ae;
+  border-radius: 8px;
+  background: #f0fbf3;
+  color: #245033;
   margin: 8px 0 0;
   padding: 8px 10px;
 }
@@ -587,6 +597,7 @@ textarea {
 
 .export-panel .section-heading p,
 .history-save-panel .section-heading p,
+.tracker-export-panel .section-heading p,
 .history-toolbar p {
   color: #60717b;
   font-size: 0.9rem;
@@ -596,6 +607,12 @@ textarea {
 
 .history-save-panel {
   background: #f7faf9;
+  display: grid;
+  gap: 8px;
+}
+
+.tracker-export-panel {
+  background: #ffffff;
   display: grid;
   gap: 8px;
 }
@@ -1044,7 +1061,8 @@ dd {
   min-width: 140px;
 }
 
-.status-message {
+.status-message,
+.success-message {
   grid-column: 1 / -1;
 }
 

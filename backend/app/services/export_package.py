@@ -15,6 +15,7 @@ from app.models import (
     CaptureRunResult,
     ExportCaptureResultResponse,
     ExportFormat,
+    HistoryJobEntry,
 )
 
 BACKEND_ROOT = Path(__file__).resolve().parents[2]
@@ -186,28 +187,34 @@ def _append_table(sheet: Worksheet, columns: list[str], rows: list[dict[str, Any
 
 
 def _summary_rows(capture_result: CaptureRunResult, rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    return _summary_rows_for_export(
+        rows,
+        metadata=[
+            {"metric": "Export timestamp", "value": datetime.now(UTC).isoformat(timespec="seconds")},
+            {"metric": "Run ID", "value": capture_result.run_id},
+            {"metric": "Profile ID", "value": capture_result.profile_id},
+            {"metric": "Capture mode", "value": capture_result.capture_diagnostics.capture_mode_used},
+            {"metric": "Capture confidence", "value": capture_result.capture_diagnostics.capture_confidence},
+            {"metric": "Total jobs", "value": len(rows)},
+            {"metric": "Parsed jobs", "value": capture_result.parsed_count},
+            {"metric": "Classified jobs", "value": capture_result.classified_count},
+            {"metric": "Failed jobs", "value": capture_result.failed_count},
+        ],
+    )
+
+
+def _summary_rows_for_export(rows: list[dict[str, Any]], metadata: list[dict[str, Any]]) -> list[dict[str, Any]]:
     decision_counts = Counter(row.get("decision", "") or "Unclassified" for row in rows)
     status_counts = Counter(row.get("status", "") or "Unknown" for row in rows)
     priority_counts = Counter(row.get("priority", "") or "None" for row in rows)
-    profile_counts = Counter(row.get("profile_id", "") or capture_result.profile_id or "Unknown" for row in rows)
+    profile_counts = Counter(row.get("profile_id", "") or "Unknown" for row in rows)
     duplicate_count = sum(
         1
         for row in rows
         if row.get("decision") in {"Duplicate", "Already Reviewed"}
         or row.get("status") in {"Duplicate", "Already Reviewed"}
     )
-    summary: list[dict[str, Any]] = [
-        {"metric": "Export timestamp", "value": datetime.now(UTC).isoformat(timespec="seconds")},
-        {"metric": "Run ID", "value": capture_result.run_id},
-        {"metric": "Profile ID", "value": capture_result.profile_id},
-        {"metric": "Capture mode", "value": capture_result.capture_diagnostics.capture_mode_used},
-        {"metric": "Capture confidence", "value": capture_result.capture_diagnostics.capture_confidence},
-        {"metric": "Total jobs", "value": len(rows)},
-        {"metric": "Parsed jobs", "value": capture_result.parsed_count},
-        {"metric": "Classified jobs", "value": capture_result.classified_count},
-        {"metric": "Failed jobs", "value": capture_result.failed_count},
-        {"metric": "Duplicate / already reviewed", "value": duplicate_count},
-    ]
+    summary: list[dict[str, Any]] = [*metadata, {"metric": "Duplicate / already reviewed", "value": duplicate_count}]
     summary.extend({"metric": f"Decision: {key}", "value": value} for key, value in sorted(decision_counts.items()))
     summary.extend({"metric": f"Status: {key}", "value": value} for key, value in sorted(status_counts.items()))
     summary.extend({"metric": f"Priority: {key}", "value": value} for key, value in sorted(priority_counts.items()))
@@ -288,6 +295,118 @@ def _write_xlsx(path: Path, capture_result: CaptureRunResult, rows: list[dict[st
     workbook.save(path)
 
 
+def _flatten_history_entry(entry: HistoryJobEntry, include_raw_text: bool) -> dict[str, Any]:
+    row: dict[str, Any] = {
+        "status": entry.application_status,
+        "decision": entry.decision,
+        "priority": entry.priority,
+        "score": entry.score,
+        "title": entry.title,
+        "company": entry.company,
+        "location": entry.location,
+        "work_mode": entry.work_mode,
+        "profile_id": entry.profile_id,
+        "parser_confidence": entry.parser_confidence,
+        "capture_confidence": "",
+        "reasons": _join(entry.reasons),
+        "triggered_rules": "",
+        "warnings": _join(entry.warnings),
+        "missing_information": _join(entry.missing_information),
+        "matched_positive_keywords": _join(entry.matched_positive_keywords),
+        "matched_risk_keywords": _join(entry.matched_risk_keywords),
+        "source_url": entry.source_url,
+        "created_at": entry.saved_at,
+        "errors": "",
+    }
+    if include_raw_text:
+        row["raw_text"] = entry.raw_text or ""
+    return row
+
+
+def _history_explanation_rows(entries: list[HistoryJobEntry]) -> list[dict[str, Any]]:
+    return [
+        {
+            "title": entry.title,
+            "company": entry.company,
+            "decision": entry.decision,
+            "triggered_rules": "",
+            "matched_positive_keywords": _join(entry.matched_positive_keywords),
+            "matched_risk_keywords": _join(entry.matched_risk_keywords),
+            "hard_discard_reasons": _join(entry.reasons if entry.decision == "Discard" else []),
+            "warnings": _join(entry.warnings),
+            "missing_information": _join(entry.missing_information),
+        }
+        for entry in entries
+    ]
+
+
+def _write_history_xlsx(
+    path: Path,
+    entries: list[HistoryJobEntry],
+    rows: list[dict[str, Any]],
+    include_raw_text: bool,
+) -> None:
+    columns = BASE_COLUMNS + (["raw_text"] if include_raw_text else [])
+    workbook = Workbook()
+    summary_sheet = workbook.active
+    summary_sheet.title = "Summary"
+    _append_table(
+        summary_sheet,
+        ["metric", "value"],
+        _summary_rows_for_export(
+            rows,
+            metadata=[
+                {"metric": "Export timestamp", "value": datetime.now(UTC).isoformat(timespec="seconds")},
+                {"metric": "Export source", "value": "Saved History / Tracker"},
+                {"metric": "Capture mode", "value": "history_tracker"},
+                {"metric": "Capture confidence", "value": ""},
+                {"metric": "Total jobs", "value": len(rows)},
+            ],
+        ),
+    )
+    sheet_specs = [
+        ("All Reviewed Jobs", rows),
+        ("Apply Today", [row for row in rows if row.get("status") == "Apply Today" or row.get("decision") == "Apply"]),
+        ("Manual Review", [row for row in rows if row.get("status") == "Manual Review" or row.get("decision") == "Manual Review"]),
+        ("Waiting Follow Up", [row for row in rows if row.get("status") in {"Waiting", "Follow Up"}]),
+        (
+            "Duplicates Reviewed",
+            [
+                row
+                for row in rows
+                if row.get("status") in {"Duplicate", "Already Reviewed"}
+                or row.get("decision") in {"Duplicate", "Already Reviewed"}
+            ],
+        ),
+    ]
+    for title, sheet_rows in sheet_specs:
+        _append_table(workbook.create_sheet(title), columns, sheet_rows)
+
+    _append_table(workbook.create_sheet("Decision Explanations"), EXPLANATION_COLUMNS, _history_explanation_rows(entries))
+    _append_table(
+        workbook.create_sheet("Capture Diagnostics"),
+        ["field", "value"],
+        [
+            {"field": "export_source", "value": "history_tracker"},
+            {"field": "history_rows", "value": len(entries)},
+            {"field": "note", "value": "Tracker export uses latest saved statuses from local history."},
+        ],
+    )
+    workbook.save(path)
+
+
+def _write_history_json(path: Path, entries: list[HistoryJobEntry], include_raw_text: bool) -> None:
+    payload = {
+        "export_source": "history_tracker",
+        "exported_at": datetime.now(UTC).isoformat(timespec="seconds"),
+        "jobs": [entry.model_dump() for entry in entries],
+    }
+    if not include_raw_text:
+        for job in payload["jobs"]:
+            job["raw_text"] = None
+    path.write_text(json.dumps(payload, indent=2), encoding="utf-8",)
+
+
 def export_capture_result(
     capture_result: CaptureRunResult,
     export_format: ExportFormat,
@@ -313,6 +432,38 @@ def export_capture_result(
 
     if not include_raw_text:
         warnings.append("Raw job text was excluded from the export.")
+
+    return ExportCaptureResultResponse(
+        export_id=export_id,
+        status="completed",
+        files=[_relative_to_backend(path)],
+        warnings=warnings,
+    )
+
+
+def export_history_entries(
+    entries: list[HistoryJobEntry],
+    export_format: ExportFormat,
+    include_raw_text: bool = False,
+) -> ExportCaptureResultResponse:
+    export_id = f"export_{uuid4().hex}"
+    export_dir = _ensure_export_dir(export_id)
+    rows = [_flatten_history_entry(entry, include_raw_text) for entry in entries]
+    path = export_dir / f"history_tracker.{export_format}"
+    warnings: list[str] = []
+
+    if export_format == "json":
+        _write_history_json(path, entries, include_raw_text)
+    elif export_format == "csv":
+        _write_csv(path, rows, include_raw_text)
+    elif export_format == "xlsx":
+        _write_history_xlsx(path, entries, rows, include_raw_text)
+    else:  # pragma: no cover - Pydantic validates this before service entry.
+        raise ValueError(f"Unsupported export format: {export_format}")
+
+    if not include_raw_text:
+        warnings.append("Raw job text was excluded from the export.")
+    warnings.append("Exported saved tracker/history data with latest statuses.")
 
     return ExportCaptureResultResponse(
         export_id=export_id,

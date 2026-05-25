@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   cleanupDemoData,
   exportCaptureResult,
+  exportHistoryTracker,
   fetchBackendHealth,
   fetchCaptureHealth,
   fetchHistoryJobs,
@@ -423,6 +424,11 @@ function App() {
   const [historyError, setHistoryError] = useState<string | null>(null);
   const [activeHistoryFilter, setActiveHistoryFilter] = useState<HistoryFilter>('All');
   const [updatingHistoryId, setUpdatingHistoryId] = useState<string | null>(null);
+  const [statusUpdateMessage, setStatusUpdateMessage] = useState<string | null>(null);
+  const [includeRawTextInTrackerExport, setIncludeRawTextInTrackerExport] = useState<boolean>(false);
+  const [trackerExportLoading, setTrackerExportLoading] = useState<ExportFormat | null>(null);
+  const [trackerExportError, setTrackerExportError] = useState<string | null>(null);
+  const [trackerExportResponses, setTrackerExportResponses] = useState<ExportCaptureResultResponse[]>([]);
   const [cleanupConfirmed, setCleanupConfirmed] = useState<boolean>(false);
   const [cleanupLoading, setCleanupLoading] = useState<boolean>(false);
   const [cleanupError, setCleanupError] = useState<string | null>(null);
@@ -717,6 +723,23 @@ function App() {
     }
   }
 
+  async function runTrackerExport(exportFormat: ExportFormat) {
+    setTrackerExportLoading(exportFormat);
+    setTrackerExportError(null);
+
+    try {
+      const result = await exportHistoryTracker({
+        export_format: exportFormat,
+        include_raw_text: includeRawTextInTrackerExport,
+      });
+      setTrackerExportResponses((current) => [result, ...current]);
+    } catch (error: unknown) {
+      setTrackerExportError(error instanceof Error ? error.message : 'Tracker export failed');
+    } finally {
+      setTrackerExportLoading(null);
+    }
+  }
+
   async function saveCurrentRunToHistory() {
     if (!captureResult) {
       setHistorySaveError('Run capture review before saving jobs to history.');
@@ -744,14 +767,17 @@ function App() {
   async function updateStatus(historyId: string, applicationStatus: ApplicationStatus) {
     setUpdatingHistoryId(historyId);
     setHistoryError(null);
+    setStatusUpdateMessage(null);
 
     try {
       const updated = await updateHistoryJobStatus(historyId, applicationStatus);
       setHistoryJobs((current) =>
         current.map((entry) => (entry.history_id === updated.history_id ? updated : entry)),
       );
+      setStatusUpdateMessage('Status saved');
     } catch (error: unknown) {
       setHistoryError(error instanceof Error ? error.message : 'Unable to update application status');
+      setStatusUpdateMessage('Could not save status');
     } finally {
       setUpdatingHistoryId(null);
     }
@@ -771,6 +797,7 @@ function App() {
       setCleanupResult(result);
       setHistoryJobs([]);
       setExportResponses([]);
+      setTrackerExportResponses([]);
       setHistorySaveSummary(null);
       setCleanupConfirmed(false);
     } catch (error: unknown) {
@@ -1125,12 +1152,13 @@ English required.`
                         <div className="section-heading">
                           <div>
                             <h2>Export package</h2>
-                            <p>Generate local JSON/CSV or a multi-sheet workflow XLSX under backend/data/exports.</p>
+                            <p>Export the current capture review run as local JSON/CSV or multi-sheet XLSX.</p>
                           </div>
                           <span>{exportResponses.length} generated</span>
                         </div>
                         <p className="helper-text compact-helper">
                           XLSX includes Summary, reviewed jobs, queues, explanations, and diagnostics.
+                          Use Tracker export for latest saved statuses.
                         </p>
                         <label className="checkbox-row">
                           <input
@@ -1175,7 +1203,7 @@ English required.`
                         <div className="section-heading">
                           <div>
                             <h2>Save to history</h2>
-                            <p>Persist reviewed jobs under backend/data/history.</p>
+                            <p>Persist this capture run into the tracker. Later status changes save immediately in History / Tracker.</p>
                           </div>
                           <span>{historySaveSummary ? `${historySaveSummary.saved_count} saved` : 'Manual'}</span>
                         </div>
@@ -1361,7 +1389,7 @@ English required.`
                   <h2>Saved jobs</h2>
                   <p>
                     History is stored locally under the ignored backend data folder. Save a capture run
-                    from the Capture page to populate this tracker.
+                    from the Capture page to populate this tracker; status changes here save immediately.
                   </p>
                 </div>
                 <button type="button" className="secondary-button" onClick={loadHistoryJobs}>
@@ -1370,6 +1398,7 @@ English required.`
               </section>
 
               {historyError ? <p className="status-message">{historyError}</p> : null}
+              {statusUpdateMessage ? <p className="success-message">{statusUpdateMessage}</p> : null}
 
               <section className="queue-card-grid" aria-label="Workflow queues">
                 {queueHighlights.map((queue) => (
@@ -1383,6 +1412,55 @@ English required.`
                     <strong>{queue.count}</strong>
                   </button>
                 ))}
+              </section>
+
+              <section className="tracker-export-panel">
+                <div className="section-heading">
+                  <div>
+                    <h2>Tracker export</h2>
+                    <p>Export saved History / Tracker data with the latest persisted statuses.</p>
+                  </div>
+                  <span>{trackerExportResponses.length} generated</span>
+                </div>
+                <label className="checkbox-row">
+                  <input
+                    type="checkbox"
+                    checked={includeRawTextInTrackerExport}
+                    onChange={(event) => setIncludeRawTextInTrackerExport(event.target.checked)}
+                  />
+                  Include raw job text
+                </label>
+                <div className="button-row">
+                  {(['json', 'csv', 'xlsx'] as ExportFormat[]).map((format) => (
+                    <button
+                      key={format}
+                      type="button"
+                      className="secondary-button"
+                      disabled={trackerExportLoading !== null}
+                      onClick={() => runTrackerExport(format)}
+                    >
+                      {trackerExportLoading === format
+                        ? `Exporting ${format.toUpperCase()}...`
+                        : `Export tracker ${format.toUpperCase()}`}
+                    </button>
+                  ))}
+                </div>
+                {trackerExportError ? <p className="status-message">{trackerExportError}</p> : null}
+                {trackerExportResponses.length > 0 ? (
+                  <div className="export-results compact-export-results">
+                    {trackerExportResponses.slice(0, 2).map((response) => (
+                      <article key={response.export_id}>
+                        <strong>{response.export_id}</strong>
+                        {response.files.map((file) => (
+                          <code key={file}>{file}</code>
+                        ))}
+                        {response.warnings.map((warning) => (
+                          <p key={warning}>{warning}</p>
+                        ))}
+                      </article>
+                    ))}
+                  </div>
+                ) : null}
               </section>
 
               <section className="filter-bar" aria-label="History filters">

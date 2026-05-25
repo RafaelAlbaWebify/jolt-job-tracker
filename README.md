@@ -151,9 +151,9 @@ http://localhost:5173
 6. Click `Load demo jobs`.
 7. Click `Run capture review`.
 8. Review Apply / Discard / Manual Review cards.
-9. Export JSON, CSV, or the multi-sheet XLSX workflow tracker.
+9. Export the current capture run as JSON, CSV, or the multi-sheet XLSX workflow tracker.
 10. Click `Save to history`.
-11. Open History / Tracker, review the Apply Today / Manual Review / Waiting / Follow Up queues, and update one application status.
+11. Open History / Tracker, review the Apply Today / Manual Review / Waiting / Follow Up queues, update one application status, and export the saved tracker data with latest statuses.
 12. Open About and optionally clean local demo data.
 
 Page text / HTML demo:
@@ -180,6 +180,7 @@ Run the backend locally, then use `http://127.0.0.1:8000`.
 | GET | `/api/capture/health` | Report safe capture modes and automation status. |
 | POST | `/api/capture/run` | Run capture review from manual jobs or pasted page text/HTML. |
 | POST | `/api/export/capture-result` | Generate JSON, CSV, or XLSX files from a capture result. |
+| POST | `/api/export/history` | Generate JSON, CSV, or XLSX files from saved History / Tracker data. |
 | POST | `/api/history/save-capture-result` | Save reviewed capture results into local history. |
 | GET | `/api/history/jobs` | List saved reviewed jobs. |
 | GET | `/api/history/jobs/{history_id}` | Load one saved job. |
@@ -208,13 +209,13 @@ Capture results are parsed, classified, filtered, and displayed as explainable d
 
 ### Export package
 
-Reviewed results can be exported locally as JSON, CSV, or a multi-sheet XLSX with Summary, All Reviewed Jobs, Apply Today, Manual Review, Waiting / Follow Up, Duplicates / Already Reviewed, Decision Explanations, and Capture Diagnostics sheets.
+Reviewed capture results can be exported locally as JSON, CSV, or a multi-sheet XLSX with Summary, All Reviewed Jobs, Apply Today, Manual Review, Waiting / Follow Up, Duplicates / Already Reviewed, Decision Explanations, and Capture Diagnostics sheets. History / Tracker also has its own export action that uses the latest saved statuses.
 
 ![Export controls](docs/screenshots/04-export-controls.png)
 
 ### History / Tracker
 
-Reviewed jobs can be saved locally and tracked with application statuses.
+Reviewed jobs can be saved locally and tracked with application statuses. Changing a status in History / Tracker persists immediately; `Save to history` is only needed after a new capture review.
 
 ![History tracker](docs/screenshots/05-history-tracker.png)
 

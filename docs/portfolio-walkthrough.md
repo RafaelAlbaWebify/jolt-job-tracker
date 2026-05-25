@@ -51,7 +51,7 @@ Backend:
 - Rule-based parser service.
 - Decision engine service.
 - Capture runner and page text / HTML adapter with diagnostics and duplicate preview.
-- Export package service for JSON, CSV, and XLSX.
+- Export package service for JSON, CSV, and workflow-oriented multi-sheet XLSX.
 - JSONL local history store with backward-compatible statuses.
 
 ## Why The Safe Capture Boundary Exists
@@ -81,6 +81,7 @@ The strongest part of JOLT is not scraping. The real value is the explainable re
 - visible missing information;
 - review dashboard before export;
 - local tracker queues and export package.
+- auditable local workbook sheets for summary, queues, explanations, and diagnostics.
 
 That is what makes the app reusable and portfolio-safe.
 
@@ -97,7 +98,6 @@ That is what makes the app reusable and portfolio-safe.
 
 ## Future Roadmap
 
-- Richer XLSX tracker sheets and export package reports.
 - Richer queue ranking and bulk status actions.
 - Richer duplicate/already-reviewed labels in exports.
 - Profile editing and validation UI.

@@ -54,17 +54,18 @@ Expected result:
 11. Open expandable card sections for warnings, missing information, matched keywords, and raw staged preview.
 12. Click `Export JSON`, `Export CSV`, or `Export XLSX`.
 13. Confirm the UI shows generated paths under `data/exports/`.
-14. Click `Save to history`.
-15. Open History / Tracker.
-16. Confirm saved jobs appear with decision, score, parser confidence, saved date, and application status.
-17. Use the queue cards for `Apply Today`, `Manual Review`, `Waiting`, `Follow Up`, and `Duplicates / Reviewed`.
-18. Change one status to `Apply Today`, `Waiting`, `Follow Up`, `Applied`, or `Archived`.
-19. Open About.
-20. Confirm the page explains local-only demo safety and intentionally disabled automation.
-21. Optionally check the cleanup confirmation and click `Clean local demo data`.
-22. Confirm deleted export/history file counts are shown.
-23. Open the Rule Profiles page.
-24. Confirm Rafael Default is labeled as a demo/default preset, not global hardcoded behavior.
+14. For XLSX, explain that the workbook contains Summary, reviewed jobs, queue sheets, explanations, and diagnostics.
+15. Click `Save to history`.
+16. Open History / Tracker.
+17. Confirm saved jobs appear with decision, score, parser confidence, saved date, and application status.
+18. Use the queue cards for `Apply Today`, `Manual Review`, `Waiting`, `Follow Up`, and `Duplicates / Reviewed`.
+19. Change one status to `Apply Today`, `Waiting`, `Follow Up`, `Applied`, or `Archived`.
+20. Open About.
+21. Confirm the page explains local-only demo safety and intentionally disabled automation.
+22. Optionally check the cleanup confirmation and click `Clean local demo data`.
+23. Confirm deleted export/history file counts are shown.
+24. Open the Rule Profiles page.
+25. Confirm Rafael Default is labeled as a demo/default preset, not global hardcoded behavior.
 
 ## Page Text / HTML Capture Demo
 
@@ -122,7 +123,7 @@ For HTML fragment capture:
 - A far-away hybrid/onsite role should be discarded when distance/location rules apply.
 - A low-information job should produce Manual Review or Maybe-style uncertainty.
 - Decision cards should show score, priority, parser confidence, reasons, warnings, missing information, and matched keywords.
-- Export controls should generate local JSON, CSV, and XLSX files under ignored `backend/data/exports/`.
+- Export controls should generate local JSON, CSV, and multi-sheet XLSX files under ignored `backend/data/exports/`.
 - Save to history should persist reviewed jobs under ignored `backend/data/history/`.
 - History / Tracker should allow local application status updates across page visits.
 - About should explain demo safety and allow manual cleanup of generated local demo exports/history.
@@ -166,7 +167,7 @@ These are future phases:
 - LinkedIn scraping;
 - database-backed or cloud-synced history/tracker;
 - downloadable export streaming;
-- full multi-sheet application tracker workflow;
+- downloadable export links;
 - profile editing UI;
 - authentication;
 - production deployment.

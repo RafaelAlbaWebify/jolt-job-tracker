@@ -487,15 +487,16 @@ JOLT_job_tracker_<run_id>.xlsx
 
 Sheets:
 
-- Shortlist;
-- All Captured Jobs;
-- Discarded;
+- Summary;
+- All Reviewed Jobs;
+- Apply Today;
 - Manual Review;
-- Duplicates;
-- Rules Snapshot;
-- Run Summary.
+- Waiting / Follow Up;
+- Duplicates / Already Reviewed;
+- Decision Explanations;
+- Capture Diagnostics.
 
-Workbook includes frozen headers, filters, adjusted widths, clickable URLs, status column, and readable list serialization.
+Workbook includes frozen headers, filters, adjusted widths, clickable URLs, status column, readable list serialization, workflow queue sheets, and diagnostics.
 
 ---
 
@@ -624,6 +625,8 @@ Required tests:
 - already applied job labeled Already Reviewed/Already Applied;
 - Apply Today queue excludes duplicates/applied jobs;
 - XLSX contains required sheets and headers;
+- queue sheets filter relevant rows;
+- duplicate/already-reviewed rows appear in the duplicate/reviewed sheet;
 - privacy cleanup does not delete source/spec/demo data.
 
 ---

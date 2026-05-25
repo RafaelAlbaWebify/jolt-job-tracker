@@ -127,9 +127,9 @@ Supported formats:
 
 - JSON: structured capture result.
 - CSV: flattened review rows.
-- XLSX: workbook with a `Capture Review` sheet.
+- XLSX: workflow-oriented workbook with `Summary`, `All Reviewed Jobs`, `Apply Today`, `Manual Review`, `Waiting Follow Up`, `Duplicates Reviewed`, `Decision Explanations`, and `Capture Diagnostics` sheets.
 
-Generated files are written under ignored `backend/data/exports/`. Raw job text is excluded by default and can be included explicitly for local/private review.
+Generated files are written under ignored `backend/data/exports/`. Raw job text is excluded by default and can be included explicitly for local/private review. Exporting does not publish, upload, apply, or contact anyone.
 
 ### History Store
 
@@ -210,7 +210,7 @@ These exclusions keep the project honest and portfolio-safe while the parser/pro
 
 ## Future Extension Points
 
-- Richer XLSX tracker and auditable run package sheets.
+- Downloadable export UX.
 - Richer Apply Today ranking and bulk queue actions.
 - Richer duplicate/already-reviewed labels in exports.
 - Optional browser-assisted capture adapter with explicit user control and no credential storage.

@@ -1,10 +1,13 @@
 import csv
 import json
+from collections import Counter
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
 from openpyxl import Workbook
+from openpyxl.styles import Font, PatternFill
 from openpyxl.worksheet.worksheet import Worksheet
 
 from app.models import (
@@ -18,6 +21,7 @@ BACKEND_ROOT = Path(__file__).resolve().parents[2]
 EXPORT_ROOT = BACKEND_ROOT / "data" / "exports"
 
 BASE_COLUMNS = [
+    "status",
     "decision",
     "priority",
     "score",
@@ -25,14 +29,30 @@ BASE_COLUMNS = [
     "company",
     "location",
     "work_mode",
+    "profile_id",
     "parser_confidence",
+    "capture_confidence",
     "reasons",
+    "triggered_rules",
     "warnings",
     "missing_information",
     "matched_positive_keywords",
     "matched_risk_keywords",
     "source_url",
+    "created_at",
     "errors",
+]
+
+EXPLANATION_COLUMNS = [
+    "title",
+    "company",
+    "decision",
+    "triggered_rules",
+    "matched_positive_keywords",
+    "matched_risk_keywords",
+    "hard_discard_reasons",
+    "warnings",
+    "missing_information",
 ]
 
 
@@ -44,6 +64,19 @@ def _model_to_dict(model: Any) -> dict[str, Any]:
 
 def _join(values: list[str] | None) -> str:
     return "; ".join(values or [])
+
+
+def _status_for_result(result: CaptureJobResult) -> str:
+    decision = result.decision.decision if result.decision else ""
+    if result.duplicate_preview:
+        return "Duplicate"
+    if decision == "Apply":
+        return "Apply Today"
+    if decision in {"Manual Review", "Duplicate", "Already Reviewed"}:
+        return decision
+    if decision == "Discard":
+        return "Archived"
+    return "New"
 
 
 def _relative_to_backend(path: Path) -> str:
@@ -64,20 +97,25 @@ def _flatten_result(result: CaptureJobResult, include_raw_text: bool) -> dict[st
     job = result.parsed_job
     decision = result.decision
     row: dict[str, Any] = {
-        "decision": decision.decision if decision else "",
+        "status": _status_for_result(result),
+        "decision": "Duplicate" if result.duplicate_preview else decision.decision if decision else "",
         "priority": decision.priority if decision else "",
         "score": decision.score if decision else "",
         "title": job.title if job else "",
         "company": job.company if job else "",
         "location": job.location if job else "",
         "work_mode": job.work_mode if job else "",
+        "profile_id": decision.profile_id if decision else "",
         "parser_confidence": job.parser_confidence if job else "",
+        "capture_confidence": "",
         "reasons": _join(decision.reasons if decision else []),
+        "triggered_rules": _join(decision.triggered_rules if decision else []),
         "warnings": _join(decision.warnings if decision else []),
         "missing_information": _join(decision.missing_information if decision else []),
         "matched_positive_keywords": _join(decision.matched_positive_keywords if decision else []),
         "matched_risk_keywords": _join(decision.matched_risk_keywords if decision else []),
         "source_url": result.raw_job.source_url or (job.source_url if job else ""),
+        "created_at": result.raw_job.captured_at,
         "errors": _join(result.errors),
     }
     if include_raw_text:
@@ -112,6 +150,13 @@ def _write_csv(path: Path, rows: list[dict[str, Any]], include_raw_text: bool) -
         writer.writerows(rows)
 
 
+def _style_header(sheet: Worksheet) -> None:
+    fill = PatternFill(fill_type="solid", fgColor="EAF3F1")
+    for cell in sheet[1]:
+        cell.font = Font(bold=True, color="21313A")
+        cell.fill = fill
+
+
 def _autosize_columns(sheet: Worksheet) -> None:
     for column_cells in sheet.columns:
         header = column_cells[0]
@@ -121,19 +166,125 @@ def _autosize_columns(sheet: Worksheet) -> None:
         sheet.column_dimensions[header.column_letter].width = min(max(max_length + 2, 12), 48)
 
 
-def _write_xlsx(path: Path, rows: list[dict[str, Any]], include_raw_text: bool) -> None:
-    columns = BASE_COLUMNS + (["raw_text"] if include_raw_text else [])
-    workbook = Workbook()
-    sheet = workbook.active
-    sheet.title = "Capture Review"
+def _append_table(sheet: Worksheet, columns: list[str], rows: list[dict[str, Any]]) -> None:
     sheet.append(columns)
-
     for row in rows:
         sheet.append([row.get(column, "") for column in columns])
 
     sheet.freeze_panes = "A2"
     sheet.auto_filter.ref = sheet.dimensions
+    _style_header(sheet)
     _autosize_columns(sheet)
+
+    if "source_url" in columns:
+        url_index = columns.index("source_url") + 1
+        for row_index in range(2, sheet.max_row + 1):
+            cell = sheet.cell(row=row_index, column=url_index)
+            if cell.value:
+                cell.hyperlink = str(cell.value)
+                cell.style = "Hyperlink"
+
+
+def _summary_rows(capture_result: CaptureRunResult, rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    decision_counts = Counter(row.get("decision", "") or "Unclassified" for row in rows)
+    status_counts = Counter(row.get("status", "") or "Unknown" for row in rows)
+    priority_counts = Counter(row.get("priority", "") or "None" for row in rows)
+    profile_counts = Counter(row.get("profile_id", "") or capture_result.profile_id or "Unknown" for row in rows)
+    duplicate_count = sum(
+        1
+        for row in rows
+        if row.get("decision") in {"Duplicate", "Already Reviewed"}
+        or row.get("status") in {"Duplicate", "Already Reviewed"}
+    )
+    summary: list[dict[str, Any]] = [
+        {"metric": "Export timestamp", "value": datetime.now(UTC).isoformat(timespec="seconds")},
+        {"metric": "Run ID", "value": capture_result.run_id},
+        {"metric": "Profile ID", "value": capture_result.profile_id},
+        {"metric": "Capture mode", "value": capture_result.capture_diagnostics.capture_mode_used},
+        {"metric": "Capture confidence", "value": capture_result.capture_diagnostics.capture_confidence},
+        {"metric": "Total jobs", "value": len(rows)},
+        {"metric": "Parsed jobs", "value": capture_result.parsed_count},
+        {"metric": "Classified jobs", "value": capture_result.classified_count},
+        {"metric": "Failed jobs", "value": capture_result.failed_count},
+        {"metric": "Duplicate / already reviewed", "value": duplicate_count},
+    ]
+    summary.extend({"metric": f"Decision: {key}", "value": value} for key, value in sorted(decision_counts.items()))
+    summary.extend({"metric": f"Status: {key}", "value": value} for key, value in sorted(status_counts.items()))
+    summary.extend({"metric": f"Priority: {key}", "value": value} for key, value in sorted(priority_counts.items()))
+    summary.extend({"metric": f"Profile: {key}", "value": value} for key, value in sorted(profile_counts.items()))
+    return summary
+
+
+def _diagnostic_rows(capture_result: CaptureRunResult) -> list[dict[str, Any]]:
+    diagnostics = capture_result.capture_diagnostics
+    health = capture_result.capture_health
+    return [
+        {"field": "run_id", "value": capture_result.run_id},
+        {"field": "status", "value": capture_result.status},
+        {"field": "profile_id", "value": capture_result.profile_id},
+        {"field": "capture_mode_used", "value": diagnostics.capture_mode_used},
+        {"field": "input_size", "value": diagnostics.input_size},
+        {"field": "candidate_cards_found", "value": diagnostics.candidate_cards_found},
+        {"field": "cards_accepted", "value": diagnostics.cards_accepted},
+        {"field": "cards_rejected", "value": diagnostics.cards_rejected},
+        {"field": "capture_confidence", "value": diagnostics.capture_confidence},
+        {"field": "browser_automation_enabled", "value": str(health.browser_automation_enabled)},
+        {"field": "last_run_status", "value": health.last_run_status or ""},
+        {"field": "capture_warnings", "value": _join(capture_result.warnings)},
+        {"field": "diagnostic_warnings", "value": _join(diagnostics.warnings)},
+        {"field": "rejection_reasons", "value": _join(diagnostics.rejection_reasons)},
+        {"field": "source_url_notes", "value": _join(diagnostics.source_url_extraction_notes)},
+    ]
+
+
+def _explanation_rows(capture_result: CaptureRunResult) -> list[dict[str, Any]]:
+    rows: list[dict[str, Any]] = []
+    for result in capture_result.results:
+        job = result.parsed_job
+        decision = result.decision
+        rows.append(
+            {
+                "title": job.title if job else "",
+                "company": job.company if job else "",
+                "decision": "Duplicate" if result.duplicate_preview else decision.decision if decision else "",
+                "triggered_rules": _join(decision.triggered_rules if decision else []),
+                "matched_positive_keywords": _join(decision.matched_positive_keywords if decision else []),
+                "matched_risk_keywords": _join(decision.matched_risk_keywords if decision else []),
+                "hard_discard_reasons": _join(decision.reasons if decision and decision.decision == "Discard" else []),
+                "warnings": _join(decision.warnings if decision else []),
+                "missing_information": _join(decision.missing_information if decision else []),
+            }
+        )
+    return rows
+
+
+def _write_xlsx(path: Path, capture_result: CaptureRunResult, rows: list[dict[str, Any]], include_raw_text: bool) -> None:
+    columns = BASE_COLUMNS + (["raw_text"] if include_raw_text else [])
+    workbook = Workbook()
+    summary_sheet = workbook.active
+    summary_sheet.title = "Summary"
+    _append_table(summary_sheet, ["metric", "value"], _summary_rows(capture_result, rows))
+
+    sheet_specs = [
+        ("All Reviewed Jobs", rows),
+        ("Apply Today", [row for row in rows if row.get("status") == "Apply Today" or row.get("decision") == "Apply"]),
+        ("Manual Review", [row for row in rows if row.get("status") == "Manual Review" or row.get("decision") == "Manual Review"]),
+        ("Waiting Follow Up", [row for row in rows if row.get("status") in {"Waiting", "Follow Up"}]),
+        (
+            "Duplicates Reviewed",
+            [
+                row
+                for row in rows
+                if row.get("status") in {"Duplicate", "Already Reviewed"}
+                or row.get("decision") in {"Duplicate", "Already Reviewed"}
+            ],
+        ),
+    ]
+    for title, sheet_rows in sheet_specs:
+        _append_table(workbook.create_sheet(title), columns, sheet_rows)
+
+    _append_table(workbook.create_sheet("Decision Explanations"), EXPLANATION_COLUMNS, _explanation_rows(capture_result))
+    _append_table(workbook.create_sheet("Capture Diagnostics"), ["field", "value"], _diagnostic_rows(capture_result))
     workbook.save(path)
 
 
@@ -145,6 +296,8 @@ def export_capture_result(
     export_id = f"export_{uuid4().hex}"
     export_dir = _ensure_export_dir(export_id)
     rows = [_flatten_result(result, include_raw_text) for result in capture_result.results]
+    for row in rows:
+        row["capture_confidence"] = capture_result.capture_diagnostics.capture_confidence
     warnings: list[str] = []
 
     suffix = export_format
@@ -154,7 +307,7 @@ def export_capture_result(
     elif export_format == "csv":
         _write_csv(path, rows, include_raw_text)
     elif export_format == "xlsx":
-        _write_xlsx(path, rows, include_raw_text)
+        _write_xlsx(path, capture_result, rows, include_raw_text)
     else:  # pragma: no cover - Pydantic validates this before service entry.
         raise ValueError(f"Unsupported export format: {export_format}")
 

@@ -345,7 +345,7 @@ Tracks run ID, timestamps, active profile, input/output files, counts, diagnosti
 ### `xlsx_exporter.py`
 
 - Generate multi-sheet XLSX tracker.
-- Include Shortlist, All Captured Jobs, Discarded, Manual Review, Duplicates, Rules Snapshot, Run Summary.
+- Include Summary, All Reviewed Jobs, Apply Today, Manual Review, Waiting / Follow Up, Duplicates / Already Reviewed, Decision Explanations, and Capture Diagnostics.
 - Add filters, frozen headers, adjusted widths, clickable URLs, and status columns.
 
 ### `exporter.py`
@@ -467,13 +467,14 @@ Use `openpyxl` for XLSX creation unless a stronger reason exists.
 
 Required workbook sheets:
 
-- `Shortlist`
-- `All Captured Jobs`
-- `Discarded`
+- `Summary`
+- `All Reviewed Jobs`
+- `Apply Today`
 - `Manual Review`
-- `Duplicates`
-- `Rules Snapshot`
-- `Run Summary`
+- `Waiting Follow Up`
+- `Duplicates Reviewed`
+- `Decision Explanations`
+- `Capture Diagnostics`
 
 Workbook requirements:
 

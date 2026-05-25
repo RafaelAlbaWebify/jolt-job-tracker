@@ -14,7 +14,7 @@ JOLT is not a LinkedIn scraper, not a mass-apply bot, and not a black-box recomm
 - Parses title, company, location, work mode, languages, risk signals, parser confidence, and notes.
 - Applies reusable rule profiles instead of hardcoding one person's preferences globally.
 - Produces explainable decisions with score, priority, reasons, warnings, missing information, parser confidence, and matched keywords.
-- Exports reviewed results as JSON, CSV, or XLSX.
+- Exports reviewed results as JSON, CSV, or a workflow-oriented multi-sheet XLSX.
 - Saves reviewed jobs into a local history/tracker and supports application status updates.
 - Provides a local demo cleanup action for generated export/history files.
 
@@ -51,7 +51,7 @@ The Capture page is the primary workflow. Manual paste exists as a fallback/debu
 - Capture health endpoint showing browser automation disabled by default.
 - Frontend review dashboard with demo jobs, decision counts, filters, and decision cards.
 - Local export package generation under ignored `backend/data/exports/`.
-- JSON, CSV, and XLSX export formats.
+- JSON, CSV, and multi-sheet XLSX export formats.
 - Local JSONL history/tracker under ignored `backend/data/history/`.
 - Save-to-history, queue filters, backward-compatible status updates, and visible Duplicate / Already Reviewed records.
 - Demo cleanup endpoint and UI for local exports/history.
@@ -151,7 +151,7 @@ http://localhost:5173
 6. Click `Load demo jobs`.
 7. Click `Run capture review`.
 8. Review Apply / Discard / Manual Review cards.
-9. Export JSON, CSV, or XLSX.
+9. Export JSON, CSV, or the multi-sheet XLSX workflow tracker.
 10. Click `Save to history`.
 11. Open History / Tracker, review the Apply Today / Manual Review / Waiting / Follow Up queues, and update one application status.
 12. Open About and optionally clean local demo data.
@@ -208,7 +208,7 @@ Capture results are parsed, classified, filtered, and displayed as explainable d
 
 ### Export package
 
-Reviewed results can be exported locally as JSON, CSV, or XLSX files.
+Reviewed results can be exported locally as JSON, CSV, or a multi-sheet XLSX with Summary, All Reviewed Jobs, Apply Today, Manual Review, Waiting / Follow Up, Duplicates / Already Reviewed, Decision Explanations, and Capture Diagnostics sheets.
 
 ![Export controls](docs/screenshots/04-export-controls.png)
 
@@ -239,7 +239,6 @@ See [docs/screenshots/README.md](docs/screenshots/README.md) for the screenshot 
 
 ## Roadmap
 
-- Add richer XLSX tracker sheets and export package metadata.
 - Add downloadable export UX.
 - Add richer queue ranking and bulk status actions.
 - Improve already-reviewed labels in exports.

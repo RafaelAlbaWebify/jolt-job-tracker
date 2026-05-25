@@ -903,3 +903,44 @@
   - Queue ranking is status/filter based, not a full scoring optimizer.
   - XLSX export still needs richer multi-sheet tracker alignment.
   - Copied-card extraction is conservative and may need more examples from synthetic/demo data.
+
+## 2026-05-25 - Phase 15C Workflow Export Package
+
+- Type: Feature / Test / Docs
+- Files changed:
+  - `backend/app/services/export_package.py`
+  - `backend/tests/test_export_package.py`
+  - `frontend/src/App.tsx`
+  - `frontend/src/styles.css`
+  - `README.md`
+  - `docs/architecture.md`
+  - `docs/demo-checklist.md`
+  - `docs/portfolio-walkthrough.md`
+  - `docs/engineering-log.md`
+  - `specs/product-spec.md`
+  - `specs/technical-plan.md`
+  - `specs/tasks.md`
+- Problem / goal:
+  - Improve the local export package so XLSX supports the JOLT workflow from capture to review, queues, tracking, explanations, and diagnostics.
+- Root cause:
+  - The previous XLSX export was a single capture-review sheet, useful for basic inspection but not strong enough for portfolio screenshots or practical queue-oriented tracking.
+- Change made:
+  - Reworked XLSX export into a multi-sheet workbook with `Summary`, `All Reviewed Jobs`, `Apply Today`, `Manual Review`, `Waiting Follow Up`, `Duplicates Reviewed`, `Decision Explanations`, and `Capture Diagnostics`.
+  - Added summary counts for total jobs, decisions, statuses, priorities, profile IDs, duplicate/reviewed rows, export timestamp, run ID, capture mode, and capture confidence.
+  - Added practical reviewed-job columns including status, decision, priority, score, title/company/location/work mode, profile ID, parser/capture confidence, reasons, triggered rules, warnings, missing information, source URL, and errors.
+  - Preserved existing JSON and CSV endpoint behavior while adding compatible flattened columns.
+  - Added hyperlink styling, frozen headers, filters, and column sizing to workbook sheets.
+  - Updated Capture export panel copy to mention that XLSX includes workflow sheets.
+  - Updated README, architecture notes, demo checklist, portfolio walkthrough, and specs for local multi-sheet XLSX exports.
+- Tests/checks run:
+  - Ran `cd backend && .\.venv\Scripts\python.exe -m pytest tests\test_export_package.py`.
+  - Ran `cd backend && .\.venv\Scripts\python.exe -m pytest`.
+  - Ran `cd frontend && npm run build`.
+- Result:
+  - Focused export tests passed: 11 passed, 1 pytest cache warning.
+  - Full backend tests passed: 79 passed, 1 pytest cache warning.
+  - Frontend production build passed.
+- Remaining risks / follow-up:
+  - Export files are generated locally and remain ignored/private under `backend/data/exports/`.
+  - Download streaming is still not implemented in the frontend.
+  - The workbook is generated from the capture result payload, not from a database-backed run package.

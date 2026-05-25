@@ -295,6 +295,11 @@ textarea {
   margin: 8px 0 0;
 }
 
+.compact-helper {
+  font-size: 0.82rem;
+  margin-top: -2px;
+}
+
 .health-grid,
 .job-facts,
 .profile-fields,

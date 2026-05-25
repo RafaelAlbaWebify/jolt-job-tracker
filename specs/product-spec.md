@@ -469,11 +469,15 @@ Required file name pattern:
 JOLT_job_tracker_<run_id_or_timestamp>.xlsx
 ```
 
-Required sheets:
+Current workflow-oriented sheets:
 
-### `Shortlist`
+### `Summary`
 
-Main working sheet for applications.
+Counts by decision, status, priority, profile, duplicate/reviewed state, export timestamp, source/capture mode, and diagnostics basics.
+
+### `All Reviewed Jobs`
+
+Main working sheet for reviewed jobs.
 
 Columns:
 
@@ -500,27 +504,27 @@ Application Link
 Notes
 ```
 
-### `All Captured Jobs`
-
-All jobs from the run.
-
-### `Discarded`
-
-Discarded jobs with hard-discard reason and triggered rules.
-
 ### `Manual Review`
 
 Unclear jobs and low-confidence parser cases.
 
-### `Duplicates`
+### `Apply Today`
+
+Current high-priority next-action queue.
+
+### `Waiting / Follow Up`
+
+Rows currently waiting or needing follow-up.
+
+### `Duplicates / Already Reviewed`
 
 Duplicate, previously seen, and already-reviewed jobs.
 
-### `Rules Snapshot`
+### `Decision Explanations`
 
-Selected profile and rule settings used for the run.
+Triggered rules, matched keywords, warnings, missing information, and discard explanation summaries.
 
-### `Run Summary`
+### `Capture Diagnostics`
 
 Counts, timestamps, source batch, and diagnostics.
 

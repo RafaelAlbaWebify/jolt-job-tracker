@@ -1125,10 +1125,13 @@ English required.`
                         <div className="section-heading">
                           <div>
                             <h2>Export package</h2>
-                            <p>Generate local JSON, CSV, or XLSX under backend/data/exports.</p>
+                            <p>Generate local JSON/CSV or a multi-sheet workflow XLSX under backend/data/exports.</p>
                           </div>
                           <span>{exportResponses.length} generated</span>
                         </div>
+                        <p className="helper-text compact-helper">
+                          XLSX includes Summary, reviewed jobs, queues, explanations, and diagnostics.
+                        </p>
                         <label className="checkbox-row">
                           <input
                             type="checkbox"

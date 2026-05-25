@@ -71,7 +71,14 @@ The Capture page is the primary workflow. Manual paste exists as a fallback/debu
 
 Page text / HTML and manual helper capture are local and user-controlled. The helper does not open pages, navigate, crawl, store credentials, bypass authentication, bypass CAPTCHA, or submit applications.
 
-The experimental LinkedIn capture scaffold is not connected to Save to History automatically. When the flag is enabled, it can generate a mock package with fake jobs under ignored local data, or capture one currently selected job by copying the focused browser URL and visible page text. It still performs no Selenium, Playwright, multi-card iteration, result-panel scrolling, pagination, login, credential storage, CAPTCHA/rate-limit bypass, auto-apply, or recruiter messaging. The selected-job prototype is Windows/local and depends on optional experimental keyboard/clipboard support.
+The experimental LinkedIn capture scaffold is not connected to Save to History automatically. When the flag is enabled, it can generate a mock package with fake jobs under ignored local data, or capture one currently selected job after a focus handoff countdown by copying the focused browser URL and visible page text. It still performs no Selenium, Playwright, multi-card iteration, result-panel scrolling, pagination, login, credential storage, CAPTCHA/rate-limit bypass, auto-apply, or recruiter messaging. The selected-job prototype is Windows/local and depends on optional experimental keyboard/clipboard support.
+
+Optional selected-job capture dependencies are intentionally separate from normal requirements:
+
+```bash
+cd backend
+pip install -r requirements-experimental.txt
+```
 
 ## What It Intentionally Does Not Do
 

@@ -76,7 +76,7 @@ Phase 17A adds an experimental LinkedIn capture scaffold behind `JOLT_ENABLE_EXP
 
 Phase 17B proves the architecture with fake demo data only: the mock adapter simulates card selection, URL/currentJobId matches, detail readiness, duplicate currentJobId detection, and page/job limits. The generated package can be converted into normal review cards, but it is not auto-saved or auto-exported and it does not control LinkedIn or a browser.
 
-Phase 17C adds the first real-world prototype step: after the user manually opens LinkedIn and manually selects one job, JOLT can experimentally copy the focused browser URL and visible page text for that one selected job. It remains disabled by default, does not iterate cards, scroll panels, paginate, log in, bypass protections, auto-apply, or send messages, and review remains manual before any save.
+Phase 17C adds the first real-world prototype step: after the user manually opens LinkedIn and manually selects one job, JOLT can experimentally copy the focused browser URL and visible page text for that one selected job. Phase 17D adds a focus handoff countdown so the user can click capture in JOLT, switch back to LinkedIn, and keep that tab focused until capture completes. It remains disabled by default, uses separate optional experimental dependencies, does not iterate cards, scroll panels, paginate, log in, bypass protections, auto-apply, or send messages, and review remains manual before any save.
 
 ## Where The Real Value Is
 

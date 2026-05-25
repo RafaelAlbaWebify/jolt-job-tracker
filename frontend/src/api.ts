@@ -322,7 +322,9 @@ export async function startExperimentalLinkedInDryRun(
   });
 }
 
-export async function startExperimentalLinkedInSelectedJobCapture(): Promise<ExperimentalCaptureResponse> {
+export async function startExperimentalLinkedInSelectedJobCapture(
+  focusDelaySeconds: number,
+): Promise<ExperimentalCaptureResponse> {
   return fetchJson<ExperimentalCaptureResponse>('/api/experimental-capture/linkedin/start', {
     method: 'POST',
     headers: {
@@ -334,6 +336,7 @@ export async function startExperimentalLinkedInSelectedJobCapture(): Promise<Exp
       max_jobs: 1,
       dry_run: false,
       selected_job_only: true,
+      focus_delay_seconds: focusDelaySeconds,
     }),
   });
 }

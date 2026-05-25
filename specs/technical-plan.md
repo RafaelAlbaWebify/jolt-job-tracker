@@ -337,7 +337,9 @@ Tracks run ID, timestamps, active profile, input/output files, counts, diagnosti
 - Generate fake demo run packages under ignored local experimental-capture data.
 - Convert the latest fake package into existing capture review cards only when the user explicitly requests review.
 - Add selected-job-only capture as an isolated experimental adapter that copies the focused browser URL and visible page text for one manually selected job.
-- Do not use Selenium, Playwright, browser card iteration, left-panel scrolling, pagination, login automation, credentials, CAPTCHA/rate-limit bypass, auto-apply, or messaging in Phase 17A/17B/17C.
+- Require a configurable focus handoff countdown before selected-job keyboard/clipboard capture begins.
+- Keep optional selected-job dependencies in `backend/requirements-experimental.txt`, separate from normal backend requirements.
+- Do not use Selenium, Playwright, browser card iteration, left-panel scrolling, pagination, login automation, credentials, CAPTCHA/rate-limit bypass, auto-apply, or messaging in Phase 17A/17B/17C/17D.
 - Do not auto-save dry-run scaffold output to History, tracker export, or normal capture review.
 
 ### `history.py` / `status_tracker.py`

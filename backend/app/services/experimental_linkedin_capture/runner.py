@@ -183,7 +183,12 @@ def _start_selected_job_capture(request: ExperimentalCaptureStartRequest) -> Exp
 
     run_id = f"exp_linkedin_selected_{uuid4().hex[:12]}"
     adapter = SELECTED_JOB_ADAPTER_FACTORY()
-    _LATEST_RUN = adapter.run(run_id=run_id, max_pages=1, max_jobs=1)
+    _LATEST_RUN = adapter.run(
+        run_id=run_id,
+        max_pages=1,
+        max_jobs=1,
+        focus_delay_seconds=request.focus_delay_seconds,
+    )
     if _LATEST_RUN.status == "completed" or _LATEST_RUN.captured_jobs:
         _write_run_package(_LATEST_RUN)
     return ExperimentalCaptureResponse(

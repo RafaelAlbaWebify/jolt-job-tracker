@@ -9,9 +9,14 @@ from app.services.experimental_linkedin_capture.diagnostics import (
     EXP_CURRENT_JOB_ID_MISSING,
     EXP_DETAIL_TEXT_NOT_READY,
     EXP_DETAIL_TEXT_READY,
+    EXP_FOCUSED_WINDOW_CAPTURE_FAILED,
+    EXP_FOCUSED_WINDOW_CAPTURE_STARTED,
+    EXP_FOCUS_HANDOFF_COMPLETED,
+    EXP_FOCUS_HANDOFF_STARTED,
+    EXP_FOCUS_HANDOFF_WAITING,
+    EXP_NON_LINKEDIN_URL_CAPTURED,
     EXP_SELECTED_JOB_ADAPTER_DEPENDENCY_MISSING,
     EXP_SELECTED_JOB_CAPTURE_COMPLETED,
-    EXP_SELECTED_JOB_CAPTURE_FAILED,
     EXP_SELECTED_JOB_CAPTURE_STARTED,
     EXP_VISIBLE_TEXT_CAPTURED,
     EXP_VISIBLE_TEXT_TOO_SHORT,
@@ -55,13 +60,20 @@ class WindowsSelectedJobCaptureAdapter:
     click job cards, scroll panels, paginate, log in, apply, or send messages.
     """
 
-    def run(self, *, run_id: str, max_pages: int = 1, max_jobs: int = 1) -> ExperimentalCaptureRunPackage:
+    def run(
+        self,
+        *,
+        run_id: str,
+        max_pages: int = 1,
+        max_jobs: int = 1,
+        focus_delay_seconds: int = 5,
+    ) -> ExperimentalCaptureRunPackage:
         started_at = utc_now_iso()
         diagnostics = [
             diagnostic_event(
                 EXP_SELECTED_JOB_CAPTURE_STARTED,
                 "Selected-job capture started. The user must have focused a browser with one job selected.",
-                details={"max_pages": max_pages, "max_jobs": max_jobs},
+                details={"max_pages": max_pages, "max_jobs": max_jobs, "focus_delay_seconds": focus_delay_seconds},
             )
         ]
 
@@ -69,7 +81,7 @@ class WindowsSelectedJobCaptureAdapter:
         if dependency_error:
             event = diagnostic_event(
                 EXP_SELECTED_JOB_ADAPTER_DEPENDENCY_MISSING,
-                "Selected-job capture requires experimental local adapter dependencies.",
+                "Selected-job capture requires experimental local adapter dependencies. Install experimental dependencies from backend/requirements-experimental.txt.",
                 level="error",
                 details={"dependency_error": dependency_error},
             )
@@ -82,16 +94,25 @@ class WindowsSelectedJobCaptureAdapter:
                 max_jobs=max_jobs,
                 diagnostics=[*diagnostics, event],
                 warnings=[
-                    "Selected-job capture is experimental and requires optional local browser-control support.",
+                    "Install experimental dependencies from backend/requirements-experimental.txt.",
                 ],
-                errors=["Selected-job capture requires experimental local adapter dependencies."],
+                errors=[
+                    "Selected-job capture requires experimental local adapter dependencies. Install experimental dependencies from backend/requirements-experimental.txt."
+                ],
             )
 
         try:
+            diagnostics.extend(_focus_handoff_events(focus_delay_seconds))
+            diagnostics.append(
+                diagnostic_event(
+                    EXP_FOCUSED_WINDOW_CAPTURE_STARTED,
+                    "Focused-window URL/text copy is starting after the focus handoff countdown.",
+                )
+            )
             snapshot = self.capture_snapshot()
         except Exception as exc:  # pragma: no cover - defensive boundary around OS/browser state.
             event = diagnostic_event(
-                EXP_SELECTED_JOB_CAPTURE_FAILED,
+                EXP_FOCUSED_WINDOW_CAPTURE_FAILED,
                 "Selected-job capture failed while reading the focused browser.",
                 level="error",
                 details={"error": str(exc)},
@@ -108,6 +129,15 @@ class WindowsSelectedJobCaptureAdapter:
             )
 
         diagnostics.extend(snapshot.diagnostics)
+        if snapshot.source_url and not _looks_like_linkedin_jobs_url(snapshot.source_url):
+            diagnostics.append(
+                diagnostic_event(
+                    EXP_NON_LINKEDIN_URL_CAPTURED,
+                    "Captured URL does not look like a LinkedIn Jobs URL.",
+                    level="warning",
+                    details={"url": snapshot.source_url[:160]},
+                )
+            )
         current_job_id = extract_current_job_id(snapshot.source_url)
         if current_job_id:
             diagnostics.append(
@@ -268,6 +298,38 @@ def selected_job_text_ready(raw_text: str) -> bool:
     normalized = raw_text.lower()
     marker_hits = sum(1 for marker in DETAIL_READY_MARKERS if marker in normalized)
     return len(raw_text.strip()) >= MIN_SELECTED_JOB_TEXT_CHARS and marker_hits >= 2
+
+
+def _looks_like_linkedin_jobs_url(source_url: str) -> bool:
+    normalized = source_url.lower()
+    return "linkedin." in normalized and "/jobs" in normalized
+
+
+def _focus_handoff_events(focus_delay_seconds: int) -> list[ExperimentalCaptureDiagnostic]:
+    events = [
+        diagnostic_event(
+            EXP_FOCUS_HANDOFF_STARTED,
+            "Focus handoff countdown started. Switch to the LinkedIn tab now.",
+            details={"focus_delay_seconds": focus_delay_seconds},
+        )
+    ]
+    for seconds_remaining in range(focus_delay_seconds, 0, -1):
+        events.append(
+            diagnostic_event(
+                EXP_FOCUS_HANDOFF_WAITING,
+                "Waiting for user to focus the LinkedIn tab.",
+                details={"seconds_remaining": seconds_remaining},
+            )
+        )
+        time.sleep(1)
+    events.append(
+        diagnostic_event(
+            EXP_FOCUS_HANDOFF_COMPLETED,
+            "Focus handoff countdown completed.",
+            details={"focus_delay_seconds": focus_delay_seconds},
+        )
+    )
+    return events
 
 
 def _clipboard_text() -> str:

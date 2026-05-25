@@ -11,7 +11,11 @@ from app.services.experimental_linkedin_capture.diagnostics import (
     EXP_DETAIL_TEXT_READY,
     EXP_DETAIL_TEXT_NOT_READY,
     EXP_DUPLICATE_JOB_ID,
+    EXP_FOCUS_HANDOFF_COMPLETED,
+    EXP_FOCUS_HANDOFF_STARTED,
+    EXP_FOCUS_HANDOFF_WAITING,
     EXP_JOB_LIMIT_REACHED,
+    EXP_NON_LINKEDIN_URL_CAPTURED,
     EXP_SELECTED_JOB_ADAPTER_DEPENDENCY_MISSING,
     EXP_SELECTED_JOB_CAPTURE_STARTED,
     EXP_VISIBLE_TEXT_CAPTURED,
@@ -20,6 +24,7 @@ from app.services.experimental_linkedin_capture.diagnostics import (
     diagnostic_event,
 )
 from app.services.experimental_linkedin_capture import runner
+from app.services.experimental_linkedin_capture import windows_selected_job_adapter
 from app.services.experimental_linkedin_capture.windows_selected_job_adapter import (
     SelectedJobSnapshot,
     WindowsSelectedJobCaptureAdapter,
@@ -117,6 +122,23 @@ def test_selected_job_capture_requires_explicit_selected_job_flag(monkeypatch) -
     assert "selected_job_only=true" in payload["message"]
 
 
+def test_selected_job_focus_delay_validation(monkeypatch) -> None:
+    monkeypatch.setenv("JOLT_ENABLE_EXPERIMENTAL_LINKEDIN_CAPTURE", "true")
+    client = TestClient(app)
+
+    response = client.post(
+        "/api/experimental-capture/linkedin/start",
+        json={
+            "mode": "selected_job_only",
+            "selected_job_only": True,
+            "dry_run": False,
+            "focus_delay_seconds": 1,
+        },
+    )
+
+    assert response.status_code == 422
+
+
 def test_experimental_capture_enabled_start_is_dry_run(monkeypatch) -> None:
     monkeypatch.setenv("JOLT_ENABLE_EXPERIMENTAL_LINKEDIN_CAPTURE", "true")
     client = TestClient(app)
@@ -200,14 +222,12 @@ def test_selected_job_adapter_missing_dependency_returns_clear_error(monkeypatch
             raise ImportError("missing pyautogui for test")
         return __import__(name)
 
-    from app.services.experimental_linkedin_capture import windows_selected_job_adapter
-
     monkeypatch.setattr(windows_selected_job_adapter.importlib, "import_module", raise_import_error)
 
     run = WindowsSelectedJobCaptureAdapter().run(run_id="selected_missing", max_pages=1, max_jobs=1)
 
     assert run.status == "failed"
-    assert run.errors == ["Selected-job capture requires experimental local adapter dependencies."]
+    assert "requirements-experimental.txt" in run.errors[0]
     assert run.diagnostics[-1].code == EXP_SELECTED_JOB_ADAPTER_DEPENDENCY_MISSING
 
 
@@ -234,6 +254,8 @@ class FakeSelectedJobAdapter(WindowsSelectedJobCaptureAdapter):
 
 def test_selected_job_runner_with_fake_adapter_returns_one_job(monkeypatch) -> None:
     monkeypatch.setenv("JOLT_ENABLE_EXPERIMENTAL_LINKEDIN_CAPTURE", "true")
+    delays: list[int] = []
+    monkeypatch.setattr(windows_selected_job_adapter.time, "sleep", lambda seconds: delays.append(seconds))
     ready_text = (
         "About the job\n"
         "Mock selected IT Support Engineer\n"
@@ -247,7 +269,7 @@ def test_selected_job_runner_with_fake_adapter_returns_one_job(monkeypatch) -> N
 
     response = client.post(
         "/api/experimental-capture/linkedin/start",
-        json={"mode": "selected_job_only", "selected_job_only": True, "dry_run": False},
+        json={"mode": "selected_job_only", "selected_job_only": True, "dry_run": False, "focus_delay_seconds": 2},
     )
 
     assert response.status_code == 200
@@ -258,24 +280,30 @@ def test_selected_job_runner_with_fake_adapter_returns_one_job(monkeypatch) -> N
     assert payload["run"]["captured_jobs"][0]["current_job_id"] == "777"
     codes = {event["code"] for event in payload["run"]["diagnostics"]}
     assert EXP_SELECTED_JOB_CAPTURE_STARTED in codes
+    assert EXP_FOCUS_HANDOFF_STARTED in codes
+    assert EXP_FOCUS_HANDOFF_WAITING in codes
+    assert EXP_FOCUS_HANDOFF_COMPLETED in codes
     assert EXP_CURRENT_JOB_ID_EXTRACTED in codes
     assert EXP_DETAIL_TEXT_READY in codes
+    assert delays == [1, 1]
 
 
 def test_selected_job_too_short_text_produces_warning(monkeypatch) -> None:
     monkeypatch.setenv("JOLT_ENABLE_EXPERIMENTAL_LINKEDIN_CAPTURE", "true")
+    monkeypatch.setattr(windows_selected_job_adapter.time, "sleep", lambda seconds: None)
     short_text = "About the job Save"
-    monkeypatch.setattr(runner, "SELECTED_JOB_ADAPTER_FACTORY", lambda: FakeSelectedJobAdapter(short_text, "https://www.linkedin.com/jobs/search/"))
+    monkeypatch.setattr(runner, "SELECTED_JOB_ADAPTER_FACTORY", lambda: FakeSelectedJobAdapter(short_text, "https://example.test/not-linkedin"))
     client = TestClient(app)
 
     response = client.post(
         "/api/experimental-capture/linkedin/start",
-        json={"mode": "selected_job_only", "selected_job_only": True, "dry_run": False},
+        json={"mode": "selected_job_only", "selected_job_only": True, "dry_run": False, "focus_delay_seconds": 2},
     )
 
     assert response.status_code == 200
     payload = response.json()
     codes = {event["code"] for event in payload["run"]["diagnostics"]}
+    assert EXP_NON_LINKEDIN_URL_CAPTURED in codes
     assert EXP_CURRENT_JOB_ID_MISSING in codes
     assert EXP_VISIBLE_TEXT_TOO_SHORT in codes
     assert EXP_DETAIL_TEXT_NOT_READY in codes
@@ -284,6 +312,7 @@ def test_selected_job_too_short_text_produces_warning(monkeypatch) -> None:
 
 def test_selected_job_review_latest_uses_existing_capture_pipeline(monkeypatch) -> None:
     monkeypatch.setenv("JOLT_ENABLE_EXPERIMENTAL_LINKEDIN_CAPTURE", "true")
+    monkeypatch.setattr(windows_selected_job_adapter.time, "sleep", lambda seconds: None)
     ready_text = (
         "Title: Selected Job Support Analyst\n"
         "Company: Demo Selected Company\n"
@@ -296,7 +325,7 @@ def test_selected_job_review_latest_uses_existing_capture_pipeline(monkeypatch) 
     client = TestClient(app)
     client.post(
         "/api/experimental-capture/linkedin/start",
-        json={"mode": "selected_job_only", "selected_job_only": True, "dry_run": False},
+        json={"mode": "selected_job_only", "selected_job_only": True, "dry_run": False, "focus_delay_seconds": 2},
     )
 
     response = client.post(

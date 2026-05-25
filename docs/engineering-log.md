@@ -1247,3 +1247,49 @@
 - Remaining risks / follow-up:
   - Selected-job capture depends on focused-browser state, clipboard availability, and optional local keyboard/clipboard support.
   - It captures visible copied text only; full right-panel scrolling and multi-card iteration are still intentionally unimplemented.
+
+## 2026-05-25 - Phase 17D Selected Job Focus Handoff
+
+- Type: Experimental UX / Safety / Test / Docs
+- Files changed:
+  - `backend/requirements-experimental.txt`
+  - `backend/app/services/experimental_linkedin_capture/diagnostics.py`
+  - `backend/app/services/experimental_linkedin_capture/models.py`
+  - `backend/app/services/experimental_linkedin_capture/windows_selected_job_adapter.py`
+  - `backend/app/services/experimental_linkedin_capture/runner.py`
+  - `backend/tests/test_experimental_capture.py`
+  - `frontend/src/App.tsx`
+  - `frontend/src/api.ts`
+  - `frontend/src/styles.css`
+  - `README.md`
+  - `docs/architecture.md`
+  - `docs/demo-checklist.md`
+  - `docs/portfolio-walkthrough.md`
+  - `docs/engineering-log.md`
+  - `specs/product-spec.md`
+  - `specs/technical-plan.md`
+  - `specs/tasks.md`
+- Problem / goal:
+  - Clicking selected-job capture from JOLT focused the JOLT tab, so the adapter could not reliably read the manually selected LinkedIn tab.
+- Root cause:
+  - The capture action started immediately after the UI click without giving the user time to switch focus back to the LinkedIn tab.
+- Change made:
+  - Added `focus_delay_seconds` request validation with a 2-15 second range and default of 5 seconds.
+  - Added focus handoff diagnostics: started, waiting, completed, focused-window capture started, and focused-window capture failed.
+  - Made selected-job capture wait for the configured countdown before copying URL/text.
+  - Added `EXP_NON_LINKEDIN_URL_CAPTURED` warning when the focused URL does not look like LinkedIn.
+  - Added `backend/requirements-experimental.txt` for optional selected-job dependencies, separate from normal requirements.
+  - Updated the About-page selected-job UI with countdown input and explicit switch-to-LinkedIn instructions.
+  - Updated docs/specs with focus handoff workflow and experimental dependency install command.
+- Tests/checks run:
+  - Ran focused backend tests from `backend/`: `.\.venv\Scripts\python.exe -m pytest tests\test_experimental_capture.py`.
+  - Ran full backend tests from `backend/`: `.\.venv\Scripts\python.exe -m pytest`.
+  - Ran frontend build from `frontend/`: `npm run build`.
+- Result:
+  - Focused experimental capture tests passed: 20 passed, 1 pytest cache warning.
+  - Full backend tests passed: 108 passed, 1 pytest cache warning.
+  - Frontend production build passed.
+  - Selected-job capture now has an explicit focus handoff window before keyboard/clipboard capture begins.
+- Remaining risks / follow-up:
+  - The user still must focus the correct browser tab during the countdown.
+  - The adapter still captures visible copied text only; no scrolling, multi-card iteration, or pagination is implemented.

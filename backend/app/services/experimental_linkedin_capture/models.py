@@ -53,6 +53,7 @@ class ExperimentalCaptureStartRequest(BaseModel):
     max_jobs: int = Field(default=25, ge=1, le=250)
     dry_run: bool = True
     selected_job_only: bool = False
+    focus_delay_seconds: int = Field(default=5, ge=2, le=15)
 
 
 class ExperimentalCaptureResponse(BaseModel):

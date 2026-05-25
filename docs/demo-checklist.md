@@ -104,7 +104,9 @@ Expected result:
 4. In an enabled local test session, click `Start dry run` and confirm it reports fake mock jobs and diagnostics.
 5. Click `Review dry-run package` to send the fake package through the normal parser/profile/decision review cards.
 6. For selected-job capture, explain the user must manually open LinkedIn, manually select one job, and keep the browser focused before clicking `Capture selected job`.
-7. State clearly that selected-job capture only copies the current URL and visible page text. It does not click cards, iterate results, scroll panels, paginate, log in, store credentials, bypass CAPTCHA/rate limits, auto-apply, or message anyone.
+7. Explain the countdown: after clicking capture, the user has the configured seconds to switch back to the LinkedIn tab before URL/text copying starts.
+8. Mention optional local dependencies can be installed from `backend/requirements-experimental.txt` for this experimental path.
+9. State clearly that selected-job capture only copies the current URL and visible page text. It does not click cards, iterate results, scroll panels, paginate, log in, store credentials, bypass CAPTCHA/rate limits, auto-apply, or message anyone.
 
 Example synthetic multi-job text:
 

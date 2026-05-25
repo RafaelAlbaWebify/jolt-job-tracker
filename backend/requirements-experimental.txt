@@ -1,0 +1,3 @@
+# Optional dependencies for disabled-by-default experimental local capture.
+# Not required for normal JOLT capture/review/export workflows.
+pyautogui>=0.9,<1.0

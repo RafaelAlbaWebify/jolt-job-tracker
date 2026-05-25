@@ -443,8 +443,10 @@ function App() {
   const [experimentalCaptureHealthError, setExperimentalCaptureHealthError] = useState<string | null>(null);
   const [experimentalMaxPages, setExperimentalMaxPages] = useState<number>(1);
   const [experimentalMaxJobs, setExperimentalMaxJobs] = useState<number>(4);
+  const [experimentalFocusDelaySeconds, setExperimentalFocusDelaySeconds] = useState<number>(5);
   const [experimentalLoading, setExperimentalLoading] = useState<boolean>(false);
   const [experimentalSelectedJobLoading, setExperimentalSelectedJobLoading] = useState<boolean>(false);
+  const [experimentalHandoffMessage, setExperimentalHandoffMessage] = useState<string | null>(null);
   const [experimentalReviewLoading, setExperimentalReviewLoading] = useState<boolean>(false);
   const [rawJobText, setRawJobText] = useState<string>('');
   const [captureInputMode, setCaptureInputMode] = useState<CaptureInputMode>('manual_raw_jobs');
@@ -917,13 +919,16 @@ function App() {
   async function captureSelectedExperimentalJob() {
     setExperimentalSelectedJobLoading(true);
     setExperimentalCaptureHealthError(null);
+    setExperimentalHandoffMessage(`Switch to LinkedIn now... capturing in ${experimentalFocusDelaySeconds} seconds.`);
     try {
-      const result = await startExperimentalLinkedInSelectedJobCapture();
+      const result = await startExperimentalLinkedInSelectedJobCapture(experimentalFocusDelaySeconds);
       setExperimentalCaptureHealth(result);
+      setExperimentalHandoffMessage(null);
     } catch (error) {
       setExperimentalCaptureHealthError(
         error instanceof Error ? error.message : 'Could not capture selected experimental job',
       );
+      setExperimentalHandoffMessage(null);
     } finally {
       setExperimentalSelectedJobLoading(false);
     }
@@ -1860,9 +1865,27 @@ English required.`
                       <div className="experimental-option selected-job-option">
                         <h4>Capture selected job only</h4>
                         <p className="helper-text compact-helper">
-                          Manually open LinkedIn, select one job, keep the browser focused, then capture.
-                          This only copies the current URL and visible page text.
+                          Open LinkedIn Jobs in another tab, select one job manually, click this
+                          button, then switch back during the countdown. Do not click Apply; keep
+                          LinkedIn focused until capture completes.
                         </p>
+                        <ol className="compact-steps selected-job-steps">
+                          <li>Open LinkedIn Jobs in another tab.</li>
+                          <li>Select one job manually.</li>
+                          <li>Click capture here.</li>
+                          <li>Switch back to LinkedIn during the countdown.</li>
+                          <li>Keep the LinkedIn tab focused.</li>
+                        </ol>
+                        <label>
+                          <span>Countdown seconds</span>
+                          <input
+                            type="number"
+                            min="2"
+                            max="15"
+                            value={experimentalFocusDelaySeconds}
+                            onChange={(event) => setExperimentalFocusDelaySeconds(Number(event.target.value))}
+                          />
+                        </label>
                         <button
                           type="button"
                           className="secondary-button"
@@ -1871,6 +1894,9 @@ English required.`
                         >
                           {experimentalSelectedJobLoading ? 'Capturing selected job...' : 'Capture selected job'}
                         </button>
+                        {experimentalHandoffMessage ? (
+                          <p className="inline-warning helper-warning">{experimentalHandoffMessage}</p>
+                        ) : null}
                       </div>
                       <div className="button-row experimental-buttons">
                         <button

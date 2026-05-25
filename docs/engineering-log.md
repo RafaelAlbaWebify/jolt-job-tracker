@@ -1030,3 +1030,43 @@
   - Status normalization is applied when records are loaded/exported; existing JSONL files are not rewritten until a user makes a status update.
   - Optional duplicate audit rows can still be created if the user explicitly enables duplicate saving.
   - Browser automation remains disabled/experimental.
+
+## 2026-05-25 - Phase 16A Manual Browser Capture Helper
+
+- Type: Feature / Test / Docs
+- Files changed:
+  - `backend/app/services/browser_capture.py`
+  - `backend/tests/test_capture_runner.py`
+  - `frontend/src/App.tsx`
+  - `frontend/src/styles.css`
+  - `README.md`
+  - `docs/architecture.md`
+  - `docs/demo-checklist.md`
+  - `docs/portfolio-walkthrough.md`
+  - `docs/engineering-log.md`
+  - `specs/product-spec.md`
+  - `specs/technical-plan.md`
+  - `specs/tasks.md`
+- Problem / goal:
+  - Improve capture convenience without adding automated browsing, credential handling, scraping claims, or auto-apply behavior.
+- Root cause / context:
+  - Page text and HTML paste modes were safe but inconvenient for users copying visible job-card batches from pages they had already opened manually.
+- Change made:
+  - Added `JOLT_CAPTURE_V1` payload detection to the existing safe page-text/HTML ingestion path.
+  - Added manual browser helper diagnostics, including helper source mode, payload card count, accepted/rejected counts, source URL notes, and manual-helper warnings.
+  - Preserved card/page URLs and page title notes from helper payloads.
+  - Added a compact Capture-page manual browser helper section with a drag-to-bookmarks `JOLT Capture` bookmarklet and copy-code fallback.
+  - The helper runs only after the user clicks it, inspects visible current-page DOM blocks generically, copies a structured payload to the clipboard, and tells the user to paste it into JOLT.
+  - Updated docs/specs to state that this is user-triggered, local/manual, no auto-navigation, no credential storage, no background scraping, no protection bypass, and no auto-apply.
+- Tests/checks run:
+  - Ran focused backend capture tests: `.\.venv\Scripts\python.exe -m pytest tests\test_capture_runner.py`.
+  - Ran full backend tests from `backend/`: `.\.venv\Scripts\python.exe -m pytest`.
+  - Ran frontend build from `frontend/`: `npm run build`.
+- Result:
+  - Focused backend tests passed: 28 passed, 1 pytest cache warning.
+  - Full backend tests passed: 88 passed, 1 pytest cache warning.
+  - Frontend production build passed.
+- Remaining risks / follow-up:
+  - Bookmarklet extraction is intentionally generic and conservative; some sites may produce too few or noisy cards.
+  - Clipboard APIs may be blocked by some browsers/pages, so the helper includes a prompt fallback.
+  - Browser automation remains disabled/experimental.

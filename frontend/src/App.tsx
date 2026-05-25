@@ -147,6 +147,9 @@ const applicationStatuses: ApplicationStatus[] = [
   'Already Reviewed',
 ];
 
+const manualBrowserHelperBookmarklet =
+  "javascript:(()=>{const c=s=>String(s||'').replace(/\\s+/g,' ').trim();const v=e=>{const r=e.getBoundingClientRect();const s=getComputedStyle(e);return r.width>80&&r.height>30&&s.display!=='none'&&s.visibility!=='hidden'};const seen=new Set();const cards=[];const nodes=[...document.querySelectorAll('article,li,section,div')];for(const el of nodes){if(!v(el))continue;const text=c(el.innerText);if(text.length<80||text.length>3000)continue;if(!/(remote|hybrid|on-site|onsite|support|engineer|analyst|specialist|technician|developer|manager|company|location|job|career)/i.test(text))continue;const key=text.slice(0,300).toLowerCase();if(seen.has(key))continue;seen.add(key);const a=el.querySelector('a[href]');const h=el.querySelector('h1,h2,h3,[role=heading]');cards.push({title:c(h&&h.innerText),company:'',location:'',url:a?new URL(a.getAttribute('href'),location.href).href:'',text});if(cards.length>=25)break}const payload='JOLT_CAPTURE_V1\\n'+JSON.stringify({source:'manual_browser_helper',page_title:document.title,page_url:location.href,captured_at:new Date().toISOString(),cards},null,2);const ok=()=>alert('JOLT capture copied. Paste it into JOLT.');if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(payload).then(ok).catch(()=>prompt('Copy this JOLT capture payload, then paste it into JOLT.',payload))}else{prompt('Copy this JOLT capture payload, then paste it into JOLT.',payload)}})();";
+
 function captureModeLabels(captureMode: string | undefined): string[] {
   if (!captureMode) {
     return ['Unavailable'];
@@ -402,6 +405,7 @@ function App() {
   const [captureInputMode, setCaptureInputMode] = useState<CaptureInputMode>('manual_raw_jobs');
   const [pageCaptureText, setPageCaptureText] = useState<string>('');
   const [pageCaptureSourceUrl, setPageCaptureSourceUrl] = useState<string>('');
+  const [helperCopyMessage, setHelperCopyMessage] = useState<string | null>(null);
   const [stagedJobs, setStagedJobs] = useState<string[]>([]);
   const [captureResult, setCaptureResult] = useState<CaptureRunResult | null>(null);
   const [captureError, setCaptureError] = useState<string | null>(null);
@@ -644,6 +648,16 @@ function App() {
     setStagedJobs((current) => current.filter((_, index) => index !== indexToRemove));
   }
 
+  async function copyManualBrowserHelper() {
+    setHelperCopyMessage(null);
+    try {
+      await navigator.clipboard.writeText(manualBrowserHelperBookmarklet);
+      setHelperCopyMessage('Bookmarklet code copied');
+    } catch {
+      setHelperCopyMessage('Copy unavailable; drag the JOLT Capture link instead');
+    }
+  }
+
   async function runReview() {
     if (!selectedProfileId) {
       setCaptureError('Select a rule profile before running capture review.');
@@ -857,6 +871,35 @@ function App() {
                     Review manual jobs or user-provided page text / HTML through the real backend
                     parser, profile, and decision engine.
                   </p>
+                </section>
+
+                <section className="control-section browser-helper-panel">
+                  <div className="section-heading">
+                    <h2>Manual browser helper</h2>
+                    <span>User-triggered</span>
+                  </div>
+                  <p>
+                    Drag the helper to your bookmarks bar. On a job results page you opened manually,
+                    click it to copy visible card text and URLs, then paste the payload into Page text.
+                  </p>
+                  <div className="helper-actions">
+                    <a className="bookmarklet-link" href={manualBrowserHelperBookmarklet}>
+                      JOLT Capture
+                    </a>
+                    <button type="button" className="secondary-button" onClick={copyManualBrowserHelper}>
+                      Copy code
+                    </button>
+                  </div>
+                  <ol className="compact-steps">
+                    <li>Open the job results page.</li>
+                    <li>Click the JOLT Capture bookmark.</li>
+                    <li>Return to JOLT and paste into Page text.</li>
+                    <li>Run capture review.</li>
+                  </ol>
+                  <p className="helper-text compact-helper">
+                    No auto-navigation, credential storage, background scraping, or applications.
+                  </p>
+                  {helperCopyMessage ? <p className="success-message">{helperCopyMessage}</p> : null}
                 </section>
 
                 <section className="control-section">

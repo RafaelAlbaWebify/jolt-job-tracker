@@ -1,4 +1,5 @@
 import html
+import json
 import re
 
 from app.models import CaptureDiagnostics, CaptureRunRequest, CapturedRawJob
@@ -79,6 +80,7 @@ LOCATION_WORDS = (
     "germany",
 )
 JOB_LINK_HINTS = ("job", "jobs", "career", "careers", "position", "posting", "view")
+JOLT_CAPTURE_PREFIX = "JOLT_CAPTURE_V1"
 
 
 def _looks_like_html(content: str) -> bool:
@@ -123,6 +125,13 @@ def _extract_field(pattern: re.Pattern[str], text: str) -> str:
 
 def _clean_url(url: str) -> str:
     return url.rstrip(").,]")
+
+
+def _jolt_payload_json(raw_content: str) -> str | None:
+    stripped = raw_content.strip()
+    if not stripped.startswith(JOLT_CAPTURE_PREFIX):
+        return None
+    return stripped[len(JOLT_CAPTURE_PREFIX) :].strip()
 
 
 def _links_in_block(block: str) -> list[str]:
@@ -336,6 +345,120 @@ def _capture_confidence(accepted_count: int, rejected_count: int, fallback_used:
     return "medium"
 
 
+def _card_text_from_payload(card: dict[str, object]) -> str:
+    lines: list[str] = []
+    for label, key in [
+        ("Title", "title"),
+        ("Company", "company"),
+        ("Location", "location"),
+        ("URL", "url"),
+    ]:
+        value = str(card.get(key) or "").strip()
+        if value:
+            lines.append(f"{label}: {value}")
+    text = str(card.get("text") or "").strip()
+    if text:
+        lines.append(text)
+    return _normalize_text("\n".join(lines))
+
+
+def _capture_from_jolt_payload(
+    raw_content: str,
+    request: CaptureRunRequest,
+) -> tuple[list[CapturedRawJob], list[str], CaptureDiagnostics] | None:
+    payload_json = _jolt_payload_json(raw_content)
+    if payload_json is None:
+        return None
+
+    diagnostics = CaptureDiagnostics(
+        capture_mode_used="manual_browser_helper",
+        input_size=len(raw_content),
+        warnings=["Detected JOLT_CAPTURE_V1 manual browser helper payload."],
+    )
+
+    try:
+        payload = json.loads(payload_json)
+    except json.JSONDecodeError as exc:
+        warning = f"JOLT_CAPTURE_V1 payload could not be parsed as JSON; falling back to page text extraction: {exc.msg}."
+        diagnostics.warnings.append(warning)
+        return [], [warning], diagnostics
+
+    if not isinstance(payload, dict):
+        warning = "JOLT_CAPTURE_V1 payload was not an object; falling back to page text extraction."
+        diagnostics.warnings.append(warning)
+        return [], [warning], diagnostics
+
+    cards = payload.get("cards")
+    if not isinstance(cards, list):
+        warning = "JOLT_CAPTURE_V1 payload had no cards array; falling back to page text extraction."
+        diagnostics.warnings.append(warning)
+        return [], [warning], diagnostics
+
+    page_url = str(payload.get("page_url") or request.source_url or "").strip()
+    page_title = str(payload.get("page_title") or "").strip()
+    captured_at = str(payload.get("captured_at") or "").strip()
+    diagnostics.candidate_cards_found = len(cards)
+
+    raw_jobs: list[CapturedRawJob] = []
+    warnings: list[str] = ["Manual browser helper payload was pasted by the user; no browser automation was attempted."]
+    rejection_reasons: list[str] = []
+
+    for index, card in enumerate(cards, start=1):
+        if not isinstance(card, dict):
+            diagnostics.cards_rejected += 1
+            rejection_reasons.append("Rejected helper card because it was not an object.")
+            continue
+
+        block = _card_text_from_payload(card)
+        if not block or not _is_useful_block(block):
+            diagnostics.cards_rejected += 1
+            rejection_reasons.append("Rejected short/noisy helper card.")
+            continue
+
+        source_url = str(card.get("url") or page_url).strip()
+        notes = [
+            "Captured from JOLT manual browser helper payload.",
+            "User-triggered bookmarklet/helper; no browser automation was attempted.",
+        ]
+        if page_title:
+            notes.append(f"Page title: {page_title}")
+        if page_url and not card.get("url"):
+            notes.append("Used helper page URL as fallback.")
+
+        raw_jobs.append(
+            CapturedRawJob(
+                source="manual_browser_helper",
+                source_url=source_url,
+                raw_text=block,
+                captured_at=captured_at,
+                external_id=f"manual_browser_helper_{index}",
+                capture_notes=notes,
+            )
+        )
+
+    if request.max_results < 1:
+        warning = "max_results was below 1; no manual browser helper jobs were processed."
+        diagnostics.warnings.extend([*warnings, warning])
+        diagnostics.capture_confidence = "low"
+        return [], [*warnings, warning], diagnostics
+
+    if len(raw_jobs) > request.max_results:
+        warning = (
+            f"manual browser helper payload contained {len(raw_jobs)} accepted item(s); "
+            f"only the first {request.max_results} were processed."
+        )
+        warnings.append(warning)
+        raw_jobs = raw_jobs[: request.max_results]
+
+    diagnostics.cards_accepted = len(raw_jobs)
+    diagnostics.cards_rejected = max(diagnostics.cards_rejected, diagnostics.candidate_cards_found - len(raw_jobs))
+    diagnostics.rejection_reasons = rejection_reasons
+    diagnostics.source_url_extraction_notes = ["Source URLs preserved from helper card/page URL."] if raw_jobs else []
+    diagnostics.capture_confidence = _capture_confidence(len(raw_jobs), diagnostics.cards_rejected, False)
+    diagnostics.warnings.extend(warnings)
+    return raw_jobs, warnings, diagnostics
+
+
 def _extract_blocks(text: str, is_html: bool) -> tuple[list[tuple[str, list[str]]], list[str], int, int, list[str]]:
     lines = _normalize_lines(text)
     warnings: list[str] = []
@@ -398,16 +521,25 @@ def _extract_blocks(text: str, is_html: bool) -> tuple[list[tuple[str, list[str]
 
 def capture_from_page_content(request: CaptureRunRequest) -> tuple[list[CapturedRawJob], list[str], CaptureDiagnostics]:
     raw_content = request.uploaded_html_content.strip() or request.html_content.strip() or request.page_text.strip()
+    fallback_warnings: list[str] = []
+    helper_result = _capture_from_jolt_payload(raw_content, request)
+    if helper_result is not None:
+        raw_jobs, warnings, diagnostics = helper_result
+        if raw_jobs:
+            return raw_jobs, warnings, diagnostics
+        fallback_warnings = warnings
+        raw_content = _jolt_payload_json(raw_content) or raw_content
     diagnostics = CaptureDiagnostics(
         capture_mode_used=request.capture_mode,
         input_size=len(raw_content),
         warnings=[],
     )
+    diagnostics.warnings.extend(fallback_warnings)
     if not raw_content:
         warning = "No page_text, html_content, or uploaded_html_content was provided for capture extraction."
         diagnostics.warnings.append(warning)
         diagnostics.capture_confidence = "low"
-        return [], [warning], diagnostics
+        return [], [*fallback_warnings, warning], diagnostics
 
     is_html = bool(request.html_content.strip() or request.uploaded_html_content.strip() or request.capture_mode in {"html_fragment", "uploaded_html_content"}) or _looks_like_html(raw_content)
     normalized = _normalize_text(_strip_html(raw_content) if is_html else raw_content)
@@ -415,9 +547,10 @@ def capture_from_page_content(request: CaptureRunRequest) -> tuple[list[Captured
         warning = "Page content was empty after normalization."
         diagnostics.warnings.append(warning)
         diagnostics.capture_confidence = "low"
-        return [], [warning], diagnostics
+        return [], [*fallback_warnings, warning], diagnostics
 
     blocks_with_notes, warnings, candidate_count, rejected_count, rejection_reasons = _extract_blocks(normalized, is_html)
+    warnings = [*fallback_warnings, *warnings]
     diagnostics.candidate_cards_found = candidate_count
     diagnostics.cards_rejected = rejected_count
     diagnostics.rejection_reasons = rejection_reasons

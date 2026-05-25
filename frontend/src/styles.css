@@ -400,7 +400,8 @@ textarea {
 
 .button-row,
 .filter-bar,
-.mode-switch {
+.mode-switch,
+.helper-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
@@ -431,6 +432,7 @@ textarea {
 .secondary-button,
 .run-button,
 .filter-button,
+.bookmarklet-link,
 .staged-list button {
   border: 1px solid #bed0d5;
   border-radius: 8px;
@@ -454,9 +456,30 @@ textarea {
 
 .secondary-button,
 .filter-button,
+.bookmarklet-link,
 .staged-list button {
   background: #ffffff;
   color: #172026;
+}
+
+.bookmarklet-link {
+  display: inline-flex;
+  font-size: 0.9rem;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.browser-helper-panel {
+  background: #fbfcfc;
+}
+
+.compact-steps {
+  color: #40545d;
+  display: grid;
+  font-size: 0.86rem;
+  gap: 3px;
+  margin: 8px 0 0;
+  padding-left: 20px;
 }
 
 .run-button {

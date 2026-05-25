@@ -67,7 +67,9 @@ Open supported job results page
 → Continue applying and tracking progress
 ```
 
-Capture is a core productivity feature. In the current portfolio demo it is limited to manual jobs, pasted page text, HTML fragments, and uploaded/copied HTML content. Browser-assisted capture remains disabled/experimental and must expose clear diagnostics, logs, and recovery options before any future implementation.
+Capture is a core productivity feature. In the current portfolio demo it is limited to manual jobs, pasted page text, HTML fragments, uploaded/copied HTML content, and a user-triggered manual browser helper/bookmarklet that copies visible current-page content into a pasted `JOLT_CAPTURE_V1` payload. Automated browser capture remains disabled/experimental and must expose clear diagnostics, logs, and recovery options before any future implementation.
+
+The manual browser helper must not navigate, crawl, store credentials, bypass CAPTCHA/login/rate-limit protections, run in the background, or submit applications.
 
 ---
 

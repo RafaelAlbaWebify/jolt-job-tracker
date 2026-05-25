@@ -103,7 +103,7 @@ It accepts manually supplied `raw_jobs` or raw jobs produced by capture adapters
 
 ### Capture Adapter
 
-`backend/app/services/browser_capture.py` currently implements the safe capture adapter boundary for pasted page text/HTML and copied/uploaded HTML content.
+`backend/app/services/browser_capture.py` currently implements the safe capture adapter boundary for pasted page text/HTML, copied/uploaded HTML content, and pasted `JOLT_CAPTURE_V1` manual browser helper payloads.
 
 Supported modes:
 
@@ -111,9 +111,10 @@ Supported modes:
 - `page_text`: user-provided copied page text is normalized and conservatively split into job blocks.
 - `html_fragment`: user-provided copied HTML is stripped, normalized, and conservatively split into job blocks.
 - `uploaded_html_content`: uploaded/copied HTML content follows the same safe local extraction path.
+- `manual_browser_helper`: detected from a pasted `JOLT_CAPTURE_V1` payload copied by the user-triggered bookmarklet/helper; it preserves page URL, card URLs, page title notes, and accepted/rejected card diagnostics.
 - `browser_assisted`: accepted as an experimental mode but not enabled; no browser automation is attempted.
 
-The adapter does not store credentials, bypass protections, crawl pages, or hardcode LinkedIn as the core architecture.
+The adapter does not store credentials, bypass protections, crawl pages, auto-navigate, submit applications, or hardcode LinkedIn as the core architecture. The manual browser helper runs only when the user clicks it in their own browser and copies visible content for pasting into JOLT.
 
 The page text/HTML extractor is dependency-light and conservative. It handles clear labelled fields, repeated `Job Card` or separator blocks, compact title/company/location listings, simple copied HTML card structures, and job-like links from visible URLs or anchor `href` values. It rejects tiny/noisy candidate cards, reports extraction diagnostics, and returns one fallback captured job with notes when structure is unclear instead of over-splitting page fragments.
 
@@ -151,7 +152,7 @@ The current frontend is a compact React app rather than a fully split page/compo
 
 Implemented views:
 
-- Capture: primary demo workflow, profile selector, capture health, manual jobs, page text/HTML/HTML-fragment capture, capture diagnostics, demo jobs, review dashboard, duplicate preview, decision filters, decision cards.
+- Capture: primary demo workflow, profile selector, capture health, manual jobs, manual browser helper/bookmarklet, page text/HTML/HTML-fragment capture, capture diagnostics, demo jobs, review dashboard, duplicate preview, decision filters, decision cards.
 - Rule Profiles: profile list and profile detail view.
 - History / Tracker: saved reviewed jobs, queue cards for Apply Today, Manual Review, Follow Up, Waiting, and Duplicates / Reviewed, plus application status updates.
 - About: project purpose, demo safety notes, intentionally disabled features, and local cleanup control.
@@ -181,7 +182,7 @@ Current local endpoints:
 
 ```text
 Frontend Capture page
--> user loads demo jobs, stages raw text, pastes page text, or provides HTML content
+-> user loads demo jobs, stages raw text, pastes page text/helper payload, or provides HTML content
 -> POST /api/capture/run
 -> capture runner and adapter validate raw jobs/page content and return diagnostics
 -> parser service normalizes raw text

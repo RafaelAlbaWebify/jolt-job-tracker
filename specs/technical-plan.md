@@ -2,7 +2,7 @@
 
 ## 1. Architecture Goal
 
-Create a local React + Python backend application that preserves useful, safe text-level lessons from the existing capture/parser/classifier pipeline while replacing the Streamlit GUI and improving modularity. Risky browser automation remains disabled/experimental until explicitly designed and reviewed.
+Create a local React + Python backend application that preserves useful, safe text-level lessons from the existing capture/parser/classifier pipeline while replacing the Streamlit GUI and improving modularity. Risky browser automation remains disabled/experimental until explicitly designed and reviewed. The supported manual browser helper is a user-triggered bookmarklet/paste workflow, not automated browsing.
 
 Primary flow:
 

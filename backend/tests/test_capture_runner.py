@@ -1,4 +1,5 @@
 from pathlib import Path
+import json
 
 from fastapi.testclient import TestClient
 
@@ -571,6 +572,108 @@ Apply
     assert data["total_captured"] == 1
     assert data["capture_diagnostics"]["cards_rejected"] >= 1
     assert data["capture_diagnostics"]["rejection_reasons"]
+
+
+def test_jolt_capture_v1_payload_extracts_multiple_cards_and_urls() -> None:
+    payload = {
+        "source": "manual_browser_helper",
+        "page_title": "Example job results",
+        "page_url": "https://example.test/results",
+        "captured_at": "2026-05-25T10:00:00Z",
+        "cards": [
+            {
+                "title": "Microsoft 365 Support Specialist",
+                "company": "Example SaaS",
+                "location": "Remote, Spain",
+                "url": "https://example.test/jobs/m365",
+                "text": "English required. Remote Microsoft 365 and endpoint support.",
+            },
+            {
+                "title": "Infrastructure Support Technician",
+                "company": "Example Infra",
+                "location": "Vigo, Spain",
+                "url": "https://example.test/jobs/infra",
+                "text": "English required. Hybrid endpoint and networking support.",
+            },
+        ],
+    }
+
+    response = client.post(
+        "/api/capture/run",
+        json={
+            "profile_id": "rafael_default",
+            "capture_mode": "page_text",
+            "source": "page_text",
+            "max_results": 5,
+            "dry_run": True,
+            "page_text": "JOLT_CAPTURE_V1\n" + json.dumps(payload),
+        },
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["total_captured"] == 2
+    assert data["capture_diagnostics"]["capture_mode_used"] == "manual_browser_helper"
+    assert data["capture_diagnostics"]["candidate_cards_found"] == 2
+    assert data["results"][0]["raw_job"]["source"] == "manual_browser_helper"
+    assert data["results"][0]["raw_job"]["source_url"] == "https://example.test/jobs/m365"
+    assert "Page title: Example job results" in data["results"][0]["raw_job"]["capture_notes"]
+    assert any("no browser automation" in warning.lower() for warning in data["warnings"])
+
+
+def test_jolt_capture_v1_payload_rejects_tiny_noisy_cards() -> None:
+    payload = {
+        "page_url": "https://example.test/results",
+        "cards": [
+            {"text": "Apply"},
+            {
+                "title": "Technical Support Specialist",
+                "company": "Example SaaS",
+                "location": "Remote, Spain",
+                "text": "English required. Microsoft 365 support and endpoint troubleshooting.",
+            },
+        ],
+    }
+
+    response = client.post(
+        "/api/capture/run",
+        json={
+            "profile_id": "rafael_default",
+            "capture_mode": "page_text",
+            "source": "page_text",
+            "max_results": 5,
+            "dry_run": True,
+            "page_text": "JOLT_CAPTURE_V1\n" + json.dumps(payload),
+        },
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["total_captured"] == 1
+    assert data["capture_diagnostics"]["cards_rejected"] == 1
+    assert "Rejected short/noisy helper card." in data["capture_diagnostics"]["rejection_reasons"]
+    assert data["results"][0]["raw_job"]["source_url"] == "https://example.test/results"
+
+
+def test_malformed_jolt_capture_v1_payload_falls_back_safely() -> None:
+    response = client.post(
+        "/api/capture/run",
+        json={
+            "profile_id": "rafael_default",
+            "capture_mode": "page_text",
+            "source": "page_text",
+            "source_url": "https://example.test/fallback",
+            "max_results": 5,
+            "dry_run": True,
+            "page_text": "JOLT_CAPTURE_V1\n{not valid json",
+        },
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["total_captured"] == 1
+    assert any("could not be parsed" in warning for warning in data["warnings"])
+    assert data["results"][0]["raw_job"]["source_url"] == "https://example.test/fallback"
 
 
 def test_page_text_max_results_is_enforced() -> None:

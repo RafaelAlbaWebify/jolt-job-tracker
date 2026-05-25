@@ -6,7 +6,7 @@ JOLT helps review job opportunities faster by parsing user-provided job text, ap
 
 Current milestone: local portfolio demo.
 
-JOLT is not a LinkedIn scraper, not a mass-apply bot, and not a black-box recommender. Browser-assisted capture is represented as an explicit disabled/experimental placeholder; the working capture modes use user-provided content.
+JOLT is not a LinkedIn scraper, not a mass-apply bot, and not a black-box recommender. Browser automation is represented as an explicit disabled/experimental placeholder; the working capture modes use user-provided content, including an optional manual bookmarklet/helper that the user clicks to copy visible page content into JOLT.
 
 ## What It Does
 
@@ -44,7 +44,7 @@ The Capture page is the primary workflow. Manual paste exists as a fallback/debu
 - Rule Profiles page for inspecting available profiles and profile details.
 - Rule-based parser with parser confidence and parser notes.
 - Decision engine with explainable scoring and hard-discard rules.
-- Capture runner for manual `raw_jobs`, pasted page text, HTML fragments, and uploaded/copied HTML content.
+- Capture runner for manual `raw_jobs`, pasted page text, HTML fragments, uploaded/copied HTML content, and pasted `JOLT_CAPTURE_V1` manual browser helper payloads.
 - Conservative page text/HTML extractor for labelled blocks, `Job Card` sections, copied left-panel-style card text, compact job-board-like text, copied HTML cards, visible URLs, and anchor links.
 - Capture diagnostics showing input size, candidate cards found, accepted/rejected cards, source URL notes, and capture confidence.
 - Duplicate preview against local history before saving, without silently dropping likely duplicates.
@@ -65,9 +65,10 @@ The Capture page is the primary workflow. Manual paste exists as a fallback/debu
 | Manual jobs | Implemented | User stages one or more raw job texts in the Capture page. |
 | Page text | Implemented | User pastes visible page text; JOLT extracts local job blocks and sends them through the same parser and decision engine. |
 | HTML fragment / uploaded HTML content | Implemented | User provides copied HTML locally; JOLT strips page noise, preserves likely job links, and extracts job cards conservatively. |
-| Browser-assisted experimental | Disabled placeholder | Shown honestly in the UI/API as not enabled; no browser automation is attempted. |
+| Manual browser helper | Implemented | User manually clicks a bookmarklet/helper on a page they already opened; it copies visible card text and URLs for pasting into Page text mode. |
+| Browser-assisted experimental | Disabled placeholder | Shown honestly in the UI/API as not enabled; no automated browsing is attempted. |
 
-Page text / HTML capture is local and user-controlled. It does not make external network calls, store credentials, bypass authentication, bypass CAPTCHA, or crawl websites.
+Page text / HTML and manual helper capture are local and user-controlled. The helper does not open pages, navigate, crawl, store credentials, bypass authentication, bypass CAPTCHA, or submit applications.
 
 ## What It Intentionally Does Not Do
 
@@ -159,7 +160,7 @@ http://localhost:5173
 Page text / HTML demo:
 
 1. Switch Capture to `Page text` or `HTML fragment`.
-2. Paste synthetic labelled job blocks or copied HTML.
+2. Paste synthetic labelled job blocks, copied HTML, or a `JOLT_CAPTURE_V1` payload copied by the manual browser helper.
 3. Click `Extract page text and review` or `Extract HTML and review`.
 4. Open capture diagnostics and capture notes to see extraction hints, source URL notes, accepted/rejected candidate counts, and duplicate preview warnings.
 
@@ -198,6 +199,8 @@ Capture starts from a local portfolio demo workflow with profile selection, capt
 ### Page text / HTML capture
 
 Page text mode accepts user-provided visible page text or copied HTML and keeps browser automation disabled.
+
+The Capture page also includes a manual browser helper/bookmarklet. The user opens a job results page themselves, clicks the helper, and pastes the copied `JOLT_CAPTURE_V1` payload back into JOLT. It only inspects visible content in the current page when clicked and does not automate browsing.
 
 ![Page text capture](docs/screenshots/02-page-text-capture.png)
 

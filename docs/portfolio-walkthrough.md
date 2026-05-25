@@ -11,7 +11,7 @@ JOLT is a local job-offer decision assistant. It takes user-provided job text, p
 The current milestone is a local portfolio demo. It proves the core product chain without risky automation:
 
 ```text
-manual jobs, pasted page text, or copied HTML content
+manual jobs, pasted page text/helper payloads, or copied HTML content
 -> parser
 -> rule profile
 -> decision engine
@@ -24,7 +24,7 @@ manual jobs, pasted page text, or copied HTML content
 ## Workflow
 
 1. The user selects a rule profile.
-2. The user loads synthetic demo jobs, stages manual job text, pastes visible page text, or provides copied HTML content.
+2. The user loads synthetic demo jobs, stages manual job text, pastes visible page text/helper payloads, or provides copied HTML content.
 3. The backend capture runner converts that input into raw job entries and returns ingestion diagnostics.
 4. The parser extracts structured fields and parser confidence.
 5. The decision engine applies profile rules and returns Apply, Maybe, Discard, Manual Review, or Duplicate.
@@ -50,7 +50,7 @@ Backend:
 - Profile service backed by JSON default profiles.
 - Rule-based parser service.
 - Decision engine service.
-- Capture runner and page text / HTML adapter with diagnostics and duplicate preview.
+- Capture runner and page text / HTML/manual helper adapter with diagnostics and duplicate preview.
 - Export package service for capture-result and saved-tracker JSON, CSV, and workflow-oriented multi-sheet XLSX.
 - JSONL local history store with duplicate-safe saves, backward-compatible status normalization, and immediate status updates.
 
@@ -62,9 +62,10 @@ The current safe boundary supports:
 
 - manual jobs;
 - user-provided page text / copied HTML;
+- a user-triggered bookmarklet/helper that copies visible page content into a pasted `JOLT_CAPTURE_V1` payload;
 - explicit disabled browser-assisted placeholder.
 
-This keeps the valuable parser/profile/decision/review workflow testable while making the limits honest.
+This keeps the valuable parser/profile/decision/review workflow testable while making the limits honest: the helper does not navigate, crawl, store credentials, bypass protections, or submit applications.
 
 Phase 15A improves that safe ingestion layer: it adds clearer capture source modes, stronger card extraction from user-provided text/HTML, diagnostics for accepted/rejected candidate cards, source URL extraction notes, and duplicate preview against local history before saving.
 

@@ -82,6 +82,16 @@ Expected result:
 10. Open a result card's capture notes to show extraction hints and source URL inference.
 11. Explain that this mode uses user-provided pasted content and does not automate a browser.
 
+## Manual Browser Helper Demo
+
+1. On Capture, point out the `Manual browser helper` section.
+2. Explain that the user drags `JOLT Capture` to the bookmarks bar or copies the bookmarklet code.
+3. Open a safe synthetic/local job-results page manually, then click the helper bookmark.
+4. Confirm the browser says the JOLT capture payload was copied.
+5. Return to JOLT, select `Page text`, paste the `JOLT_CAPTURE_V1` payload, and run capture review.
+6. Confirm diagnostics show `manual_browser_helper`, accepted/rejected card counts, and preserved URLs.
+7. Say clearly that the helper only runs after a user click, extracts visible content from the current page, stores no credentials, opens no pages, and submits no applications.
+
 Example synthetic multi-job text:
 
 ```text
@@ -128,7 +138,7 @@ For HTML fragment capture:
 - Save to history should persist new reviewed capture results under ignored `backend/data/history/` and skip duplicate/already-reviewed jobs by default.
 - History / Tracker should allow local application status updates across page visits and tracker export should include the latest saved statuses.
 - About should explain demo safety and allow manual cleanup of generated local demo exports/history.
-- Page text / HTML capture should split clear synthetic job blocks, reject tiny/noisy fragments, and fall back to one reviewed item when structure is unclear.
+- Page text / HTML capture should split clear synthetic job blocks, accept `JOLT_CAPTURE_V1` helper payloads, reject tiny/noisy fragments, and fall back to one reviewed item when structure is unclear.
 - Capture diagnostics should show input size, candidate cards, accepted/rejected cards, source URL notes, and capture confidence.
 - If the same synthetic job is saved to history and captured again, the result should show a duplicate preview warning and Save to history should report the duplicate as skipped unless duplicate saving is explicitly enabled.
 
@@ -151,9 +161,9 @@ For GitHub or LinkedIn, capture:
 ## What To Say During The Demo
 
 - JOLT is a local job-offer decision assistant.
-- The current demo uses manual raw job text and simulated capture runs.
+- The current demo uses manual raw job text, pasted page text/HTML, and a user-triggered manual helper payload.
 - Browser automation and LinkedIn scraping are intentionally disabled in this safe boundary.
-- Page text / HTML capture is local, user-controlled, and based on content the user supplies.
+- Page text / HTML/helper capture is local, user-controlled, and based on content the user supplies or manually copies.
 - The real backend parser, configurable profiles, and decision engine are used.
 - Export files are local generated artifacts and are ignored by Git.
 - History is local generated data and is ignored by Git.

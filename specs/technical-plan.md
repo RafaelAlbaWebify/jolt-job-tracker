@@ -332,10 +332,12 @@ Tracks run ID, timestamps, active profile, input/output files, counts, diagnosti
 
 - Keep future real LinkedIn capture isolated from the safe capture runner.
 - Default `JOLT_ENABLE_EXPERIMENTAL_LINKEDIN_CAPTURE` to false.
-- Expose disabled/dry-run-only `/api/experimental-capture/linkedin/*` endpoints.
+- Expose disabled/mock-dry-run-only `/api/experimental-capture/linkedin/*` endpoints.
 - Define raw run package models, captured job schemas, diagnostic codes, future adapter protocol, and URL/currentJobId duplicate utilities.
-- Do not use pyautogui, pywin32, Selenium, Playwright, browser card clicking, page navigation, login automation, credentials, CAPTCHA/rate-limit bypass, auto-apply, or messaging in Phase 17A.
-- Do not connect dry-run scaffold output to Save to History, tracker export, or normal capture review.
+- Generate fake demo run packages under ignored local experimental-capture data.
+- Convert the latest fake package into existing capture review cards only when the user explicitly requests review.
+- Do not use pyautogui, pywin32, Selenium, Playwright, browser card clicking, page navigation, login automation, credentials, CAPTCHA/rate-limit bypass, auto-apply, or messaging in Phase 17A/17B.
+- Do not auto-save dry-run scaffold output to History, tracker export, or normal capture review.
 
 ### `history.py` / `status_tracker.py`
 

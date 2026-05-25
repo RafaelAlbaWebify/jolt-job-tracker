@@ -11,6 +11,9 @@ import {
   fetchProfiles,
   runCaptureReview,
   saveCaptureResultToHistory,
+  startExperimentalLinkedInDryRun,
+  stopExperimentalLinkedInDryRun,
+  reviewExperimentalLinkedInDryRun,
   updateHistoryJobStatus,
   type ApplicationStatus,
   type CaptureHealthStatus,
@@ -437,6 +440,10 @@ function App() {
   const [experimentalCaptureHealth, setExperimentalCaptureHealth] =
     useState<ExperimentalCaptureResponse | null>(null);
   const [experimentalCaptureHealthError, setExperimentalCaptureHealthError] = useState<string | null>(null);
+  const [experimentalMaxPages, setExperimentalMaxPages] = useState<number>(1);
+  const [experimentalMaxJobs, setExperimentalMaxJobs] = useState<number>(4);
+  const [experimentalLoading, setExperimentalLoading] = useState<boolean>(false);
+  const [experimentalReviewLoading, setExperimentalReviewLoading] = useState<boolean>(false);
   const [rawJobText, setRawJobText] = useState<string>('');
   const [captureInputMode, setCaptureInputMode] = useState<CaptureInputMode>('manual_raw_jobs');
   const [pageCaptureText, setPageCaptureText] = useState<string>('');
@@ -592,6 +599,19 @@ function App() {
       cancelled = true;
     };
   }, []);
+
+  async function refreshExperimentalCaptureHealth() {
+    try {
+      const result = await fetchExperimentalLinkedInCaptureHealth();
+      setExperimentalCaptureHealth(result);
+      setExperimentalCaptureHealthError(null);
+    } catch (error) {
+      setExperimentalCaptureHealth(null);
+      setExperimentalCaptureHealthError(
+        error instanceof Error ? error.message : 'Experimental capture health unavailable',
+      );
+    }
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -859,6 +879,60 @@ function App() {
       setStatusUpdateMessage('Could not save status');
     } finally {
       setUpdatingHistoryId(null);
+    }
+  }
+
+  async function startExperimentalDryRun() {
+    setExperimentalLoading(true);
+    setExperimentalCaptureHealthError(null);
+    try {
+      const result = await startExperimentalLinkedInDryRun(experimentalMaxPages, experimentalMaxJobs);
+      setExperimentalCaptureHealth(result);
+    } catch (error) {
+      setExperimentalCaptureHealthError(
+        error instanceof Error ? error.message : 'Could not start experimental dry run',
+      );
+    } finally {
+      setExperimentalLoading(false);
+    }
+  }
+
+  async function stopExperimentalDryRun() {
+    setExperimentalLoading(true);
+    setExperimentalCaptureHealthError(null);
+    try {
+      const result = await stopExperimentalLinkedInDryRun();
+      setExperimentalCaptureHealth(result);
+    } catch (error) {
+      setExperimentalCaptureHealthError(
+        error instanceof Error ? error.message : 'Could not stop experimental dry run',
+      );
+    } finally {
+      setExperimentalLoading(false);
+    }
+  }
+
+  async function reviewExperimentalDryRun() {
+    if (!selectedProfileId) {
+      setExperimentalCaptureHealthError('Select a rule profile before reviewing the mock dry-run package.');
+      return;
+    }
+    setExperimentalReviewLoading(true);
+    setExperimentalCaptureHealthError(null);
+    try {
+      const result = await reviewExperimentalLinkedInDryRun(selectedProfileId);
+      setCaptureResult(result);
+      setActiveFilter('All');
+      setExportResponses([]);
+      setHistorySaveSummary(null);
+      setCaptureError(null);
+      setActivePageId('capture');
+    } catch (error) {
+      setExperimentalCaptureHealthError(
+        error instanceof Error ? error.message : 'Could not convert mock dry-run package to review',
+      );
+    } finally {
+      setExperimentalReviewLoading(false);
     }
   }
 
@@ -1721,21 +1795,70 @@ English required.`
                     <span>{experimentalCaptureHealth?.status ?? 'unknown'}</span>
                   </div>
                   <p>
-                    Disabled by default. The scaffold is reserved for future user-supervised local
-                    capture from an already-open browser; Phase 17A does not click cards, navigate
-                    pages, log in, store credentials, bypass CAPTCHA or rate limits, auto-apply, or
-                    send messages.
+                    Disabled by default. When explicitly enabled, this panel runs a mock dry run
+                    with fake demo jobs only. It does not control the browser, click cards,
+                    navigate pages, log in, store credentials, bypass CAPTCHA or rate limits,
+                    auto-apply, or send messages.
                   </p>
                   <p className="helper-text">
                     Backend flag: JOLT_ENABLE_EXPERIMENTAL_LINKEDIN_CAPTURE. Current status:{' '}
-                    {experimentalCaptureHealth?.enabled ? 'dry-run scaffold enabled' : 'disabled'}.
+                    {experimentalCaptureHealth?.enabled ? 'mock dry-run enabled' : 'disabled'}.
                   </p>
+                  {experimentalCaptureHealth?.enabled ? (
+                    <div className="experimental-controls">
+                      <label>
+                        <span>Max pages</span>
+                        <input
+                          type="number"
+                          min="1"
+                          max="10"
+                          value={experimentalMaxPages}
+                          onChange={(event) => setExperimentalMaxPages(Number(event.target.value))}
+                        />
+                      </label>
+                      <label>
+                        <span>Max jobs</span>
+                        <input
+                          type="number"
+                          min="1"
+                          max="250"
+                          value={experimentalMaxJobs}
+                          onChange={(event) => setExperimentalMaxJobs(Number(event.target.value))}
+                        />
+                      </label>
+                      <div className="button-row experimental-buttons">
+                        <button type="button" className="secondary-button" disabled={experimentalLoading} onClick={startExperimentalDryRun}>
+                          {experimentalLoading ? 'Running dry run...' : 'Start dry run'}
+                        </button>
+                        <button type="button" className="secondary-button" disabled={experimentalLoading} onClick={stopExperimentalDryRun}>
+                          Stop
+                        </button>
+                        <button
+                          type="button"
+                          className="secondary-button"
+                          disabled={!experimentalCaptureHealth.can_review || experimentalReviewLoading}
+                          onClick={reviewExperimentalDryRun}
+                        >
+                          {experimentalReviewLoading ? 'Preparing review...' : 'Review dry-run package'}
+                        </button>
+                      </div>
+                      <div className="run-compact-stats experimental-stats">
+                        <span>{experimentalCaptureHealth.captured_count} mock jobs</span>
+                        <span>{experimentalCaptureHealth.run?.diagnostics.length ?? 0} diagnostics</span>
+                      </div>
+                    </div>
+                  ) : null}
                   {experimentalCaptureHealthError ? (
                     <p className="status-message">{experimentalCaptureHealthError}</p>
                   ) : null}
                   {experimentalCaptureHealth?.message ? (
                     <p className="inline-warning">{experimentalCaptureHealth.message}</p>
                   ) : null}
+                  {experimentalCaptureHealth?.run?.diagnostics.slice(0, 4).map((event) => (
+                    <p className="helper-text compact-helper" key={`${event.code}-${event.timestamp}-${event.message}`}>
+                      {event.code}: {event.message}
+                    </p>
+                  ))}
                 </article>
                 <article>
                   <h3>Local and private</h3>

@@ -129,9 +129,11 @@ Phase 15B also reuses safe text-only lessons from the legacy pipeline: copied le
 
 ### Experimental LinkedIn Capture Scaffold
 
-`backend/app/services/experimental_linkedin_capture/` is a disabled-by-default boundary for possible future user-supervised local LinkedIn capture. Phase 17A adds schemas, URL/currentJobId identity helpers, duplicate-reference utilities, diagnostic event codes, a future adapter protocol, and a dry-run runner. It does not import or use pyautogui, pywin32, Selenium, or Playwright, and it does not click cards, navigate pages, log in, store credentials, bypass CAPTCHA/rate limits, auto-apply, or send messages.
+`backend/app/services/experimental_linkedin_capture/` is a disabled-by-default boundary for possible future user-supervised local LinkedIn capture. Phase 17A added schemas, URL/currentJobId identity helpers, duplicate-reference utilities, diagnostic event codes, a future adapter protocol, and a dry-run runner. Phase 17B adds a mock adapter that emits fake demo jobs, duplicate/currentJobId diagnostics, page/job limit diagnostics, and a local ignored run package under `backend/data/experimental_capture/`.
 
-The feature flag is `JOLT_ENABLE_EXPERIMENTAL_LINKEDIN_CAPTURE=false` by default. When disabled, `/api/experimental-capture/linkedin/health`, `/start`, `/stop`, and `/status` return clear disabled/no-op responses. When enabled, `/start` returns dry-run scaffold metadata only and is not connected to the normal Capture -> Review -> History flow.
+The feature flag is `JOLT_ENABLE_EXPERIMENTAL_LINKEDIN_CAPTURE=false` by default. When disabled, `/api/experimental-capture/linkedin/health`, `/start`, `/stop`, and `/status` return clear disabled/no-op responses. When enabled, `/start` runs mock capture only; `/review-latest` can convert the latest fake package into the existing Capture -> Parser -> Profile -> Decision review cards. It does not auto-save to History or auto-export.
+
+The module does not import or use pyautogui, pywin32, Selenium, or Playwright, and it does not click cards, navigate pages, log in, store credentials, bypass CAPTCHA/rate limits, auto-apply, or send messages.
 
 ### Export Service
 
@@ -187,6 +189,7 @@ Current local endpoints:
 - `POST /api/experimental-capture/linkedin/start`
 - `POST /api/experimental-capture/linkedin/stop`
 - `GET /api/experimental-capture/linkedin/status`
+- `POST /api/experimental-capture/linkedin/review-latest`
 - `POST /api/export/capture-result`
 - `POST /api/export/history`
 - `POST /api/history/save-capture-result`

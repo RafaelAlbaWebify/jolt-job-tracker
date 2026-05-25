@@ -1,13 +1,17 @@
 import os
+import json
+from pathlib import Path
 from uuid import uuid4
 
+from app.models import CaptureRunRequest, CaptureRunResult, RuleProfile
+from app.services.capture_runner import run_capture
+from app.services.experimental_linkedin_capture.adapter import MockExperimentalLinkedInCaptureAdapter
+from app.services.experimental_linkedin_capture.converter import experimental_run_to_raw_jobs
 from app.services.experimental_linkedin_capture.diagnostics import (
     EXP_CAPTURE_COMPLETED,
     EXP_CAPTURE_DISABLED,
-    EXP_CAPTURE_STARTED,
     EXP_CAPTURE_STOPPED,
     diagnostic_event,
-    utc_now_iso,
 )
 from app.services.experimental_linkedin_capture.models import (
     ExperimentalCaptureResponse,
@@ -16,6 +20,7 @@ from app.services.experimental_linkedin_capture.models import (
 )
 
 _LATEST_RUN: ExperimentalCaptureRunPackage | None = None
+EXPERIMENTAL_CAPTURE_ROOT = Path(__file__).resolve().parents[3] / "data" / "experimental_capture"
 
 
 def experimental_capture_enabled() -> bool:
@@ -54,8 +59,10 @@ def health_response() -> ExperimentalCaptureResponse:
         message="Experimental LinkedIn capture scaffold is enabled for dry-run status only. Real browser automation is not implemented.",
         run=_LATEST_RUN,
         warnings=[
-            "Dry-run only: no pyautogui, pywin32, Selenium, Playwright, card clicking, page navigation, login, credentials, CAPTCHA bypass, auto-apply, or messaging.",
+            "Mock dry-run only: no pyautogui, pywin32, Selenium, Playwright, card clicking, page navigation, login, credentials, CAPTCHA bypass, auto-apply, or messaging.",
         ],
+        captured_count=len(_LATEST_RUN.captured_jobs) if _LATEST_RUN else 0,
+        can_review=bool(_LATEST_RUN and _LATEST_RUN.captured_jobs),
     )
 
 
@@ -64,38 +71,21 @@ def start_capture(request: ExperimentalCaptureStartRequest) -> ExperimentalCaptu
     if not experimental_capture_enabled():
         return disabled_response("start")
 
-    started_at = utc_now_iso()
-    diagnostics = [
-        diagnostic_event(
-            EXP_CAPTURE_STARTED,
-            "Dry-run experimental capture scaffold started; no browser automation was executed.",
-            details={"max_pages": request.max_pages, "max_jobs": request.max_jobs, "dry_run": request.dry_run},
-        ),
-        diagnostic_event(
-            EXP_CAPTURE_COMPLETED,
-            "Dry-run completed without capturing jobs.",
-            details={"captured_jobs": 0},
-        ),
-    ]
-    _LATEST_RUN = ExperimentalCaptureRunPackage(
-        run_id=f"exp_linkedin_{uuid4().hex[:12]}",
-        status="completed",
-        started_at=started_at,
-        finished_at=utc_now_iso(),
-        max_pages=request.max_pages,
-        max_jobs=request.max_jobs,
-        diagnostics=diagnostics,
-        warnings=[
-            "Phase 17A scaffold only. It does not connect to the normal capture workflow or save to history.",
-        ],
-    )
+    run_id = f"exp_linkedin_mock_{uuid4().hex[:12]}"
+    adapter = MockExperimentalLinkedInCaptureAdapter()
+    _LATEST_RUN = adapter.run(run_id=run_id, max_pages=request.max_pages, max_jobs=request.max_jobs)
+    if not request.dry_run:
+        _LATEST_RUN.warnings.append("dry_run=false was requested, but Phase 17B only supports mock dry-run capture.")
+    _write_run_package(_LATEST_RUN)
     return ExperimentalCaptureResponse(
         enabled=True,
         status=_LATEST_RUN.status,
-        message="Dry-run experimental capture scaffold completed; no browser automation ran.",
+        message="Mock experimental capture dry run completed with fake demo jobs; no browser automation ran.",
         run=_LATEST_RUN,
-        diagnostics=diagnostics,
+        diagnostics=_LATEST_RUN.diagnostics,
         warnings=_LATEST_RUN.warnings,
+        captured_count=len(_LATEST_RUN.captured_jobs),
+        can_review=bool(_LATEST_RUN.captured_jobs),
     )
 
 
@@ -117,6 +107,8 @@ def stop_capture() -> ExperimentalCaptureResponse:
         status=_LATEST_RUN.status if _LATEST_RUN else "idle",
         message="Stop requested. No browser automation is running in the Phase 17A scaffold.",
         run=_LATEST_RUN,
+        captured_count=len(_LATEST_RUN.captured_jobs) if _LATEST_RUN else 0,
+        can_review=bool(_LATEST_RUN and _LATEST_RUN.captured_jobs),
     )
 
 
@@ -130,5 +122,37 @@ def status_response() -> ExperimentalCaptureResponse:
         status=_LATEST_RUN.status if _LATEST_RUN else "idle",
         message="Experimental LinkedIn capture scaffold status. Real browser automation is not implemented.",
         run=_LATEST_RUN,
+        captured_count=len(_LATEST_RUN.captured_jobs) if _LATEST_RUN else 0,
+        can_review=bool(_LATEST_RUN and _LATEST_RUN.captured_jobs),
     )
 
+
+def review_latest_capture(profile: RuleProfile) -> CaptureRunResult:
+    if not experimental_capture_enabled():
+        raise ValueError("Experimental LinkedIn capture is disabled.")
+    if _LATEST_RUN is None or not _LATEST_RUN.captured_jobs:
+        raise ValueError("No mock dry-run package is available for review.")
+
+    raw_jobs = experimental_run_to_raw_jobs(_LATEST_RUN)
+    request = CaptureRunRequest(
+        profile_id=profile.profile_id,
+        capture_mode="manual_raw_jobs",
+        source="experimental_linkedin_mock",
+        max_results=len(raw_jobs),
+        dry_run=True,
+        raw_jobs=raw_jobs,
+    )
+    result = run_capture(request, profile)
+    result.warnings.extend(
+        [
+            "Experimental review uses fake mock dry-run data only.",
+            "No browser automation ran and nothing was saved to history automatically.",
+        ]
+    )
+    return result
+
+
+def _write_run_package(run: ExperimentalCaptureRunPackage) -> None:
+    EXPERIMENTAL_CAPTURE_ROOT.mkdir(parents=True, exist_ok=True)
+    package_path = EXPERIMENTAL_CAPTURE_ROOT / f"{run.run_id}.json"
+    package_path.write_text(json.dumps(run.model_dump(mode="json"), indent=2), encoding="utf-8")

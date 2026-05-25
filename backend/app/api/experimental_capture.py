@@ -1,15 +1,19 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 
+from app.models import CaptureRunResult
 from app.services.experimental_linkedin_capture.models import (
+    ExperimentalCaptureReviewRequest,
     ExperimentalCaptureResponse,
     ExperimentalCaptureStartRequest,
 )
 from app.services.experimental_linkedin_capture.runner import (
     health_response,
+    review_latest_capture,
     start_capture,
     status_response,
     stop_capture,
 )
+from app.services.profiles import get_profile
 
 router = APIRouter(prefix="/api/experimental-capture/linkedin", tags=["experimental capture"])
 
@@ -33,3 +37,13 @@ def experimental_linkedin_stop() -> ExperimentalCaptureResponse:
 def experimental_linkedin_status() -> ExperimentalCaptureResponse:
     return status_response()
 
+
+@router.post("/review-latest", response_model=CaptureRunResult)
+def experimental_linkedin_review_latest(request: ExperimentalCaptureReviewRequest) -> CaptureRunResult:
+    profile = get_profile(request.profile_id)
+    if profile is None:
+        raise HTTPException(status_code=404, detail="Profile not found")
+    try:
+        return review_latest_capture(profile)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc

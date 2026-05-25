@@ -483,6 +483,32 @@ textarea {
   background: #fffdf7;
 }
 
+.experimental-controls {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.experimental-controls label {
+  color: #40545d;
+  display: grid;
+  font-size: 0.82rem;
+  font-weight: 800;
+  gap: 4px;
+}
+
+.experimental-controls input {
+  max-width: 120px;
+}
+
+.experimental-buttons {
+  margin-top: 0;
+}
+
+.experimental-stats {
+  margin-top: 0;
+}
+
 .compact-heading {
   margin-bottom: 6px;
 }

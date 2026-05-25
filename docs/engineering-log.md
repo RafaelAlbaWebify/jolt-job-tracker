@@ -1157,3 +1157,47 @@
 - Remaining risks / follow-up:
   - Future real capture must remain behind explicit user enablement, hard limits, stop controls, diagnostics, and a separate adapter.
   - No live LinkedIn automation tests should be added; future tests should use mocked adapters and synthetic fixtures.
+
+## 2026-05-25 - Phase 17B Mock Experimental Capture Dry Run
+
+- Type: Feature scaffold / Test / Docs
+- Files changed:
+  - `backend/app/api/experimental_capture.py`
+  - `backend/app/services/experimental_linkedin_capture/adapter.py`
+  - `backend/app/services/experimental_linkedin_capture/converter.py`
+  - `backend/app/services/experimental_linkedin_capture/models.py`
+  - `backend/app/services/experimental_linkedin_capture/runner.py`
+  - `backend/tests/test_experimental_capture.py`
+  - `frontend/src/App.tsx`
+  - `frontend/src/api.ts`
+  - `frontend/src/styles.css`
+  - `README.md`
+  - `docs/architecture.md`
+  - `docs/demo-checklist.md`
+  - `docs/portfolio-walkthrough.md`
+  - `docs/engineering-log.md`
+  - `specs/product-spec.md`
+  - `specs/technical-plan.md`
+  - `specs/tasks.md`
+- Problem / goal:
+  - Exercise the future experimental capture architecture with fake data only, without controlling a browser or connecting directly to save/export flows.
+- Root cause / context:
+  - Phase 17A defined the boundary but returned empty dry-run packages, so it did not prove package shape, duplicate diagnostics, or conversion into normal review cards.
+- Change made:
+  - Added a `MockExperimentalLinkedInCaptureAdapter` that emits fake jobs, mock card-selection diagnostics, URL/currentJobId match events, detail-ready events, duplicate currentJobId warnings, and page/job limit events.
+  - Persisted mock run packages under ignored `backend/data/experimental_capture/`.
+  - Added conversion from experimental captured jobs to existing `CapturedRawJob` input, with mock/demo capture notes and currentJobId external IDs.
+  - Added `/api/experimental-capture/linkedin/review-latest` to convert the latest fake package through the existing parser/profile/decision capture runner.
+  - Improved the About-page experimental panel with max pages/jobs dry-run controls, Stop, diagnostic summary, and Review dry-run package action when the backend flag is enabled.
+  - Updated docs/specs to state that Phase 17B uses fake data only and still performs no real browser automation.
+- Tests/checks run:
+  - Ran focused backend tests from `backend/`: `.\.venv\Scripts\python.exe -m pytest tests\test_experimental_capture.py`.
+  - Ran full backend tests from `backend/`: `.\.venv\Scripts\python.exe -m pytest`.
+  - Ran frontend build from `frontend/`: `npm run build`.
+- Result:
+  - Focused experimental capture tests passed: 13 passed, 1 pytest cache warning.
+  - Full backend tests passed: 101 passed, 1 pytest cache warning.
+  - Frontend production build passed.
+- Remaining risks / follow-up:
+  - Mock review can demonstrate pipeline shape but says nothing about live browser reliability.
+  - Future real capture still needs a separate adapter, stop controls, strict limits, and mocked tests before any browser-control implementation.

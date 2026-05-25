@@ -2,8 +2,13 @@ from fastapi.testclient import TestClient
 
 from app.main import app
 from app.services.experimental_linkedin_capture.diagnostics import (
+    EXP_CARD_CLICK_ATTEMPTED,
     EXP_CAPTURE_DISABLED,
     EXP_CAPTURE_STARTED,
+    EXP_DETAIL_TEXT_READY,
+    EXP_DUPLICATE_JOB_ID,
+    EXP_JOB_LIMIT_REACHED,
+    EXP_URL_CURRENT_JOB_ID_MATCHED,
     diagnostic_event,
 )
 from app.services.experimental_linkedin_capture.url_utils import (
@@ -75,16 +80,75 @@ def test_experimental_capture_enabled_start_is_dry_run(monkeypatch) -> None:
 
     response = client.post(
         "/api/experimental-capture/linkedin/start",
-        json={"max_pages": 1, "max_jobs": 5, "dry_run": True},
+        json={"max_pages": 2, "max_jobs": 5, "dry_run": True},
     )
 
     assert response.status_code == 200
     payload = response.json()
     assert payload["enabled"] is True
     assert payload["status"] == "completed"
-    assert payload["run"]["captured_jobs"] == []
+    assert len(payload["run"]["captured_jobs"]) == 4
+    assert payload["captured_count"] == 4
+    assert payload["can_review"] is True
     assert payload["run"]["diagnostics"][0]["code"] == EXP_CAPTURE_STARTED
     assert "no browser automation" in payload["message"].lower()
+
+
+def test_enabled_dry_run_returns_mock_diagnostics(monkeypatch) -> None:
+    monkeypatch.setenv("JOLT_ENABLE_EXPERIMENTAL_LINKEDIN_CAPTURE", "true")
+    client = TestClient(app)
+
+    response = client.post(
+        "/api/experimental-capture/linkedin/start",
+        json={"max_pages": 2, "max_jobs": 4, "dry_run": True},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    codes = {event["code"] for event in payload["run"]["diagnostics"]}
+    assert EXP_CARD_CLICK_ATTEMPTED in codes
+    assert EXP_URL_CURRENT_JOB_ID_MATCHED in codes
+    assert EXP_DETAIL_TEXT_READY in codes
+    assert EXP_DUPLICATE_JOB_ID in codes
+    assert payload["run"]["captured_jobs"][2]["duplicate_of"] == 1
+
+
+def test_enabled_dry_run_respects_max_jobs(monkeypatch) -> None:
+    monkeypatch.setenv("JOLT_ENABLE_EXPERIMENTAL_LINKEDIN_CAPTURE", "true")
+    client = TestClient(app)
+
+    response = client.post(
+        "/api/experimental-capture/linkedin/start",
+        json={"max_pages": 2, "max_jobs": 2, "dry_run": True},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    codes = {event["code"] for event in payload["run"]["diagnostics"]}
+    assert len(payload["run"]["captured_jobs"]) == 2
+    assert EXP_JOB_LIMIT_REACHED in codes
+
+
+def test_latest_dry_run_can_be_converted_to_capture_review(monkeypatch) -> None:
+    monkeypatch.setenv("JOLT_ENABLE_EXPERIMENTAL_LINKEDIN_CAPTURE", "true")
+    client = TestClient(app)
+    client.post(
+        "/api/experimental-capture/linkedin/start",
+        json={"max_pages": 1, "max_jobs": 3, "dry_run": True},
+    )
+
+    response = client.post(
+        "/api/experimental-capture/linkedin/review-latest",
+        json={"profile_id": "rafael_default"},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["profile_id"] == "rafael_default"
+    assert payload["total_captured"] == 3
+    assert payload["results"][0]["raw_job"]["source"] == "experimental_linkedin_mock"
+    assert "mock experimental LinkedIn capture dry-run" in payload["results"][0]["raw_job"]["capture_notes"]
+    assert any("fake mock dry-run data" in warning for warning in payload["warnings"])
 
 
 def test_extract_current_job_id_from_query_variants() -> None:

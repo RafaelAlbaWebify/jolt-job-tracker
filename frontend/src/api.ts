@@ -236,6 +236,21 @@ export type ExperimentalCaptureDiagnostic = {
   details: Record<string, string | number | boolean | null>;
 };
 
+export type ExperimentalCapturedJobRecord = {
+  sequence: number;
+  source_url: string;
+  current_job_id: string | null;
+  title: string;
+  company: string;
+  location: string;
+  raw_text: string;
+  capture_state: string;
+  page_index: number | null;
+  card_index: number | null;
+  duplicate_of: number | null;
+  diagnostics: ExperimentalCaptureDiagnostic[];
+};
+
 export type ExperimentalCaptureRunPackage = {
   run_id: string;
   status: ExperimentalCaptureStatus;
@@ -245,7 +260,7 @@ export type ExperimentalCaptureRunPackage = {
   mode: 'experimental_local_capture';
   max_pages: number;
   max_jobs: number;
-  captured_jobs: unknown[];
+  captured_jobs: ExperimentalCapturedJobRecord[];
   diagnostics: ExperimentalCaptureDiagnostic[];
   warnings: string[];
   errors: string[];
@@ -258,6 +273,8 @@ export type ExperimentalCaptureResponse = {
   run: ExperimentalCaptureRunPackage | null;
   diagnostics: ExperimentalCaptureDiagnostic[];
   warnings: string[];
+  captured_count: number;
+  can_review: boolean;
 };
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000';
@@ -290,6 +307,35 @@ export async function fetchCaptureHealth(): Promise<CaptureHealthStatus> {
 
 export async function fetchExperimentalLinkedInCaptureHealth(): Promise<ExperimentalCaptureResponse> {
   return fetchJson<ExperimentalCaptureResponse>('/api/experimental-capture/linkedin/health');
+}
+
+export async function startExperimentalLinkedInDryRun(
+  maxPages: number,
+  maxJobs: number,
+): Promise<ExperimentalCaptureResponse> {
+  return fetchJson<ExperimentalCaptureResponse>('/api/experimental-capture/linkedin/start', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ max_pages: maxPages, max_jobs: maxJobs, dry_run: true }),
+  });
+}
+
+export async function stopExperimentalLinkedInDryRun(): Promise<ExperimentalCaptureResponse> {
+  return fetchJson<ExperimentalCaptureResponse>('/api/experimental-capture/linkedin/stop', {
+    method: 'POST',
+  });
+}
+
+export async function reviewExperimentalLinkedInDryRun(profileId: string): Promise<CaptureRunResult> {
+  return fetchJson<CaptureRunResult>('/api/experimental-capture/linkedin/review-latest', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ profile_id: profileId }),
+  });
 }
 
 export async function runCaptureReview(request: CaptureRunRequest): Promise<CaptureRunResult> {

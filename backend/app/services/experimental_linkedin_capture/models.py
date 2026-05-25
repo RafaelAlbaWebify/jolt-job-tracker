@@ -59,3 +59,9 @@ class ExperimentalCaptureResponse(BaseModel):
     run: ExperimentalCaptureRunPackage | None = None
     diagnostics: list[ExperimentalCaptureDiagnostic] = Field(default_factory=list)
     warnings: list[str] = Field(default_factory=list)
+    captured_count: int = 0
+    can_review: bool = False
+
+
+class ExperimentalCaptureReviewRequest(BaseModel):
+    profile_id: str

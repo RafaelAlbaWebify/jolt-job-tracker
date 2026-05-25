@@ -150,6 +150,17 @@ const applicationStatuses: ApplicationStatus[] = [
   'Discarded',
 ];
 
+function captureModeLabels(captureMode: string | undefined): string[] {
+  if (!captureMode) {
+    return ['Unavailable'];
+  }
+  return captureMode
+    .split(',')
+    .map((mode) => mode.trim())
+    .filter(Boolean)
+    .map((mode) => mode.replace(/_/g, ' '));
+}
+
 const demoJobs = [
   `Title: Microsoft 365 Technical Support Specialist
 Company: Northstar SaaS
@@ -249,6 +260,20 @@ function CompactList({ items }: { items: string[] | undefined }) {
         <li key={item}>{item}</li>
       ))}
     </ul>
+  );
+}
+
+function CaptureModeChips({ captureMode }: { captureMode: string | undefined }) {
+  const modes = captureModeLabels(captureMode);
+
+  return (
+    <div className="mode-chip-list" aria-label="Safe capture modes">
+      {modes.map((mode) => (
+        <span className="mode-chip" key={mode}>
+          {mode}
+        </span>
+      ))}
+    </div>
   );
 }
 
@@ -841,12 +866,14 @@ function App() {
                 <section className="control-section compact-health">
                   <div className="section-heading">
                     <h2>Capture health</h2>
-                    <span>{captureHealth?.capture_mode ?? 'unknown'}</span>
+                    <span>{captureHealth ? `${captureModeLabels(captureHealth.capture_mode).length} safe modes` : 'unknown'}</span>
                   </div>
                   <dl className="health-grid health-strip">
                     <div>
                       <dt>Mode</dt>
-                      <dd>{captureHealth?.capture_mode ?? 'Unavailable'}</dd>
+                      <dd>
+                        <CaptureModeChips captureMode={captureHealth?.capture_mode} />
+                      </dd>
                     </div>
                     <div>
                       <dt>Browser automation</dt>

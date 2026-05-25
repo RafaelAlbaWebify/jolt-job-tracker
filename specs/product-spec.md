@@ -287,7 +287,9 @@ Already Reviewed
 
 Backward-compatible saved statuses such as `Not started`, `Interview`, `Watchlist`, and `Discarded` may remain readable for old local history, but the active queue UI should emphasize the statuses above.
 
-The user should be able to update status from the History / Tracker view. Status changes should persist immediately through the history API, survive refresh, and appear in tracker/history XLSX exports. `Save to History` is only required after a new capture result; capture export uses the current run payload, while tracker export uses saved history with latest statuses.
+The user should be able to update status from the History / Tracker view. Status changes should persist immediately through the history API, survive refresh, and appear in tracker/history XLSX exports. `Save to History` is only required after a new capture result; it should save new jobs and skip duplicate/already-reviewed jobs by default while preserving existing tracker statuses. Capture export uses the current run payload, while tracker export uses saved history with latest statuses.
+
+Legacy statuses remain readable for old local files but should not be emphasized as normal UI choices. Recommended mappings are `Not started` -> `New`, `Watchlist` -> `Follow Up`, `Discarded` -> `Rejected`, and `Interview` -> `Waiting`.
 
 Needs confirmation:
 
@@ -518,7 +520,7 @@ Rows currently waiting or needing follow-up.
 
 ### `Duplicates / Already Reviewed`
 
-Duplicate, previously seen, and already-reviewed jobs.
+Duplicate, previously seen, and already-reviewed jobs that exist in saved history. Repeated Save to History actions should not add new duplicate rows unless the user explicitly chooses to include duplicate records.
 
 ### `Decision Explanations`
 

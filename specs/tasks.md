@@ -338,7 +338,7 @@ Duplicate
 Already Reviewed
 ```
 
-User can update status from the History / Tracker queue view. The update persists immediately through the history API and survives refresh. Legacy local statuses such as `Not started`, `Interview`, `Watchlist`, and `Discarded` remain accepted for backward compatibility.
+User can update status from the History / Tracker queue view. The update persists immediately through the history API and survives refresh. Legacy local statuses such as `Not started`, `Interview`, `Watchlist`, and `Discarded` remain accepted for backward compatibility but are mapped into current workflow statuses for normal display/export.
 
 Status persists locally and exports to tracker/history XLSX.
 
@@ -388,7 +388,7 @@ Deduplication checks:
 - normalized company + title + location;
 - history action status.
 
-Duplicates are labeled, counted, and optionally hidden from active queues, not silently deleted. Saving a repeated job should create a visible `Duplicate` or `Already Reviewed` history entry.
+Duplicates are labeled and counted in capture/review, not silently hidden. Saving a repeated job should skip adding another tracker row by default, report skipped duplicates/already-reviewed jobs, preserve the existing status, and only create visible `Duplicate` or `Already Reviewed` history entries when duplicate saving is explicitly enabled.
 
 ---
 
@@ -530,6 +530,7 @@ Acceptance criteria:
 - User can generate/download full run package.
 - UI shows included files and active profile.
 - Capture export uses the current capture result; tracker export uses saved History / Tracker data with latest statuses.
+- Tracker export uses clean saved history, so skipped duplicates do not appear as new rows.
 - Demo exports are clearly marked as demo if demo mode is active.
 
 ---

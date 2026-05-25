@@ -15,7 +15,7 @@ JOLT is not a LinkedIn scraper, not a mass-apply bot, and not a black-box recomm
 - Applies reusable rule profiles instead of hardcoding one person's preferences globally.
 - Produces explainable decisions with score, priority, reasons, warnings, missing information, parser confidence, and matched keywords.
 - Exports reviewed results as JSON, CSV, or a workflow-oriented multi-sheet XLSX.
-- Saves reviewed jobs into a local history/tracker and supports application status updates.
+- Saves new reviewed jobs into a local history/tracker, skips duplicates by default, and supports application status updates.
 - Provides a local demo cleanup action for generated export/history files.
 
 ## Current Workflow
@@ -53,7 +53,7 @@ The Capture page is the primary workflow. Manual paste exists as a fallback/debu
 - Local export package generation under ignored `backend/data/exports/`.
 - JSON, CSV, and multi-sheet XLSX export formats.
 - Local JSONL history/tracker under ignored `backend/data/history/`.
-- Save-to-history, queue filters, backward-compatible status updates, and visible Duplicate / Already Reviewed records.
+- Save-to-history, queue filters, backward-compatible status updates, duplicate skip reporting, and optional visible Duplicate / Already Reviewed records.
 - Demo cleanup endpoint and UI for local exports/history.
 - Backend tests for health, profiles, parser, decision engine, capture, export, history, and cleanup.
 - Frontend production build with `npm run build`.
@@ -152,7 +152,7 @@ http://localhost:5173
 7. Click `Run capture review`.
 8. Review Apply / Discard / Manual Review cards.
 9. Export the current capture run as JSON, CSV, or the multi-sheet XLSX workflow tracker.
-10. Click `Save to history`.
+10. Click `Save to history` and confirm new jobs were saved while duplicates were skipped.
 11. Open History / Tracker, review the Apply Today / Manual Review / Waiting / Follow Up queues, update one application status, and export the saved tracker data with latest statuses.
 12. Open About and optionally clean local demo data.
 
@@ -215,7 +215,7 @@ Reviewed capture results can be exported locally as JSON, CSV, or a multi-sheet 
 
 ### History / Tracker
 
-Reviewed jobs can be saved locally and tracked with application statuses. Changing a status in History / Tracker persists immediately; `Save to history` is only needed after a new capture review.
+Reviewed jobs can be saved locally and tracked with application statuses. `Save to history` saves new jobs and skips duplicates by default, preserving any existing tracker status. Changing a status in History / Tracker persists immediately; `Save to history` is only needed after a new capture review.
 
 ![History tracker](docs/screenshots/05-history-tracker.png)
 

@@ -29,9 +29,9 @@ manual jobs, pasted page text, or copied HTML content
 4. The parser extracts structured fields and parser confidence.
 5. The decision engine applies profile rules and returns Apply, Maybe, Discard, Manual Review, or Duplicate.
 6. The frontend shows decision counts, filters, and explainable cards.
-7. The user can export the current capture result as JSON / CSV / XLSX or save the reviewed run to local history.
+7. The user can export the current capture result as JSON / CSV / XLSX or save new reviewed jobs to local history.
 8. The History / Tracker page shows Apply Today, Manual Review, Waiting, Follow Up, and Duplicates / Reviewed queues.
-9. The user updates application status locally; changes persist immediately and tracker export uses those latest saved statuses without auto-applying or hiding duplicates.
+9. The user updates application status locally; changes persist immediately and tracker export uses those latest saved statuses without auto-applying. Duplicate captures stay visible in review, but repeated save clicks skip existing tracker rows by default.
 
 ## Architecture
 
@@ -52,7 +52,7 @@ Backend:
 - Decision engine service.
 - Capture runner and page text / HTML adapter with diagnostics and duplicate preview.
 - Export package service for capture-result and saved-tracker JSON, CSV, and workflow-oriented multi-sheet XLSX.
-- JSONL local history store with backward-compatible statuses and immediate status updates.
+- JSONL local history store with duplicate-safe saves, backward-compatible status normalization, and immediate status updates.
 
 ## Why The Safe Capture Boundary Exists
 

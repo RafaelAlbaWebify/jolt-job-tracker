@@ -364,3 +364,40 @@ def test_history_export_json_and_csv_use_saved_tracker_data(tmp_path, monkeypatc
     finally:
         cleanup_export(json_data)
         cleanup_export(csv_data)
+
+
+def test_history_export_uses_clean_history_after_skipped_duplicate_save(tmp_path, monkeypatch) -> None:
+    monkeypatch.setattr(history_store, "HISTORY_ROOT", tmp_path / "backend" / "data" / "history")
+    monkeypatch.setattr(history_store, "HISTORY_FILE", tmp_path / "backend" / "data" / "history" / "jobs.jsonl")
+    capture_result = sample_capture_result()
+    first = client.post(
+        "/api/history/save-capture-result",
+        json={
+            "capture_result": capture_result,
+            "include_raw_text": False,
+            "default_application_status": "New",
+        },
+    )
+    second = client.post(
+        "/api/history/save-capture-result",
+        json={
+            "capture_result": capture_result,
+            "include_raw_text": False,
+            "default_application_status": "New",
+        },
+    )
+    assert first.status_code == 200
+    assert second.status_code == 200
+    assert second.json()["skipped_duplicate_count"] == 1
+
+    data = export_history_result("xlsx", include_raw_text=False)
+    try:
+        path = export_file_path(data)
+        workbook = load_workbook(path)
+        titles = sheet_column_values(workbook, "All Reviewed Jobs", "title")
+        duplicate_titles = sheet_column_values(workbook, "Duplicates Reviewed", "title")
+
+        assert titles == ["Microsoft 365 Support Specialist"]
+        assert duplicate_titles == []
+    finally:
+        cleanup_export(data)

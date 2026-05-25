@@ -28,6 +28,13 @@ REVIEWED_STATUSES = {
     "duplicate",
     "already reviewed",
 }
+LEGACY_STATUS_MAP: dict[str, ApplicationStatus] = {
+    "": "New",
+    "not started": "New",
+    "watchlist": "Follow Up",
+    "discarded": "Rejected",
+    "interview": "Waiting",
+}
 
 
 def _utc_now() -> str:
@@ -65,6 +72,11 @@ def _title_company_key(title: str, company: str) -> str:
 def _is_reviewed_status(status: str) -> bool:
     normalized = _normalize(status)
     return bool(normalized and normalized not in LEGACY_NEW_STATUSES) or normalized in REVIEWED_STATUSES
+
+
+def normalize_application_status(status: str) -> ApplicationStatus:
+    normalized = _normalize(status)
+    return LEGACY_STATUS_MAP.get(normalized, status)  # type: ignore[return-value]
 
 
 def _same_job(existing: HistoryJobEntry, candidate: HistoryJobEntry) -> bool:
@@ -123,7 +135,10 @@ def list_history_entries() -> list[HistoryJobEntry]:
         if not line.strip():
             continue
         try:
-            entries.append(HistoryJobEntry.model_validate(json.loads(line)))
+            entry = HistoryJobEntry.model_validate(json.loads(line))
+            entries.append(
+                entry.model_copy(update={"application_status": normalize_application_status(entry.application_status)})
+            )
         except (json.JSONDecodeError, ValueError) as exc:
             raise ValueError(f"Malformed history record at line {line_number}: {exc}") from exc
     return entries
@@ -137,11 +152,16 @@ def save_capture_result_entries(
     capture_result: CaptureRunResult,
     include_raw_text: bool = False,
     default_application_status: ApplicationStatus = "New",
+    include_duplicates: bool = False,
 ) -> SaveCaptureResultHistoryResponse:
     existing_entries = list_history_entries()
     new_entries: list[HistoryJobEntry] = []
     errors: list[str] = []
     duplicate_count = 0
+    skipped_duplicate_count = 0
+    already_reviewed_count = 0
+    saved_new_count = 0
+    normalized_default_status = normalize_application_status(default_application_status)
 
     for index, result in enumerate(capture_result.results, start=1):
         if result.parsed_job is None or result.decision is None:
@@ -172,7 +192,7 @@ def save_capture_result_entries(
             matched_risk_keywords=result.decision.matched_risk_keywords,
             raw_text_included=include_raw_text,
             raw_text=raw_text,
-            application_status=default_application_status,
+            application_status=normalized_default_status,
         )
 
         duplicate_entry = next(
@@ -184,6 +204,12 @@ def save_capture_result_entries(
             duplicate_status: ApplicationStatus = (
                 "Already Reviewed" if _is_reviewed_status(duplicate_entry.application_status) else "Duplicate"
             )
+            if not include_duplicates:
+                if duplicate_status == "Already Reviewed":
+                    already_reviewed_count += 1
+                else:
+                    skipped_duplicate_count += 1
+                continue
             duplicate_warning = (
                 f"Saved as {duplicate_status} because it matches history item {duplicate_entry.history_id}."
             )
@@ -194,6 +220,8 @@ def save_capture_result_entries(
                     "warnings": [*candidate.warnings, duplicate_warning],
                 }
             )
+        else:
+            saved_new_count += 1
 
         new_entries.append(candidate)
 
@@ -204,6 +232,11 @@ def save_capture_result_entries(
         saved_count=len(new_entries),
         duplicate_count=duplicate_count,
         updated_count=0,
+        saved_new_count=saved_new_count,
+        skipped_duplicate_count=skipped_duplicate_count,
+        already_reviewed_count=already_reviewed_count,
+        updated_existing_count=0,
+        total_input_count=len(capture_result.results),
         errors=errors,
         history_ids=[entry.history_id for entry in new_entries],
     )

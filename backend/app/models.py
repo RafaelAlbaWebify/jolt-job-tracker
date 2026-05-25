@@ -231,12 +231,18 @@ class SaveCaptureResultHistoryRequest(BaseModel):
     capture_result: CaptureRunResult
     include_raw_text: bool = False
     default_application_status: ApplicationStatus = "New"
+    include_duplicates: bool = False
 
 
 class SaveCaptureResultHistoryResponse(BaseModel):
     saved_count: int
     duplicate_count: int
     updated_count: int
+    saved_new_count: int
+    skipped_duplicate_count: int
+    already_reviewed_count: int
+    updated_existing_count: int
+    total_input_count: int
     errors: list[str]
     history_ids: list[str]
 

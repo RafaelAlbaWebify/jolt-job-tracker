@@ -324,15 +324,16 @@ Tracks run ID, timestamps, active profile, input/output files, counts, diagnosti
 ### `dedupe.py`
 
 - Detect duplicates using job ID, URL, normalized title/company/location, and history.
-- Label duplicates/already-reviewed jobs without silently deleting them.
-- Preserve visible `Duplicate` / `Already Reviewed` history entries when repeated jobs are saved.
+- Label duplicates/already-reviewed jobs in capture review without silently deleting them.
+- Skip duplicate/already-reviewed rows on Save to History by default while reporting skipped counts and preserving existing statuses.
+- Preserve optional visible `Duplicate` / `Already Reviewed` history entries only when duplicate saving is explicitly enabled or old data already contains them.
 
 ### `history.py` / `status_tracker.py`
 
 - Save seen jobs.
 - Save application statuses.
 - Support active statuses: `New`, `Apply Today`, `Manual Review`, `Waiting`, `Follow Up`, `Applied`, `Rejected`, `Archived`, `Duplicate`, and `Already Reviewed`.
-- Continue accepting older local statuses such as `Not started`, `Interview`, `Watchlist`, and `Discarded`.
+- Continue accepting older local statuses such as `Not started`, `Interview`, `Watchlist`, and `Discarded`, but map them into current workflow statuses for normal display/export.
 - Support updating statuses from UI through the history API with immediate local persistence.
 - Preserve profile and run ID for auditability.
 

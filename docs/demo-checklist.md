@@ -55,7 +55,7 @@ Expected result:
 12. Click `Export JSON`, `Export CSV`, or `Export XLSX` on Capture.
 13. Confirm the UI shows generated paths under `data/exports/`.
 14. For Capture XLSX, explain that the workbook contains Summary, reviewed jobs, queue sheets, explanations, and diagnostics for the current capture run.
-15. Click `Save to history`.
+15. Click `Save to history` and confirm the compact summary shows new saved jobs and skipped duplicates.
 16. Open History / Tracker.
 17. Confirm saved jobs appear with decision, score, parser confidence, saved date, and application status.
 18. Use the queue cards for `Apply Today`, `Manual Review`, `Waiting`, `Follow Up`, and `Duplicates / Reviewed`.
@@ -63,7 +63,7 @@ Expected result:
 20. Click a Tracker export button and explain that it exports saved tracker data with the latest statuses.
 21. Open About.
 22. Confirm the page explains local-only demo safety and intentionally disabled automation.
-23. Optionally check the cleanup confirmation and click `Clean local demo data`.
+23. Optionally check the cleanup confirmation and click `Clean local demo data` to reset local demo history/export data.
 24. Confirm deleted export/history file counts are shown.
 25. Open the Rule Profiles page.
 26. Confirm Rafael Default is labeled as a demo/default preset, not global hardcoded behavior.
@@ -125,12 +125,12 @@ For HTML fragment capture:
 - A low-information job should produce Manual Review or Maybe-style uncertainty.
 - Decision cards should show score, priority, parser confidence, reasons, warnings, missing information, and matched keywords.
 - Capture export controls should generate local JSON, CSV, and multi-sheet XLSX files under ignored `backend/data/exports/`.
-- Save to history should persist reviewed capture results under ignored `backend/data/history/`.
+- Save to history should persist new reviewed capture results under ignored `backend/data/history/` and skip duplicate/already-reviewed jobs by default.
 - History / Tracker should allow local application status updates across page visits and tracker export should include the latest saved statuses.
 - About should explain demo safety and allow manual cleanup of generated local demo exports/history.
 - Page text / HTML capture should split clear synthetic job blocks, reject tiny/noisy fragments, and fall back to one reviewed item when structure is unclear.
 - Capture diagnostics should show input size, candidate cards, accepted/rejected cards, source URL notes, and capture confidence.
-- If the same synthetic job is saved to history and captured again, the result should show a duplicate preview warning.
+- If the same synthetic job is saved to history and captured again, the result should show a duplicate preview warning and Save to history should report the duplicate as skipped unless duplicate saving is explicitly enabled.
 
 ## Useful Screenshots
 

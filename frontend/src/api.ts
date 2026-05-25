@@ -196,12 +196,18 @@ export type SaveCaptureResultHistoryRequest = {
   capture_result: CaptureRunResult;
   include_raw_text: boolean;
   default_application_status?: ApplicationStatus;
+  include_duplicates?: boolean;
 };
 
 export type SaveCaptureResultHistoryResponse = {
   saved_count: number;
   duplicate_count: number;
   updated_count: number;
+  saved_new_count: number;
+  skipped_duplicate_count: number;
+  already_reviewed_count: number;
+  updated_existing_count: number;
+  total_input_count: number;
   errors: string[];
   history_ids: string[];
 };

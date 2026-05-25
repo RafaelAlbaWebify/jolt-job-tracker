@@ -135,9 +135,9 @@ Capture export uses the current review payload. Tracker export reads saved histo
 
 `backend/app/services/history_store.py` persists reviewed jobs locally under ignored `backend/data/history/`.
 
-The current implementation uses JSONL file storage rather than a database. It can save reviewed capture results, list saved jobs, load one saved job, update application status immediately from the History / Tracker page, and detect duplicates by normalized source URL, external ID, normalized title/company/location fallback, or normalized title/company fallback. Capture runs also use this duplicate logic as a preview so likely duplicates are labelled before save rather than silently removed. Duplicate saves are retained as visible `Duplicate` or `Already Reviewed` history entries instead of disappearing.
+The current implementation uses JSONL file storage rather than a database. It can save reviewed capture results, list saved jobs, load one saved job, update application status immediately from the History / Tracker page, and detect duplicates by normalized source URL, external ID, normalized title/company/location fallback, or normalized title/company fallback. Capture runs also use this duplicate logic as a preview so likely duplicates are labelled before save rather than silently removed. Save-to-history skips duplicate/already-reviewed matches by default and reports skipped counts, preserving the existing tracker row and status as the source of truth. An explicit include-duplicates option can still append visible `Duplicate` or `Already Reviewed` records when a user wants an audit row.
 
-Current user-facing workflow statuses are `New`, `Apply Today`, `Manual Review`, `Waiting`, `Follow Up`, `Applied`, `Rejected`, `Archived`, `Duplicate`, and `Already Reviewed`. Legacy saved statuses such as `Not started`, `Interview`, and `Watchlist` still validate so old local history remains readable.
+Current user-facing workflow statuses are `New`, `Apply Today`, `Manual Review`, `Waiting`, `Follow Up`, `Applied`, `Rejected`, `Archived`, `Duplicate`, and `Already Reviewed`. Legacy saved statuses such as `Not started`, `Interview`, `Watchlist`, and `Discarded` still validate so old local history remains readable; loaded records are mapped into current workflow statuses for display and export.
 
 ### Demo Cleanup
 
@@ -191,7 +191,7 @@ Frontend Capture page
 -> frontend displays decision overview, filters, and cards
 -> user optionally exports the current capture result as JSON, CSV, or XLSX
 -> backend writes files under backend/data/exports/
--> user optionally saves reviewed jobs
+-> user optionally saves reviewed jobs; new jobs are added and duplicates are skipped by default
 -> backend writes JSONL history under backend/data/history/
 -> History / Tracker displays queue cards, saved jobs, duplicate/reviewed entries, and immediate status updates
 -> user optionally exports saved tracker/history data with latest statuses

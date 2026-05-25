@@ -987,3 +987,46 @@
   - Tracker export is still local file generation rather than streamed/downloaded export links.
   - History storage remains JSONL, not database-backed or cloud-synced.
   - Browser automation remains disabled/experimental.
+
+## 2026-05-25 - Phase 15E Clean Tracker Duplicate Saves
+
+- Type: Bug fix / Workflow cleanup / Test / Docs
+- Files changed:
+  - `backend/app/models.py`
+  - `backend/app/api/history.py`
+  - `backend/app/services/history_store.py`
+  - `backend/tests/test_history_store.py`
+  - `backend/tests/test_export_package.py`
+  - `frontend/src/api.ts`
+  - `frontend/src/App.tsx`
+  - `README.md`
+  - `docs/architecture.md`
+  - `docs/demo-checklist.md`
+  - `docs/portfolio-walkthrough.md`
+  - `docs/engineering-log.md`
+  - `specs/product-spec.md`
+  - `specs/technical-plan.md`
+  - `specs/tasks.md`
+- Problem / goal:
+  - Repeated Save to History clicks could crowd the tracker with duplicate demo jobs, and the status selector still presented legacy statuses as normal choices.
+- Root cause:
+  - `save_capture_result_entries` detected matching saved jobs but still appended a new row marked `Duplicate` or `Already Reviewed`. The frontend exposed every backward-compatible status in the normal dropdown.
+- Change made:
+  - Changed Save to History to save new jobs and skip duplicate/already-reviewed matches by default while reporting saved, skipped duplicate, already-reviewed, and total input counts.
+  - Added an explicit `include_duplicates` request flag and Capture-page checkbox for users who intentionally want duplicate audit rows.
+  - Preserved existing tracker status as the source of truth when a duplicate is skipped.
+  - Mapped legacy statuses into current workflow statuses on load/export while keeping legacy values accepted by the API.
+  - Removed legacy statuses from the normal frontend status dropdown.
+  - Added History / Tracker copy pointing users to About demo cleanup for resetting local history/export data.
+- Tests/checks run:
+  - Ran focused backend tests: `.\.venv\Scripts\python.exe -m pytest tests\test_history_store.py tests\test_export_package.py`.
+  - Ran full backend tests from `backend/`: `.\.venv\Scripts\python.exe -m pytest`.
+  - Ran frontend build from `frontend/`: `npm run build`.
+- Result:
+  - Focused backend tests passed: 28 passed, 1 pytest cache warning.
+  - Full backend tests passed: 85 passed, 1 pytest cache warning.
+  - Frontend production build passed.
+- Remaining risks / follow-up:
+  - Status normalization is applied when records are loaded/exported; existing JSONL files are not rewritten until a user makes a status update.
+  - Optional duplicate audit rows can still be created if the user explicitly enables duplicate saving.
+  - Browser automation remains disabled/experimental.

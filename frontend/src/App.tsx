@@ -145,10 +145,6 @@ const applicationStatuses: ApplicationStatus[] = [
   'Archived',
   'Duplicate',
   'Already Reviewed',
-  'Not started',
-  'Interview',
-  'Watchlist',
-  'Discarded',
 ];
 
 function captureModeLabels(captureMode: string | undefined): string[] {
@@ -416,6 +412,7 @@ function App() {
   const [exportError, setExportError] = useState<string | null>(null);
   const [exportResponses, setExportResponses] = useState<ExportCaptureResultResponse[]>([]);
   const [includeRawTextInHistory, setIncludeRawTextInHistory] = useState<boolean>(false);
+  const [includeDuplicateHistorySaves, setIncludeDuplicateHistorySaves] = useState<boolean>(false);
   const [historySaveLoading, setHistorySaveLoading] = useState<boolean>(false);
   const [historySaveError, setHistorySaveError] = useState<string | null>(null);
   const [historySaveSummary, setHistorySaveSummary] = useState<SaveCaptureResultHistoryResponse | null>(null);
@@ -754,6 +751,7 @@ function App() {
         capture_result: captureResult,
         include_raw_text: includeRawTextInHistory,
         default_application_status: 'New',
+        include_duplicates: includeDuplicateHistorySaves,
       });
       setHistorySaveSummary(result);
       await loadHistoryJobs();
@@ -1203,9 +1201,9 @@ English required.`
                         <div className="section-heading">
                           <div>
                             <h2>Save to history</h2>
-                            <p>Persist this capture run into the tracker. Later status changes save immediately in History / Tracker.</p>
+                            <p>Save new jobs into the tracker. Existing jobs are skipped by default and keep their saved status.</p>
                           </div>
-                          <span>{historySaveSummary ? `${historySaveSummary.saved_count} saved` : 'Manual'}</span>
+                          <span>{historySaveSummary ? `${historySaveSummary.saved_new_count} new` : 'Clean save'}</span>
                         </div>
                         <label className="checkbox-row">
                           <input
@@ -1214,6 +1212,14 @@ English required.`
                             onChange={(event) => setIncludeRawTextInHistory(event.target.checked)}
                           />
                           Include raw job text in local history
+                        </label>
+                        <label className="checkbox-row">
+                          <input
+                            type="checkbox"
+                            checked={includeDuplicateHistorySaves}
+                            onChange={(event) => setIncludeDuplicateHistorySaves(event.target.checked)}
+                          />
+                          Also save duplicate records
                         </label>
                         <button
                           type="button"
@@ -1226,8 +1232,9 @@ English required.`
                         {historySaveError ? <p className="status-message">{historySaveError}</p> : null}
                         {historySaveSummary ? (
                           <div className="save-summary">
-                            <span>Saved {historySaveSummary.saved_count}</span>
-                            <span>Duplicates {historySaveSummary.duplicate_count}</span>
+                            <span>{historySaveSummary.saved_new_count} new saved</span>
+                            <span>{historySaveSummary.skipped_duplicate_count} duplicates skipped</span>
+                            <span>{historySaveSummary.already_reviewed_count} already reviewed skipped</span>
                             <span>Errors {historySaveSummary.errors.length}</span>
                           </div>
                         ) : null}
@@ -1390,6 +1397,7 @@ English required.`
                   <p>
                     History is stored locally under the ignored backend data folder. Save a capture run
                     from the Capture page to populate this tracker; status changes here save immediately.
+                    Use Demo cleanup in About to reset local history/export data.
                   </p>
                 </div>
                 <button type="button" className="secondary-button" onClick={loadHistoryJobs}>

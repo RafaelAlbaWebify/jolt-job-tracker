@@ -49,13 +49,18 @@ def sample_capture_result(raw_jobs: list[dict[str, object]] | None = None) -> di
     return response.json()
 
 
-def save_capture_result(capture_result: dict[str, object] | None = None) -> dict[str, object]:
+def save_capture_result(
+    capture_result: dict[str, object] | None = None,
+    include_duplicates: bool = False,
+    default_application_status: str = "New",
+) -> dict[str, object]:
     response = client.post(
         "/api/history/save-capture-result",
         json={
             "capture_result": capture_result or sample_capture_result(),
             "include_raw_text": False,
-            "default_application_status": "New",
+            "default_application_status": default_application_status,
+            "include_duplicates": include_duplicates,
         },
     )
     assert response.status_code == 200
@@ -75,7 +80,10 @@ def test_saving_capture_result_creates_history_records(tmp_path, monkeypatch) ->
     data = save_capture_result()
 
     assert data["saved_count"] == 1
+    assert data["saved_new_count"] == 1
+    assert data["total_input_count"] == 1
     assert data["duplicate_count"] == 0
+    assert data["skipped_duplicate_count"] == 0
     assert data["errors"] == []
     assert history_store.HISTORY_FILE.exists()
     record = json.loads(history_store.HISTORY_FILE.read_text(encoding="utf-8").splitlines()[0])
@@ -138,10 +146,14 @@ def test_duplicate_source_url_or_external_id_is_detected(tmp_path, monkeypatch) 
     second = save_capture_result(capture_result)
 
     assert first["saved_count"] == 1
-    assert second["saved_count"] == 1
+    assert second["saved_count"] == 0
+    assert second["saved_new_count"] == 0
     assert second["duplicate_count"] == 1
+    assert second["skipped_duplicate_count"] == 1
+    assert second["already_reviewed_count"] == 0
     jobs = client.get("/api/history/jobs").json()
-    assert {job["application_status"] for job in jobs} == {"New", "Duplicate"}
+    assert len(jobs) == 1
+    assert jobs[0]["application_status"] == "New"
 
 
 def test_fallback_duplicate_title_company_location_works(tmp_path, monkeypatch) -> None:
@@ -157,8 +169,45 @@ def test_fallback_duplicate_title_company_location_works(tmp_path, monkeypatch) 
     save_capture_result(first_result)
     second = save_capture_result(second_result)
 
-    assert second["saved_count"] == 1
+    assert second["saved_count"] == 0
     assert second["duplicate_count"] == 1
+    assert second["skipped_duplicate_count"] == 1
+
+
+def test_duplicate_include_mode_appends_visible_duplicate_record(tmp_path, monkeypatch) -> None:
+    monkeypatch.setattr(history_store, "HISTORY_ROOT", tmp_path / "backend" / "data" / "history")
+    monkeypatch.setattr(history_store, "HISTORY_FILE", tmp_path / "backend" / "data" / "history" / "jobs.jsonl")
+    capture_result = sample_capture_result()
+    first = save_capture_result(capture_result)
+    second = save_capture_result(capture_result, include_duplicates=True)
+
+    assert first["saved_count"] == 1
+    assert second["saved_count"] == 1
+    assert second["saved_new_count"] == 0
+    assert second["duplicate_count"] == 1
+    jobs = client.get("/api/history/jobs").json()
+    assert len(jobs) == 2
+    assert jobs[-1]["application_status"] == "Duplicate"
+
+
+def test_skipped_duplicate_preserves_existing_status(tmp_path, monkeypatch) -> None:
+    monkeypatch.setattr(history_store, "HISTORY_ROOT", tmp_path / "backend" / "data" / "history")
+    monkeypatch.setattr(history_store, "HISTORY_FILE", tmp_path / "backend" / "data" / "history" / "jobs.jsonl")
+    capture_result = sample_capture_result()
+    first = save_capture_result(capture_result)
+    response = client.patch(
+        f"/api/history/jobs/{first['history_ids'][0]}/status",
+        json={"application_status": "Follow Up"},
+    )
+    assert response.status_code == 200
+
+    second = save_capture_result(capture_result)
+
+    assert second["saved_count"] == 0
+    assert second["already_reviewed_count"] == 1
+    jobs = client.get("/api/history/jobs").json()
+    assert len(jobs) == 1
+    assert jobs[0]["application_status"] == "Follow Up"
 
 
 def test_new_queue_status_update_works(tmp_path, monkeypatch) -> None:
@@ -191,7 +240,19 @@ def test_legacy_statuses_still_validate(tmp_path, monkeypatch) -> None:
 
     assert response.status_code == 200
     jobs = client.get("/api/history/jobs").json()
-    assert jobs[0]["application_status"] == "Not started"
+    assert jobs[0]["application_status"] == "New"
+
+
+def test_legacy_statuses_are_mapped_when_loaded(tmp_path, monkeypatch) -> None:
+    monkeypatch.setattr(history_store, "HISTORY_ROOT", tmp_path / "backend" / "data" / "history")
+    monkeypatch.setattr(history_store, "HISTORY_FILE", tmp_path / "backend" / "data" / "history" / "jobs.jsonl")
+    saved = save_capture_result(default_application_status="Watchlist")
+
+    jobs = client.get("/api/history/jobs").json()
+    loaded = client.get(f"/api/history/jobs/{saved['history_ids'][0]}").json()
+
+    assert jobs[0]["application_status"] == "Follow Up"
+    assert loaded["application_status"] == "Follow Up"
 
 
 def test_duplicate_against_actioned_history_is_saved_as_already_reviewed(tmp_path, monkeypatch) -> None:
@@ -206,10 +267,11 @@ def test_duplicate_against_actioned_history_is_saved_as_already_reviewed(tmp_pat
 
     second = save_capture_result(sample_capture_result())
 
-    assert second["saved_count"] == 1
+    assert second["saved_count"] == 0
+    assert second["already_reviewed_count"] == 1
     jobs = client.get("/api/history/jobs").json()
-    assert jobs[-1]["application_status"] == "Already Reviewed"
-    assert jobs[-1]["decision"] == "Already Reviewed"
+    assert len(jobs) == 1
+    assert jobs[-1]["application_status"] == "Applied"
 
 
 def test_no_browser_automation_or_scraping_dependencies_added() -> None:

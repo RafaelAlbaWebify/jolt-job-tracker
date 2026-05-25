@@ -22,6 +22,7 @@ def save_capture_result(request: SaveCaptureResultHistoryRequest) -> SaveCapture
         request.capture_result,
         include_raw_text=request.include_raw_text,
         default_application_status=request.default_application_status,
+        include_duplicates=request.include_duplicates,
     )
 
 

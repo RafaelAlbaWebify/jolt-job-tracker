@@ -63,7 +63,7 @@ Expected result:
 20. Click a Tracker export button and explain that it exports saved tracker data with the latest statuses.
 21. Open About.
 22. Confirm the page explains local-only demo safety and intentionally disabled automation.
-23. Confirm the Experimental LinkedIn capture card says the scaffold is disabled by default unless `JOLT_ENABLE_EXPERIMENTAL_LINKEDIN_CAPTURE` is enabled, and explain that Phase 17A implements no real browser automation.
+23. Confirm the Experimental LinkedIn capture card says the scaffold is disabled by default unless `JOLT_ENABLE_EXPERIMENTAL_LINKEDIN_CAPTURE` is enabled, and explain that any active browser-control path is experimental, local, user-supervised, and not part of the public demo flow.
 24. Optionally check the cleanup confirmation and click `Clean local demo data` to reset local demo history/export data.
 25. Confirm deleted export/history file counts are shown.
 26. Open the Rule Profiles page.
@@ -100,13 +100,16 @@ Expected result:
 
 1. Open About and point to the Experimental LinkedIn capture card.
 2. Confirm the status is `disabled` on a normal demo run.
-3. Explain that enabling `JOLT_ENABLE_EXPERIMENTAL_LINKEDIN_CAPTURE=true` allows mock dry-run controls only.
+3. Explain that enabling `JOLT_ENABLE_EXPERIMENTAL_LINKEDIN_CAPTURE=true` allows mock dry-run, selected-job-only capture, and a legacy batch capture port for local testing.
 4. In an enabled local test session, click `Start dry run` and confirm it reports fake mock jobs and diagnostics.
 5. Click `Review dry-run package` to send the fake package through the normal parser/profile/decision review cards.
 6. For selected-job capture, explain the user must manually open LinkedIn, manually select one job, and keep the browser focused before clicking `Capture selected job`.
 7. Explain the countdown: after clicking capture, the user has the configured seconds to switch back to the LinkedIn tab before URL/text copying starts.
 8. Mention optional local dependencies can be installed from `backend/requirements-experimental.txt` for this experimental path.
-9. State clearly that selected-job capture only copies the current URL and visible page text. It does not click cards, iterate results, scroll panels, paginate, log in, store credentials, bypass CAPTCHA/rate limits, auto-apply, or message anyone.
+9. State clearly that selected-job capture only copies the current URL and visible page text.
+10. For legacy batch capture, explain that the user manually opens LinkedIn Jobs, keeps the list/detail panels visible, starts capture, switches focus during the countdown, and reviews the package before saving.
+11. State clearly that legacy batch capture is a port of a local workflow, remains disabled/experimental, and may click detected left-panel cards, copy URL/text, scroll, and optionally use start-offset pagination within max limits.
+12. State clearly that no experimental mode logs in, stores credentials, bypasses CAPTCHA/rate limits, auto-applies, or messages anyone.
 
 Example synthetic multi-job text:
 
@@ -178,7 +181,7 @@ For GitHub or LinkedIn, capture:
 
 - JOLT is a local job-offer decision assistant.
 - The current demo uses manual raw job text, pasted page text/HTML, and a user-triggered manual helper payload.
-- Browser automation and LinkedIn scraping are intentionally disabled in this safe boundary.
+- Public demo capture should stay on manual/helper workflows; experimental LinkedIn browser control is disabled by default and only for local supervised testing.
 - Page text / HTML/helper capture is local, user-controlled, and based on content the user supplies or manually copies.
 - The real backend parser, configurable profiles, and decision engine are used.
 - Export files are local generated artifacts and are ignored by Git.
@@ -190,8 +193,8 @@ For GitHub or LinkedIn, capture:
 
 These are future phases:
 
-- real browser automation;
-- LinkedIn scraping;
+- production browser automation or scraping positioning;
+- automated LinkedIn login, credential handling, CAPTCHA/rate-limit bypass, auto-apply, or messaging;
 - database-backed or cloud-synced history/tracker;
 - downloadable export streaming;
 - downloadable export links;

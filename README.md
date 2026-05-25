@@ -49,7 +49,7 @@ The Capture page is the primary workflow. Manual paste exists as a fallback/debu
 - Capture diagnostics showing input size, candidate cards found, accepted/rejected cards, source URL notes, and capture confidence.
 - Duplicate preview against local history before saving, without silently dropping likely duplicates.
 - Capture health endpoint showing browser automation disabled by default.
-- Experimental LinkedIn capture scaffold with disabled-by-default health/start/stop/status API responses, URL/currentJobId utilities, mock dry-run package generation, selected-job-only prototype capture, diagnostics, and review conversion into the normal capture pipeline.
+- Experimental LinkedIn capture scaffold with disabled-by-default health/start/stop/status API responses, URL/currentJobId utilities, mock dry-run package generation, selected-job-only prototype capture, legacy batch capture port, diagnostics, and review conversion into the normal capture pipeline.
 - Frontend review dashboard with demo jobs, decision counts, filters, and decision cards.
 - Local export package generation under ignored `backend/data/exports/`.
 - JSON, CSV, and multi-sheet XLSX export formats.
@@ -67,11 +67,11 @@ The Capture page is the primary workflow. Manual paste exists as a fallback/debu
 | Page text | Implemented | User pastes visible page text; JOLT extracts local job blocks and sends them through the same parser and decision engine. |
 | HTML fragment / uploaded HTML content | Implemented | User provides copied HTML locally; JOLT strips page noise, preserves likely job links, and extracts job cards conservatively. |
 | Manual browser helper | Implemented | User manually clicks a bookmarklet/helper on a page they already opened; it copies visible card text and URLs for pasting into Page text mode. |
-| Experimental LinkedIn local capture | Disabled experimental scaffold | Backend/API/UI boundary exists behind `JOLT_ENABLE_EXPERIMENTAL_LINKEDIN_CAPTURE=false` by default. When enabled, mock dry runs use fake data, and the selected-job prototype can read the current URL plus visible copied page text for one job the user already selected manually. |
+| Experimental LinkedIn local capture | Disabled experimental scaffold | Backend/API/UI boundary exists behind `JOLT_ENABLE_EXPERIMENTAL_LINKEDIN_CAPTURE=false` by default. When enabled, mock dry runs use fake data, the selected-job prototype can read the current URL plus visible copied page text for one manually selected job, and the legacy batch port can perform user-supervised local card clicks with strict limits. |
 
 Page text / HTML and manual helper capture are local and user-controlled. The helper does not open pages, navigate, crawl, store credentials, bypass authentication, bypass CAPTCHA, or submit applications.
 
-The experimental LinkedIn capture scaffold is not connected to Save to History automatically. When the flag is enabled, it can generate a mock package with fake jobs under ignored local data, or capture one currently selected job after a focus handoff countdown by copying the focused browser URL and visible page text. It still performs no Selenium, Playwright, multi-card iteration, result-panel scrolling, pagination, login, credential storage, CAPTCHA/rate-limit bypass, auto-apply, or recruiter messaging. The selected-job prototype is Windows/local and depends on optional experimental keyboard/clipboard support.
+The experimental LinkedIn capture scaffold is not connected to Save to History automatically. When the flag is enabled, it can generate a mock package with fake jobs under ignored local data, capture one currently selected job after a focus handoff countdown, or run the legacy batch capture port with user-supervised local browser control. Batch mode may click detected left-panel cards, copy URL/text, scroll, and optionally use `start=` pagination within `max_jobs`, `max_pages`, timeout, and stop limits. It still performs no Selenium, Playwright, login, credential storage, CAPTCHA/rate-limit bypass, auto-apply, or recruiter messaging. The selected-job and legacy batch prototypes are Windows/local and depend on optional experimental keyboard/clipboard support.
 
 Optional selected-job capture dependencies are intentionally separate from normal requirements:
 
@@ -191,10 +191,10 @@ Run the backend locally, then use `http://127.0.0.1:8000`.
 | GET | `/api/capture/health` | Report safe capture modes and automation status. |
 | POST | `/api/capture/run` | Run capture review from manual jobs or pasted page text/HTML. |
 | GET | `/api/experimental-capture/linkedin/health` | Report disabled/dry-run status for the experimental LinkedIn capture scaffold. |
-| POST | `/api/experimental-capture/linkedin/start` | Return disabled by default, or dry-run scaffold metadata when explicitly enabled. |
+| POST | `/api/experimental-capture/linkedin/start` | Return disabled by default, or run `mock_dry_run`, `selected_job_only`, or `legacy_batch_capture` when explicitly enabled. |
 | POST | `/api/experimental-capture/linkedin/stop` | Safe no-op stop boundary for the experimental scaffold. |
 | GET | `/api/experimental-capture/linkedin/status` | Report disabled/idle/dry-run scaffold status. |
-| POST | `/api/experimental-capture/linkedin/review-latest` | Convert the latest fake mock dry-run package into normal capture review cards with a selected profile. |
+| POST | `/api/experimental-capture/linkedin/review-latest` | Convert the latest experimental package into normal capture review cards with a selected profile; nothing is auto-saved. |
 | POST | `/api/export/capture-result` | Generate JSON, CSV, or XLSX files from a capture result. |
 | POST | `/api/export/history` | Generate JSON, CSV, or XLSX files from saved History / Tracker data. |
 | POST | `/api/history/save-capture-result` | Save reviewed capture results into local history. |

@@ -15,7 +15,10 @@ from app.services.experimental_linkedin_capture.diagnostics import (
     EXP_FOCUS_HANDOFF_STARTED,
     EXP_FOCUS_HANDOFF_WAITING,
     EXP_JOB_LIMIT_REACHED,
+    EXP_LEGACY_BATCH_CAPTURE_COMPLETED,
+    EXP_LEGACY_BATCH_CAPTURE_STARTED,
     EXP_NON_LINKEDIN_URL_CAPTURED,
+    EXP_PAGE_LIMIT_REACHED,
     EXP_SELECTED_JOB_ADAPTER_DEPENDENCY_MISSING,
     EXP_SELECTED_JOB_CAPTURE_STARTED,
     EXP_VISIBLE_TEXT_CAPTURED,
@@ -25,6 +28,12 @@ from app.services.experimental_linkedin_capture.diagnostics import (
 )
 from app.services.experimental_linkedin_capture import runner
 from app.services.experimental_linkedin_capture import windows_selected_job_adapter
+from app.services.experimental_linkedin_capture.legacy_batch_adapter import LegacyBatchCaptureAdapter
+from app.services.experimental_linkedin_capture.models import (
+    ExperimentalCapturedJobRecord,
+    ExperimentalCaptureRunPackage,
+)
+from app.services.experimental_linkedin_capture.diagnostics import utc_now_iso
 from app.services.experimental_linkedin_capture.windows_selected_job_adapter import (
     SelectedJobSnapshot,
     WindowsSelectedJobCaptureAdapter,
@@ -107,6 +116,21 @@ def test_selected_job_capture_disabled_when_feature_flag_off(monkeypatch) -> Non
     assert payload["status"] == "disabled"
 
 
+def test_legacy_batch_capture_disabled_when_feature_flag_off(monkeypatch) -> None:
+    monkeypatch.delenv("JOLT_ENABLE_EXPERIMENTAL_LINKEDIN_CAPTURE", raising=False)
+    client = TestClient(app)
+
+    response = client.post(
+        "/api/experimental-capture/linkedin/start",
+        json={"mode": "legacy_batch_capture", "max_pages": 1, "max_jobs": 3, "dry_run": False},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["enabled"] is False
+    assert payload["status"] == "disabled"
+
+
 def test_selected_job_capture_requires_explicit_selected_job_flag(monkeypatch) -> None:
     monkeypatch.setenv("JOLT_ENABLE_EXPERIMENTAL_LINKEDIN_CAPTURE", "true")
     client = TestClient(app)
@@ -133,6 +157,23 @@ def test_selected_job_focus_delay_validation(monkeypatch) -> None:
             "selected_job_only": True,
             "dry_run": False,
             "focus_delay_seconds": 1,
+        },
+    )
+
+    assert response.status_code == 422
+
+
+def test_legacy_batch_parameter_validation(monkeypatch) -> None:
+    monkeypatch.setenv("JOLT_ENABLE_EXPERIMENTAL_LINKEDIN_CAPTURE", "true")
+    client = TestClient(app)
+
+    response = client.post(
+        "/api/experimental-capture/linkedin/start",
+        json={
+            "mode": "legacy_batch_capture",
+            "max_pages": 1,
+            "max_jobs": 3,
+            "delay_between_cards_seconds": 0.1,
         },
     )
 
@@ -338,6 +379,211 @@ def test_selected_job_review_latest_uses_existing_capture_pipeline(monkeypatch) 
     assert payload["total_captured"] == 1
     assert payload["results"][0]["raw_job"]["source"] == "experimental_linkedin_selected_job"
     assert "selected-job experimental capture" in payload["results"][0]["raw_job"]["capture_notes"]
+
+
+class FakeLegacyBatchAdapter(LegacyBatchCaptureAdapter):
+    def run(
+        self,
+        *,
+        run_id: str,
+        max_pages: int,
+        max_jobs: int,
+        focus_delay_seconds: int,
+        delay_between_cards_seconds: float,
+        include_pagination: bool,
+        capture_detail_phase: bool,
+        debug_screenshots: bool,
+        timeout_seconds: int,
+        stop_requested,
+    ) -> ExperimentalCaptureRunPackage:
+        started_at = utc_now_iso()
+        diagnostics = [
+            diagnostic_event(EXP_LEGACY_BATCH_CAPTURE_STARTED, "Fake legacy batch started."),
+        ]
+        if stop_requested():
+            return ExperimentalCaptureRunPackage(
+                run_id=run_id,
+                status="stopped",
+                started_at=started_at,
+                finished_at=utc_now_iso(),
+                max_pages=max_pages,
+                max_jobs=max_jobs,
+                diagnostics=diagnostics,
+            )
+        jobs: list[ExperimentalCapturedJobRecord] = []
+        fake_ids = ["9001", "9002", "9001", "9003", "9004"]
+        seen: dict[str, int] = {}
+        for sequence, job_id in enumerate(fake_ids[:max_jobs], start=1):
+            page_index = 1 if sequence <= 3 else 2
+            if page_index > max_pages:
+                diagnostics.append(diagnostic_event(EXP_PAGE_LIMIT_REACHED, "Fake max_pages reached."))
+                break
+            duplicate_of = seen.get(job_id)
+            if duplicate_of is not None:
+                diagnostics.append(
+                    diagnostic_event(EXP_DUPLICATE_JOB_ID, "Fake duplicate detected.", details={"current_job_id": job_id})
+                )
+                capture_state = "legacy_batch_duplicate"
+            else:
+                seen[job_id] = sequence
+                capture_state = "legacy_batch_captured"
+            diagnostics.append(diagnostic_event(EXP_CARD_CLICK_ATTEMPTED, "Fake card click."))
+            jobs.append(
+                ExperimentalCapturedJobRecord(
+                    sequence=sequence,
+                    source_url=f"https://www.linkedin.com/jobs/search/?currentJobId={job_id}",
+                    current_job_id=job_id,
+                    title=f"Legacy Batch Job {sequence}",
+                    company="Demo Legacy Company",
+                    location="Remote",
+                    raw_text=(
+                        f"Title: Legacy Batch Job {sequence}\n"
+                        "Company: Demo Legacy Company\n"
+                        "Location: Remote\n"
+                        "About the job Easy Apply Save applicants remote company job "
+                        + ("support endpoint troubleshooting " * 30)
+                    ),
+                    capture_state=capture_state,
+                    page_index=page_index,
+                    card_index=sequence - 1,
+                    duplicate_of=duplicate_of,
+                )
+            )
+        diagnostics.append(diagnostic_event(EXP_LEGACY_BATCH_CAPTURE_COMPLETED, "Fake legacy batch completed."))
+        return ExperimentalCaptureRunPackage(
+            run_id=run_id,
+            status="completed",
+            started_at=started_at,
+            finished_at=utc_now_iso(),
+            max_pages=max_pages,
+            max_jobs=max_jobs,
+            captured_jobs=jobs,
+            diagnostics=diagnostics,
+        )
+
+
+def test_legacy_batch_capture_with_fake_adapter_captures_multiple_jobs(monkeypatch) -> None:
+    monkeypatch.setenv("JOLT_ENABLE_EXPERIMENTAL_LINKEDIN_CAPTURE", "true")
+    monkeypatch.setattr(runner, "LEGACY_BATCH_ADAPTER_FACTORY", FakeLegacyBatchAdapter)
+    client = TestClient(app)
+
+    response = client.post(
+        "/api/experimental-capture/linkedin/start",
+        json={"mode": "legacy_batch_capture", "max_pages": 2, "max_jobs": 4, "dry_run": False},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["status"] == "completed"
+    assert payload["captured_count"] == 4
+    codes = {event["code"] for event in payload["run"]["diagnostics"]}
+    assert EXP_LEGACY_BATCH_CAPTURE_STARTED in codes
+    assert EXP_LEGACY_BATCH_CAPTURE_COMPLETED in codes
+    assert EXP_CARD_CLICK_ATTEMPTED in codes
+    assert EXP_DUPLICATE_JOB_ID in codes
+    assert payload["run"]["captured_jobs"][2]["duplicate_of"] == 1
+
+
+def test_legacy_batch_respects_max_jobs_and_pages(monkeypatch) -> None:
+    monkeypatch.setenv("JOLT_ENABLE_EXPERIMENTAL_LINKEDIN_CAPTURE", "true")
+    monkeypatch.setattr(runner, "LEGACY_BATCH_ADAPTER_FACTORY", FakeLegacyBatchAdapter)
+    client = TestClient(app)
+
+    max_jobs_response = client.post(
+        "/api/experimental-capture/linkedin/start",
+        json={"mode": "legacy_batch_capture", "max_pages": 2, "max_jobs": 2, "dry_run": False},
+    )
+    assert max_jobs_response.status_code == 200
+    assert max_jobs_response.json()["captured_count"] == 2
+
+    max_pages_response = client.post(
+        "/api/experimental-capture/linkedin/start",
+        json={"mode": "legacy_batch_capture", "max_pages": 1, "max_jobs": 5, "dry_run": False},
+    )
+    assert max_pages_response.status_code == 200
+    page_payload = max_pages_response.json()
+    assert page_payload["captured_count"] == 3
+    codes = {event["code"] for event in page_payload["run"]["diagnostics"]}
+    assert EXP_PAGE_LIMIT_REACHED in codes
+
+
+def test_legacy_batch_missing_dependencies_return_clear_error(monkeypatch) -> None:
+    monkeypatch.setenv("JOLT_ENABLE_EXPERIMENTAL_LINKEDIN_CAPTURE", "true")
+
+    class MissingDependencyAdapter(LegacyBatchCaptureAdapter):
+        def __init__(self) -> None:
+            super().__init__()
+
+        def run(self, **kwargs) -> ExperimentalCaptureRunPackage:  # type: ignore[no-untyped-def]
+            now = utc_now_iso()
+            return ExperimentalCaptureRunPackage(
+                run_id=kwargs["run_id"],
+                status="failed",
+                started_at=now,
+                finished_at=now,
+                max_pages=kwargs["max_pages"],
+                max_jobs=kwargs["max_jobs"],
+                diagnostics=[
+                    diagnostic_event(EXP_SELECTED_JOB_ADAPTER_DEPENDENCY_MISSING, "Install experimental dependencies.")
+                ],
+                errors=["Install experimental dependencies from backend/requirements-experimental.txt."],
+            )
+
+    monkeypatch.setattr(runner, "LEGACY_BATCH_ADAPTER_FACTORY", MissingDependencyAdapter)
+    client = TestClient(app)
+
+    response = client.post(
+        "/api/experimental-capture/linkedin/start",
+        json={"mode": "legacy_batch_capture", "max_pages": 1, "max_jobs": 3, "dry_run": False},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["status"] == "failed"
+    assert "requirements-experimental.txt" in payload["run"]["errors"][0]
+
+
+def test_legacy_batch_stop_condition_is_respected(monkeypatch) -> None:
+    monkeypatch.setenv("JOLT_ENABLE_EXPERIMENTAL_LINKEDIN_CAPTURE", "true")
+
+    class StopAwareAdapter(FakeLegacyBatchAdapter):
+        def run(self, **kwargs) -> ExperimentalCaptureRunPackage:  # type: ignore[no-untyped-def]
+            runner._STOP_REQUESTED = True
+            return super().run(**kwargs)
+
+    monkeypatch.setattr(runner, "LEGACY_BATCH_ADAPTER_FACTORY", StopAwareAdapter)
+    client = TestClient(app)
+
+    response = client.post(
+        "/api/experimental-capture/linkedin/start",
+        json={"mode": "legacy_batch_capture", "max_pages": 2, "max_jobs": 4, "dry_run": False},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["status"] == "stopped"
+    assert payload["captured_count"] == 0
+
+
+def test_legacy_batch_review_latest_uses_existing_capture_pipeline(monkeypatch) -> None:
+    monkeypatch.setenv("JOLT_ENABLE_EXPERIMENTAL_LINKEDIN_CAPTURE", "true")
+    monkeypatch.setattr(runner, "LEGACY_BATCH_ADAPTER_FACTORY", FakeLegacyBatchAdapter)
+    client = TestClient(app)
+    client.post(
+        "/api/experimental-capture/linkedin/start",
+        json={"mode": "legacy_batch_capture", "max_pages": 1, "max_jobs": 2, "dry_run": False},
+    )
+
+    response = client.post(
+        "/api/experimental-capture/linkedin/review-latest",
+        json={"profile_id": "rafael_default"},
+    )
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["total_captured"] == 2
+    assert payload["results"][0]["raw_job"]["source"] == "experimental_linkedin_legacy_batch"
+    assert "legacy batch experimental capture" in payload["results"][0]["raw_job"]["capture_notes"]
 
 
 def test_extract_current_job_id_from_query_variants() -> None:

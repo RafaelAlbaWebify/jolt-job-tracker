@@ -12,6 +12,7 @@ import {
   runCaptureReview,
   saveCaptureResultToHistory,
   startExperimentalLinkedInDryRun,
+  startExperimentalLinkedInLegacyBatchCapture,
   startExperimentalLinkedInSelectedJobCapture,
   stopExperimentalLinkedInDryRun,
   reviewExperimentalLinkedInDryRun,
@@ -444,8 +445,13 @@ function App() {
   const [experimentalMaxPages, setExperimentalMaxPages] = useState<number>(1);
   const [experimentalMaxJobs, setExperimentalMaxJobs] = useState<number>(4);
   const [experimentalFocusDelaySeconds, setExperimentalFocusDelaySeconds] = useState<number>(5);
+  const [experimentalDelayBetweenCardsSeconds, setExperimentalDelayBetweenCardsSeconds] = useState<number>(0.75);
+  const [experimentalIncludePagination, setExperimentalIncludePagination] = useState<boolean>(false);
+  const [experimentalCaptureDetailPhase, setExperimentalCaptureDetailPhase] = useState<boolean>(true);
+  const [experimentalDebugScreenshots, setExperimentalDebugScreenshots] = useState<boolean>(false);
   const [experimentalLoading, setExperimentalLoading] = useState<boolean>(false);
   const [experimentalSelectedJobLoading, setExperimentalSelectedJobLoading] = useState<boolean>(false);
+  const [experimentalLegacyBatchLoading, setExperimentalLegacyBatchLoading] = useState<boolean>(false);
   const [experimentalHandoffMessage, setExperimentalHandoffMessage] = useState<string | null>(null);
   const [experimentalReviewLoading, setExperimentalReviewLoading] = useState<boolean>(false);
   const [rawJobText, setRawJobText] = useState<string>('');
@@ -931,6 +937,34 @@ function App() {
       setExperimentalHandoffMessage(null);
     } finally {
       setExperimentalSelectedJobLoading(false);
+    }
+  }
+
+  async function startExperimentalLegacyBatchCapture() {
+    setExperimentalLegacyBatchLoading(true);
+    setExperimentalCaptureHealthError(null);
+    setExperimentalHandoffMessage(
+      `Switch to LinkedIn now... legacy batch capture starts in ${experimentalFocusDelaySeconds} seconds.`,
+    );
+    try {
+      const result = await startExperimentalLinkedInLegacyBatchCapture({
+        maxPages: experimentalMaxPages,
+        maxJobs: experimentalMaxJobs,
+        focusDelaySeconds: experimentalFocusDelaySeconds,
+        delayBetweenCardsSeconds: experimentalDelayBetweenCardsSeconds,
+        includePagination: experimentalIncludePagination,
+        captureDetailPhase: experimentalCaptureDetailPhase,
+        debugScreenshots: experimentalDebugScreenshots,
+      });
+      setExperimentalCaptureHealth(result);
+      setExperimentalHandoffMessage(null);
+    } catch (error) {
+      setExperimentalCaptureHealthError(
+        error instanceof Error ? error.message : 'Could not start legacy batch capture',
+      );
+      setExperimentalHandoffMessage(null);
+    } finally {
+      setExperimentalLegacyBatchLoading(false);
     }
   }
 
@@ -1818,9 +1852,9 @@ English required.`
                   </div>
                   <p>
                     Disabled by default. When explicitly enabled, this panel supports fake mock dry
-                    runs and an experimental selected-job-only capture. It does not click job cards,
-                    scroll panels, paginate, log in, store credentials, bypass CAPTCHA or rate
-                    limits, auto-apply, or send messages.
+                    runs, selected-job-only capture, and an experimental legacy batch capture port.
+                    Batch mode uses local user-supervised browser control only. It does not log in,
+                    store credentials, bypass CAPTCHA or rate limits, auto-apply, or send messages.
                   </p>
                   <p className="helper-text">
                     Backend flag: JOLT_ENABLE_EXPERIMENTAL_LINKEDIN_CAPTURE. Current status:{' '}
@@ -1897,6 +1931,62 @@ English required.`
                         {experimentalHandoffMessage ? (
                           <p className="inline-warning helper-warning">{experimentalHandoffMessage}</p>
                         ) : null}
+                      </div>
+                      <div className="experimental-option selected-job-option">
+                        <h4>Legacy batch capture</h4>
+                        <p className="helper-text compact-helper">
+                          Port of the legacy local workflow. Open LinkedIn Jobs manually, keep the
+                          left list and right detail panel visible, start capture, then switch back
+                          during the countdown. It clicks detected left-panel cards and reads URL/text
+                          only; review before saving.
+                        </p>
+                        <div className="compact-form-grid">
+                          <label>
+                            <span>Delay between cards</span>
+                            <input
+                              type="number"
+                              min="0.25"
+                              max="5"
+                              step="0.25"
+                              value={experimentalDelayBetweenCardsSeconds}
+                              onChange={(event) =>
+                                setExperimentalDelayBetweenCardsSeconds(Number(event.target.value))
+                              }
+                            />
+                          </label>
+                          <label className="checkbox-label">
+                            <input
+                              type="checkbox"
+                              checked={experimentalIncludePagination}
+                              onChange={(event) => setExperimentalIncludePagination(event.target.checked)}
+                            />
+                            <span>Include start-offset pagination</span>
+                          </label>
+                          <label className="checkbox-label">
+                            <input
+                              type="checkbox"
+                              checked={experimentalCaptureDetailPhase}
+                              onChange={(event) => setExperimentalCaptureDetailPhase(event.target.checked)}
+                            />
+                            <span>Capture detail text after each click</span>
+                          </label>
+                          <label className="checkbox-label">
+                            <input
+                              type="checkbox"
+                              checked={experimentalDebugScreenshots}
+                              onChange={(event) => setExperimentalDebugScreenshots(event.target.checked)}
+                            />
+                            <span>Debug screenshots flag</span>
+                          </label>
+                        </div>
+                        <button
+                          type="button"
+                          className="secondary-button"
+                          disabled={experimentalLegacyBatchLoading}
+                          onClick={startExperimentalLegacyBatchCapture}
+                        >
+                          {experimentalLegacyBatchLoading ? 'Running legacy batch...' : 'Start legacy batch capture'}
+                        </button>
                       </div>
                       <div className="button-row experimental-buttons">
                         <button

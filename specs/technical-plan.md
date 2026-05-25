@@ -339,7 +339,9 @@ Tracks run ID, timestamps, active profile, input/output files, counts, diagnosti
 - Add selected-job-only capture as an isolated experimental adapter that copies the focused browser URL and visible page text for one manually selected job.
 - Require a configurable focus handoff countdown before selected-job keyboard/clipboard capture begins.
 - Keep optional selected-job dependencies in `backend/requirements-experimental.txt`, separate from normal backend requirements.
-- Do not use Selenium, Playwright, browser card iteration, left-panel scrolling, pagination, login automation, credentials, CAPTCHA/rate-limit bypass, auto-apply, or messaging in Phase 17A/17B/17C/17D.
+- Add `legacy_batch_capture` as an isolated Phase 18 experimental adapter that ports the legacy local workflow: focus handoff, left-panel card candidates, card clicks, URL/currentJobId capture, visible detail text capture, duplicate diagnostics, left-panel scrolling, optional start-offset pagination, raw packages, and review conversion.
+- Keep active local browser control user-supervised, flag-gated, max-limited, stoppable, and dependent only on optional experimental requirements.
+- Do not use Selenium, Playwright, login automation, credentials, CAPTCHA/rate-limit bypass, auto-apply, or messaging in experimental capture.
 - Do not auto-save dry-run scaffold output to History, tracker export, or normal capture review.
 
 ### `history.py` / `status_tracker.py`

@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field
 ExperimentalCaptureStatus = Literal["disabled", "idle", "running", "completed", "failed", "stopped"]
 ExperimentalCaptureMode = Literal["experimental_local_capture"]
 ExperimentalCapturePlatform = Literal["linkedin_jobs"]
-ExperimentalCaptureStartMode = Literal["mock_dry_run", "selected_job_only"]
+ExperimentalCaptureStartMode = Literal["mock_dry_run", "selected_job_only", "legacy_batch_capture"]
 
 
 class ExperimentalCaptureDiagnostic(BaseModel):
@@ -54,6 +54,11 @@ class ExperimentalCaptureStartRequest(BaseModel):
     dry_run: bool = True
     selected_job_only: bool = False
     focus_delay_seconds: int = Field(default=5, ge=2, le=15)
+    delay_between_cards_seconds: float = Field(default=0.75, ge=0.25, le=5.0)
+    include_pagination: bool = False
+    capture_detail_phase: bool = True
+    debug_screenshots: bool = False
+    timeout_seconds: int = Field(default=180, ge=15, le=1800)
 
 
 class ExperimentalCaptureResponse(BaseModel):

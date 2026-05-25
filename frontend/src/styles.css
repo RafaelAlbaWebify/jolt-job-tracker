@@ -514,6 +514,24 @@ textarea {
   max-width: 120px;
 }
 
+.compact-form-grid {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.experimental-controls .checkbox-label {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+  line-height: 1.25;
+}
+
+.experimental-controls .checkbox-label input {
+  flex: 0 0 auto;
+  max-width: none;
+}
+
 .selected-job-option {
   background: #fffaf0;
 }

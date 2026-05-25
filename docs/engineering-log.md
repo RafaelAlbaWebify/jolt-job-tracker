@@ -1293,3 +1293,56 @@
 - Remaining risks / follow-up:
   - The user still must focus the correct browser tab during the countdown.
   - The adapter still captures visible copied text only; no scrolling, multi-card iteration, or pagination is implemented.
+
+## 2026-05-25 - Phase 18 Legacy Batch Capture Port
+
+- Type: Experimental capture / Legacy port / Docs / Tests
+- Files changed:
+  - `docs/legacy-capture-port.md`
+  - `backend/requirements-experimental.txt`
+  - `backend/app/services/experimental_linkedin_capture/diagnostics.py`
+  - `backend/app/services/experimental_linkedin_capture/models.py`
+  - `backend/app/services/experimental_linkedin_capture/converter.py`
+  - `backend/app/services/experimental_linkedin_capture/runner.py`
+  - `backend/app/services/experimental_linkedin_capture/legacy_batch_adapter.py`
+  - `backend/app/services/experimental_linkedin_capture/legacy_card_detection.py`
+  - `backend/app/services/experimental_linkedin_capture/legacy_clipboard_capture.py`
+  - `backend/app/services/experimental_linkedin_capture/legacy_mouse_control.py`
+  - `backend/app/services/experimental_linkedin_capture/legacy_pagination.py`
+  - `backend/app/services/experimental_linkedin_capture/legacy_diagnostics.py`
+  - `backend/tests/test_experimental_capture.py`
+  - `frontend/src/App.tsx`
+  - `frontend/src/api.ts`
+  - `frontend/src/styles.css`
+  - `README.md`
+  - `docs/architecture.md`
+  - `docs/demo-checklist.md`
+  - `docs/portfolio-walkthrough.md`
+  - `docs/engineering-log.md`
+  - `specs/product-spec.md`
+  - `specs/technical-plan.md`
+  - `specs/tasks.md`
+- Problem / goal:
+  - Port the previously working legacy LinkedIn local capture workflow into JOLT experimental mode instead of stopping at mock or selected-job-only capture.
+- Root cause / context:
+  - The legacy Streamlit pipeline already had useful behavior for user-supervised left-panel card capture, URL/currentJobId identity, raw text capture, duplicate diagnostics, scrolling, pagination, raw outputs, and parser handoff. JOLT needed the same behavior isolated behind the FastAPI/React experimental boundary.
+- Approach taken:
+  - Added `docs/legacy-capture-port.md` with a detailed file/function/step mapping before implementation.
+  - Added `legacy_batch_capture` request mode behind `JOLT_ENABLE_EXPERIMENTAL_LINKEDIN_CAPTURE`.
+  - Added isolated experimental modules for card candidate parsing, keyboard/clipboard capture, mouse control, pagination URL helpers, diagnostics package writing, and the batch adapter.
+  - Preserved max jobs, max pages, focus handoff, delay, timeout, stop, duplicate-by-currentJobId, diagnostics, and review-before-save boundaries.
+  - Wrote local raw packages under ignored `backend/data/experimental_capture/`.
+  - Updated About-page UI with legacy batch controls and safety copy.
+  - Added fake-adapter backend tests so no real browser or LinkedIn session is required.
+- Tests/checks run:
+  - Ran focused backend tests from `backend/`: `.\.venv\Scripts\python.exe -m pytest tests\test_experimental_capture.py`.
+  - Ran full backend tests from `backend/`: `.\.venv\Scripts\python.exe -m pytest`.
+  - Ran frontend build from `frontend/`: `npm run build`.
+- Result:
+  - Focused experimental capture tests passed: 27 passed, 1 pytest cache warning.
+  - Full backend tests passed: 115 passed, 1 pytest cache warning.
+  - Frontend production build passed.
+- Remaining risks / follow-up:
+  - Phase 18 adapts rather than fully reproduces the legacy pixel-perfect screenshot/card rectangle detector; live-browser QA is still required for exact card targeting.
+  - Debug screenshot annotation, pywin32 HWND targeting, visual footer next-click detection, and full second-pass reload recovery remain deferred.
+  - The mode remains disabled by default and must not be presented as public scraping or auto-apply behavior.

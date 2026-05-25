@@ -11,9 +11,12 @@ from app.services.experimental_linkedin_capture.diagnostics import (
     EXP_CAPTURE_DISABLED,
     EXP_CAPTURE_FAILED,
     EXP_CAPTURE_STOPPED,
+    EXP_LEGACY_PACKAGE_WRITTEN,
     diagnostic_event,
     utc_now_iso,
 )
+from app.services.experimental_linkedin_capture.legacy_batch_adapter import LegacyBatchCaptureAdapter
+from app.services.experimental_linkedin_capture.legacy_diagnostics import write_legacy_run_package
 from app.services.experimental_linkedin_capture.models import (
     ExperimentalCaptureResponse,
     ExperimentalCaptureRunPackage,
@@ -22,8 +25,10 @@ from app.services.experimental_linkedin_capture.models import (
 from app.services.experimental_linkedin_capture.windows_selected_job_adapter import WindowsSelectedJobCaptureAdapter
 
 _LATEST_RUN: ExperimentalCaptureRunPackage | None = None
+_STOP_REQUESTED = False
 EXPERIMENTAL_CAPTURE_ROOT = Path(__file__).resolve().parents[3] / "data" / "experimental_capture"
 SELECTED_JOB_ADAPTER_FACTORY = WindowsSelectedJobCaptureAdapter
+LEGACY_BATCH_ADAPTER_FACTORY = LegacyBatchCaptureAdapter
 
 
 def experimental_capture_enabled() -> bool:
@@ -59,10 +64,10 @@ def health_response() -> ExperimentalCaptureResponse:
     return ExperimentalCaptureResponse(
         enabled=True,
         status=_LATEST_RUN.status if _LATEST_RUN else "idle",
-        message="Experimental LinkedIn capture is enabled for mock dry runs and selected-job-only prototype capture.",
+        message="Experimental LinkedIn capture is enabled for mock dry runs, selected-job-only capture, and legacy batch capture.",
         run=_LATEST_RUN,
         warnings=[
-            "Experimental only: no Selenium, Playwright, job-card iteration, panel scrolling, pagination, login, credentials, CAPTCHA bypass, auto-apply, or messaging.",
+            "Experimental only: user-supervised local browser control; no Selenium, Playwright, login, credentials, CAPTCHA bypass, auto-apply, or messaging.",
         ],
         captured_count=len(_LATEST_RUN.captured_jobs) if _LATEST_RUN else 0,
         can_review=bool(_LATEST_RUN and _LATEST_RUN.captured_jobs),
@@ -70,12 +75,15 @@ def health_response() -> ExperimentalCaptureResponse:
 
 
 def start_capture(request: ExperimentalCaptureStartRequest) -> ExperimentalCaptureResponse:
-    global _LATEST_RUN
+    global _LATEST_RUN, _STOP_REQUESTED
     if not experimental_capture_enabled():
         return disabled_response("start")
 
+    _STOP_REQUESTED = False
     if request.mode == "selected_job_only":
         return _start_selected_job_capture(request)
+    if request.mode == "legacy_batch_capture":
+        return _start_legacy_batch_capture(request)
 
     run_id = f"exp_linkedin_mock_{uuid4().hex[:12]}"
     adapter = MockExperimentalLinkedInCaptureAdapter()
@@ -96,12 +104,13 @@ def start_capture(request: ExperimentalCaptureStartRequest) -> ExperimentalCaptu
 
 
 def stop_capture() -> ExperimentalCaptureResponse:
-    global _LATEST_RUN
+    global _LATEST_RUN, _STOP_REQUESTED
     if not experimental_capture_enabled():
         response = disabled_response("stop")
         response.message = "Experimental LinkedIn capture is disabled; stop is a safe no-op."
         return response
 
+    _STOP_REQUESTED = True
     if _LATEST_RUN and _LATEST_RUN.status == "running":
         _LATEST_RUN.status = "stopped"
         _LATEST_RUN.finished_at = utc_now_iso()
@@ -126,7 +135,7 @@ def status_response() -> ExperimentalCaptureResponse:
     return ExperimentalCaptureResponse(
         enabled=True,
         status=_LATEST_RUN.status if _LATEST_RUN else "idle",
-        message="Experimental LinkedIn capture status. Full card iteration, scrolling, and pagination are not implemented.",
+        message="Experimental LinkedIn capture status. Legacy batch mode remains experimental and user-supervised.",
         run=_LATEST_RUN,
         captured_count=len(_LATEST_RUN.captured_jobs) if _LATEST_RUN else 0,
         can_review=bool(_LATEST_RUN and _LATEST_RUN.captured_jobs),
@@ -143,7 +152,7 @@ def review_latest_capture(profile: RuleProfile) -> CaptureRunResult:
     request = CaptureRunRequest(
         profile_id=profile.profile_id,
         capture_mode="manual_raw_jobs",
-        source="experimental_linkedin_mock",
+        source="experimental_linkedin_package",
         max_results=len(raw_jobs),
         dry_run=True,
         raw_jobs=raw_jobs,
@@ -207,3 +216,49 @@ def _selected_job_message(run: ExperimentalCaptureRunPackage) -> str:
     if run.status == "failed":
         return "Selected-job capture failed or dependencies are missing; no browser automation fallback was attempted."
     return "Selected-job capture completed for the currently focused browser page; review before saving."
+
+
+def _start_legacy_batch_capture(request: ExperimentalCaptureStartRequest) -> ExperimentalCaptureResponse:
+    global _LATEST_RUN
+    run_id = f"exp_linkedin_legacy_{uuid4().hex[:12]}"
+    adapter = LEGACY_BATCH_ADAPTER_FACTORY()
+    _LATEST_RUN = adapter.run(
+        run_id=run_id,
+        max_pages=request.max_pages,
+        max_jobs=request.max_jobs,
+        focus_delay_seconds=request.focus_delay_seconds,
+        delay_between_cards_seconds=request.delay_between_cards_seconds,
+        include_pagination=request.include_pagination,
+        capture_detail_phase=request.capture_detail_phase,
+        debug_screenshots=request.debug_screenshots,
+        timeout_seconds=request.timeout_seconds,
+        stop_requested=lambda: _STOP_REQUESTED,
+    )
+    if _LATEST_RUN.status == "completed" or _LATEST_RUN.captured_jobs:
+        _write_run_package(_LATEST_RUN)
+        package_dir = write_legacy_run_package(EXPERIMENTAL_CAPTURE_ROOT, _LATEST_RUN)
+        _LATEST_RUN.diagnostics.append(
+            diagnostic_event(
+                EXP_LEGACY_PACKAGE_WRITTEN,
+                "Legacy batch raw package was written under backend/data/experimental_capture.",
+                details={"run_id": _LATEST_RUN.run_id, "package_dir": str(package_dir)},
+            )
+        )
+    return ExperimentalCaptureResponse(
+        enabled=True,
+        status=_LATEST_RUN.status,
+        message=_legacy_batch_message(_LATEST_RUN),
+        run=_LATEST_RUN,
+        diagnostics=_LATEST_RUN.diagnostics,
+        warnings=_LATEST_RUN.warnings,
+        captured_count=len(_LATEST_RUN.captured_jobs),
+        can_review=bool(_LATEST_RUN.captured_jobs),
+    )
+
+
+def _legacy_batch_message(run: ExperimentalCaptureRunPackage) -> str:
+    if run.status == "failed":
+        return "Legacy batch capture failed or dependencies are missing; review diagnostics before trying again."
+    if run.status == "stopped":
+        return "Legacy batch capture stopped; any captured jobs can be reviewed before saving."
+    return "Legacy batch capture completed; review the captured package before saving anything to history."

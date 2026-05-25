@@ -341,6 +341,38 @@ export async function startExperimentalLinkedInSelectedJobCapture(
   });
 }
 
+export type ExperimentalLegacyBatchCaptureRequest = {
+  maxPages: number;
+  maxJobs: number;
+  focusDelaySeconds: number;
+  delayBetweenCardsSeconds: number;
+  includePagination: boolean;
+  captureDetailPhase: boolean;
+  debugScreenshots: boolean;
+};
+
+export async function startExperimentalLinkedInLegacyBatchCapture(
+  request: ExperimentalLegacyBatchCaptureRequest,
+): Promise<ExperimentalCaptureResponse> {
+  return fetchJson<ExperimentalCaptureResponse>('/api/experimental-capture/linkedin/start', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      mode: 'legacy_batch_capture',
+      max_pages: request.maxPages,
+      max_jobs: request.maxJobs,
+      dry_run: false,
+      focus_delay_seconds: request.focusDelaySeconds,
+      delay_between_cards_seconds: request.delayBetweenCardsSeconds,
+      include_pagination: request.includePagination,
+      capture_detail_phase: request.captureDetailPhase,
+      debug_screenshots: request.debugScreenshots,
+    }),
+  });
+}
+
 export async function stopExperimentalLinkedInDryRun(): Promise<ExperimentalCaptureResponse> {
   return fetchJson<ExperimentalCaptureResponse>('/api/experimental-capture/linkedin/stop', {
     method: 'POST',

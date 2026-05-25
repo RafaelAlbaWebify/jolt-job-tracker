@@ -5,9 +5,17 @@ from app.services.experimental_linkedin_capture.models import ExperimentalCaptur
 def experimental_run_to_raw_jobs(run: ExperimentalCaptureRunPackage) -> list[CapturedRawJob]:
     raw_jobs: list[CapturedRawJob] = []
     for job in run.captured_jobs:
-        source = "experimental_linkedin_selected_job" if job.capture_state.startswith("selected_job_only") else "experimental_linkedin_mock"
+        if job.capture_state.startswith("selected_job_only"):
+            source = "experimental_linkedin_selected_job"
+            capture_label = "selected-job experimental capture"
+        elif job.capture_state.startswith("legacy_batch"):
+            source = "experimental_linkedin_legacy_batch"
+            capture_label = "legacy batch experimental capture"
+        else:
+            source = "experimental_linkedin_mock"
+            capture_label = "mock experimental LinkedIn capture dry-run"
         notes = [
-            "selected-job experimental capture" if source.endswith("selected_job") else "mock experimental LinkedIn capture dry-run",
+            capture_label,
             f"capture_state={job.capture_state}",
         ]
         if job.current_job_id:

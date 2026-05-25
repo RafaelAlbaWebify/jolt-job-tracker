@@ -111,6 +111,7 @@ Expected result:
 11. State clearly that legacy batch capture is a port of a local workflow, remains disabled/experimental, and may click detected left-panel cards, copy URL/text, scroll, and optionally use start-offset pagination within max limits.
 12. State clearly that no experimental mode logs in, stores credentials, bypasses CAPTCHA/rate limits, auto-applies, or messages anyone.
 13. For Phase 18A debugging, point out the compact control surface, full scrollable diagnostics, Copy diagnostics button, latest diagnostic callout, and no-click Test mouse control action.
+14. For Phase 18B, explain that synthetic approximate card rows were removed as the primary path; legacy batch now uses visual screenshot/card-title detection and skips URL-only, too-short, missing-ID, or duplicate-ID captures.
 
 Example synthetic multi-job text:
 

@@ -320,6 +320,8 @@ class LegacyBatchCaptureAdapter:
                         seen_job_ids=seen_job_ids,
                         diagnostics=diagnostics,
                     )
+                    if job is None:
+                        continue
                     if job.source_url:
                         base_url = job.source_url
                     captured.append(job)
@@ -432,7 +434,7 @@ class LegacyBatchCaptureAdapter:
         page_index: int,
         seen_job_ids: dict[str, int],
         diagnostics: list[ExperimentalCaptureDiagnostic],
-    ) -> ExperimentalCapturedJobRecord:
+    ) -> ExperimentalCapturedJobRecord | None:
         diagnostics.append(
             diagnostic_event(
                 EXP_BROWSER_URL_CAPTURE_STARTED,
@@ -523,6 +525,25 @@ class LegacyBatchCaptureAdapter:
                     details={"characters": len(raw_text)},
                 )
             )
+        if source_url and raw_text.strip() == source_url.strip():
+            diagnostics.append(
+                diagnostic_event(
+                    EXP_CAPTURE_FAILED,
+                    "Skipping card because copied detail text equals the address-bar URL.",
+                    level="error",
+                )
+            )
+            return None
+        if len(raw_text) < 600 or not ready:
+            diagnostics.append(
+                diagnostic_event(
+                    EXP_CAPTURE_FAILED,
+                    "Skipping card because detail text did not pass readiness checks.",
+                    level="error",
+                    details={"characters": len(raw_text), "ready": ready},
+                )
+            )
+            return None
 
         duplicate_of = None
         capture_state = "legacy_batch_captured"
@@ -537,8 +558,26 @@ class LegacyBatchCaptureAdapter:
                     details={"current_job_id": current_job_id, "duplicate_of": duplicate_of},
                 )
             )
+            diagnostics.append(
+                diagnostic_event(
+                    EXP_CAPTURE_FAILED,
+                    "Skipping duplicate currentJobId; it is not counted as a new successful capture.",
+                    level="warning",
+                    details={"current_job_id": current_job_id, "duplicate_of": duplicate_of},
+                )
+            )
+            return None
         elif current_job_id:
             seen_job_ids[current_job_id] = sequence
+        else:
+            diagnostics.append(
+                diagnostic_event(
+                    EXP_CAPTURE_FAILED,
+                    "Skipping card because no currentJobId was captured.",
+                    level="warning",
+                )
+            )
+            return None
 
         job_diagnostics = [event for event in diagnostics[-6:]]
         return ExperimentalCapturedJobRecord(

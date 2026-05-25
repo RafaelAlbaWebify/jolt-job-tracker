@@ -87,3 +87,41 @@ Phase 18A changes the runtime order to:
 9. scroll/pagination/stop handling.
 
 Phase 18A also adds full diagnostics visibility in the UI and a no-click mouse-control test. The next debugging target is live validation of the estimated card coordinates versus the browser's left result panel. Pixel-perfect legacy screenshot rectangle detection and annotated screenshots remain deferred.
+
+## Phase 18B Real Legacy Logic Port
+
+The next real test proved Phase 18A still used synthetic candidates such as `visible_card_candidate_1` and `screen_candidate_1_417_201`. That was not equivalent to the working legacy capture engine. Phase 18B removes that primary approximation and ports the legacy v35 visual card-detection flow into JOLT's experimental adapter.
+
+| Legacy function/class | File path | Role in working capture flow | Phase 18B status | JOLT destination | Reason |
+|---|---|---|---|---|---|
+| `Rect`, `TitleSignal`, `Card`, `ViewportResult` | `legacy/streamtlit_pipeline/capture_engine_v35_left_panel_guided.py` | Shared geometry model for ROIs, title signals, card rectangles, scroll/thumb/footer state, and click points. | Adapted | `legacy_card_detection.py` (`Rect`, `TitleSignal`, `LegacyVisualCard`, `LegacyScreenContext`) | Keeps the real geometry vocabulary while mapping to JOLT's captured-job models. |
+| `estimate_left_panel_roi()` | same | Built a guarded fallback ROI from browser window geometry and mouse hint. | Ported/adapted | `estimate_left_panel_roi()` | Used only as fallback when visual scrollbar rail is not found. |
+| `detect_left_panel_scrollbar_rail()` | same | Scanned screenshot pixels for the left results panel scrollbar rail before deriving card ROI. | Ported/adapted | `detect_left_panel_scrollbar_rail()` | Restores legacy panel-location behavior instead of hardcoded x/y rows. |
+| `estimate_left_panel_rois()` | same | Returned panel ROI and content ROI, keeping card detection before the scrollbar/right detail panel. | Ported/adapted | `estimate_left_panel_rois()` | Prevents right-panel blue buttons from being treated as job cards. |
+| `detect_pagination_footer()` | same | Detected footer/pagination band so bottom cards and completion could be handled safely. | Ported/adapted | `detect_pagination_footer()` | Used for safe bottom-card filtering; footer clicking remains deferred. |
+| `effective_card_roi()` | same | Reduced card ROI when footer was visible. | Ported | `effective_card_roi()` | Avoids clicking pagination/footer as a card. |
+| `is_linkedin_blue()` and `detect_blue_title_signals()` | same | Found LinkedIn-blue title text clusters inside the left card ROI. | Ported/adapted | `detect_blue_title_signals()` | This is the core replacement for synthetic candidates. |
+| `card_visibility()` | same | Classified cards as full/partial top/partial bottom/short. | Ported | `card_visibility()` | Allows safe partial top/bottom recovery while skipping unsafe cards. |
+| `average_hash()` and `fingerprint_card()` | same | Produced visual card fingerprints to avoid repeated/overlap clicks. | Ported/adapted | `average_hash()`, `fingerprint_card()` | JOLT now carries visual fingerprints in candidate signatures. |
+| `build_cards_from_title_signals()` | same | Converted title signals into card rectangles and title-area click coordinates. | Ported/adapted | `build_cards_from_title_signals()` | Restores title-area click coordinates rather than rough row guesses. |
+| `clickable_cards_for_viewport()` | same | Returned full cards plus safe partial top/bottom cards, sorted by card location. | Ported/adapted | `clickable_cards_for_viewport()` | Avoids wrong areas and skips unsafe partial cards. |
+| `capture_candidates_for_viewport()` | same | On later viewports, clicked only the lower newly revealed band to avoid overlap. | Partially adapted | `clickable_cards_for_viewport(..., viewport_index=...)` | The band-filtering logic is available; full viewport loop parity is still being rebuilt in the adapter. |
+| `capture_and_detect()` | same | Focused browser, captured screenshot, derived ROIs, detected footer/thumb/title signals/cards, wrote optional annotated screenshots. | Adapted | `LegacyMouseControl.screen_context()` + `estimate_cards_from_screen_context()` | JOLT captures screenshot/window context and detects cards; annotated debug images remain deferred. |
+| `click_card_and_read_id()` | same | Clicked title-area points, retried alternate title coordinates, waited, copied URL, extracted currentJobId, and treated unchanged IDs as unconfirmed unless allowed. | Partially adapted | `LegacyMouseControl.click_card()` + `LegacyBatchCaptureAdapter.capture_selected_card()` | JOLT now clicks visual title coordinates and skips duplicate/missing IDs; full alternate-click retry remains follow-up. |
+| `copy_current_url()` | same | Copied browser URL after card click. | Ported/adapted | `legacy_clipboard_capture.py` | Keeps currentJobId as primary identity. |
+| `extract_current_job_id()` | same | Extracted `currentJobId` from URL. | Reused | `url_utils.py` | Existing JOLT utility handles this. |
+| `copy_visible_page_text_no_content_click()` | same | Copied page/detail text after focus reset. | Adapted | `legacy_clipboard_capture.py` | Now called only after card click. URL-only text is treated as failure. |
+| `raw_text_has_job_panel()` and `wait_for_job_url_and_panel_text()` | same | Checked panel markers, text length, currentJobId match, and text stability. | Partially adapted | `raw_text_has_job_panel()` + adapter diagnostics | Text readiness, URL-only, short text, and duplicate failures are enforced; full stable-poll/reload retry remains follow-up. |
+| `capture_current_page_ids()` | same | Orchestrated page reset, viewport scan, click loop, fingerprint tracking, scrollbar drags, duplicate ID detection, and page completion. | Partially adapted | `LegacyBatchCaptureAdapter.run()` | JOLT now uses real visual card candidates and skip rules; full multi-viewport parity remains the next target. |
+| `drag_scrollbar_to_top()`, `drag_scrollbar_down()`, `calculate_drag_px()` | same | Reset left panel and advanced by adaptive scrollbar-thumb drags. | Deferred/partial | `legacy_mouse_control.py` | JOLT still uses simpler scroll command; full thumb-drag parity remains needed. |
+| `viewport_fingerprint_set()` and overlap checks | same | Detected repeated/overlapping viewports after scroll. | Partial | Candidate fingerprints in `LegacyLeftPanelCard` | Per-viewport overlap loop still needs full port. |
+| `open_results_page_direct_v16()` and `click_footer_next_page()` | same | Advanced result pages with direct URL and visual fallbacks. | Partial | `legacy_pagination.py` | Start-offset helper exists; visual footer click remains deferred. |
+| `save_outputs()` and `save_raw_text_outputs()` | same | Wrote raw ID/text outputs for parser handoff. | Adapted | `legacy_diagnostics.py`, `runner.py` | JOLT writes ignored local experimental packages and uses `review-latest`. |
+
+Phase 18B also changes capture validity:
+
+- URL-only detail text is a failed capture, not a successful job.
+- Too-short or marker-failing detail text is a failed capture.
+- Missing `currentJobId` is a failed capture.
+- Duplicate `currentJobId` is diagnosed but not counted as a new successful job.
+- Review conversion receives only successful captured jobs from the legacy adapter.

@@ -613,22 +613,25 @@ textarea {
 }
 
 .diagnostics-scrollbox {
-  background: #16262c;
+  background: #fffaf0;
+  border: 1px solid #e7dfc9;
   border-radius: 7px;
-  color: #eef7f5;
+  color: #25343a;
   display: grid;
   gap: 6px;
-  max-height: 360px;
-  min-height: 220px;
+  max-height: 300px;
+  min-height: 150px;
   overflow: auto;
   padding: 8px;
 }
 
 .diagnostic-line {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  background: #ffffff;
+  border: 1px solid #eee1c8;
+  border-radius: 6px;
   display: grid;
   gap: 2px;
-  padding-bottom: 5px;
+  padding: 6px;
 }
 
 .diagnostic-line span,
@@ -640,20 +643,20 @@ textarea {
 }
 
 .diagnostic-line strong {
-  color: #ffffff;
+  color: #25343a;
   font-size: 0.76rem;
 }
 
 .diagnostic-line.warning strong {
-  color: #ffd98a;
+  color: #8b5e00;
 }
 
 .diagnostic-line.error strong {
-  color: #ffb0a8;
+  color: #a83224;
 }
 
 .diagnostic-line code {
-  color: #b6e7d7;
+  color: #42626c;
   white-space: pre-wrap;
 }
 

@@ -10,10 +10,12 @@ from app.services.experimental_linkedin_capture.diagnostics import (
     EXP_CARD_DETECTION_COMPLETED,
     EXP_CARD_DETECTION_STARTED,
     EXP_CARD_DETECTION_ZERO_CARDS,
+    EXP_CAPTURE_FAILED,
     EXP_CURRENT_JOB_ID_EXTRACTED,
     EXP_CURRENT_JOB_ID_MISSING,
     EXP_CAPTURE_DISABLED,
     EXP_CAPTURE_STARTED,
+    EXP_DETAIL_TEXT_EQUALS_URL,
     EXP_DETAIL_TEXT_READY,
     EXP_DETAIL_TEXT_NOT_READY,
     EXP_DUPLICATE_JOB_ID,
@@ -44,7 +46,7 @@ from app.services.experimental_linkedin_capture.diagnostics import (
 from app.services.experimental_linkedin_capture import runner
 from app.services.experimental_linkedin_capture import windows_selected_job_adapter
 from app.services.experimental_linkedin_capture.legacy_batch_adapter import LegacyBatchCaptureAdapter
-from app.services.experimental_linkedin_capture.legacy_card_detection import LegacyScreenContext
+from app.services.experimental_linkedin_capture.legacy_card_detection import LegacyLeftPanelCard, LegacyScreenContext
 from app.services.experimental_linkedin_capture.models import (
     ExperimentalCapturedJobRecord,
     ExperimentalCaptureRunPackage,
@@ -629,7 +631,26 @@ def test_legacy_batch_real_adapter_detects_before_ctrl_a_and_then_clicks(monkeyp
         def scroll_left_panel(self, amount: int = -5) -> None:
             call_order.append("scroll")
 
-    adapter = LegacyBatchCaptureAdapter(clipboard=FakeClipboard(), mouse=FakeMouse())
+    class FakeVisualAdapter(LegacyBatchCaptureAdapter):
+        def detect_cards(self, screen_context: LegacyScreenContext, *, max_cards: int) -> list[LegacyLeftPanelCard]:
+            call_order.append("detect_visual_cards")
+            return [
+                LegacyLeftPanelCard(
+                    title="Runtime Diagnostics Support Engineer",
+                    company="Demo Runtime Co",
+                    location="Remote",
+                    signature="legacy_visual_card_real",
+                    card_index=1,
+                    click_x=612,
+                    click_y=286,
+                    confidence=0.8,
+                    visibility="FULL",
+                    reason="title-blue-signal",
+                    fingerprint="abc123",
+                )
+            ]
+
+    adapter = FakeVisualAdapter(clipboard=FakeClipboard(), mouse=FakeMouse())
 
     run = adapter.run(
         run_id="legacy_real_fake",
@@ -647,7 +668,8 @@ def test_legacy_batch_real_adapter_detects_before_ctrl_a_and_then_clicks(monkeyp
     assert run.status == "completed"
     assert len(run.captured_jobs) == 1
     assert call_order[0] == "screen_context"
-    assert call_order[1].startswith("click:")
+    assert call_order[1] == "detect_visual_cards"
+    assert call_order[2].startswith("click:")
     assert call_order.index("copy_visible_text") > call_order.index("copy_url")
     codes = {event.code for event in run.diagnostics}
     assert EXP_LEGACY_BATCH_DEPENDENCIES_OK in codes
@@ -659,6 +681,24 @@ def test_legacy_batch_real_adapter_detects_before_ctrl_a_and_then_clicks(monkeyp
     assert EXP_CARD_CLICK_ATTEMPTED in codes
     assert EXP_CARD_CLICK_COMPLETED in codes
     assert EXP_BROWSER_URL_CAPTURE_STARTED in codes
+
+
+def test_legacy_batch_visual_detection_does_not_generate_synthetic_candidates() -> None:
+    adapter = LegacyBatchCaptureAdapter()
+
+    cards = adapter.detect_cards(
+        LegacyScreenContext(
+            screenshot_width=1600,
+            screenshot_height=900,
+            active_window_title="LinkedIn Jobs - Chrome",
+            active_window_width=1600,
+            active_window_height=900,
+            screenshot=None,
+        ),
+        max_cards=5,
+    )
+
+    assert cards == []
 
 
 def test_legacy_batch_zero_cards_has_explicit_diagnostic(monkeypatch) -> None:
@@ -696,6 +736,117 @@ def test_legacy_batch_zero_cards_has_explicit_diagnostic(monkeypatch) -> None:
     zero_event = next(event for event in run.diagnostics if event.code == EXP_CARD_DETECTION_ZERO_CARDS)
     assert zero_event.details["screenshot_width"] == 300
     assert zero_event.details["active_window_title"] == "Tiny"
+
+
+def test_legacy_batch_url_only_detail_is_not_counted(monkeypatch) -> None:
+    monkeypatch.setattr(windows_selected_job_adapter.time, "sleep", lambda seconds: None)
+    source_url = "https://www.linkedin.com/jobs/search/?currentJobId=9010"
+
+    class FakeClipboard:
+        def dependency_error(self) -> str:
+            return ""
+
+        def copy_current_url(self) -> str:
+            return source_url
+
+        def copy_visible_text(self) -> str:
+            return source_url
+
+    class FakeMouse:
+        def dependency_error(self) -> str:
+            return ""
+
+        def screen_context(self) -> LegacyScreenContext:
+            return LegacyScreenContext(screenshot_width=1600, screenshot_height=900, active_window_width=1600, active_window_height=900)
+
+        def click_card(self, x: int, y: int) -> None:
+            return None
+
+    class FakeVisualAdapter(LegacyBatchCaptureAdapter):
+        def detect_cards(self, screen_context: LegacyScreenContext, *, max_cards: int) -> list[LegacyLeftPanelCard]:
+            return [
+                LegacyLeftPanelCard("URL Only", "Demo", "Remote", "url_only", 1, 612, 286)
+            ]
+
+    run = FakeVisualAdapter(clipboard=FakeClipboard(), mouse=FakeMouse()).run(
+        run_id="legacy_url_only",
+        max_pages=1,
+        max_jobs=1,
+        focus_delay_seconds=2,
+        delay_between_cards_seconds=0.25,
+        include_pagination=False,
+        capture_detail_phase=True,
+        debug_screenshots=False,
+        timeout_seconds=30,
+        stop_requested=lambda: False,
+    )
+
+    codes = {event.code for event in run.diagnostics}
+    assert run.status == "failed"
+    assert len(run.captured_jobs) == 0
+    assert EXP_DETAIL_TEXT_EQUALS_URL in codes
+    assert EXP_CAPTURE_FAILED in codes
+
+
+def test_legacy_batch_duplicate_current_job_id_is_not_counted_as_new(monkeypatch) -> None:
+    monkeypatch.setattr(windows_selected_job_adapter.time, "sleep", lambda seconds: None)
+    urls = [
+        "https://www.linkedin.com/jobs/search/?currentJobId=9010",
+        "https://www.linkedin.com/jobs/search/?currentJobId=9010",
+    ]
+    index = {"value": 0}
+
+    class FakeClipboard:
+        def dependency_error(self) -> str:
+            return ""
+
+        def copy_current_url(self) -> str:
+            value = urls[min(index["value"], len(urls) - 1)]
+            index["value"] += 1
+            return value
+
+        def copy_visible_text(self) -> str:
+            return (
+                "Title: Duplicate Test Job\nCompany: Demo\nLocation: Remote\n"
+                "About the job Easy Apply Save applicants remote company job "
+                + ("support endpoint troubleshooting " * 30)
+            )
+
+    class FakeMouse:
+        def dependency_error(self) -> str:
+            return ""
+
+        def screen_context(self) -> LegacyScreenContext:
+            return LegacyScreenContext(screenshot_width=1600, screenshot_height=900, active_window_width=1600, active_window_height=900)
+
+        def click_card(self, x: int, y: int) -> None:
+            return None
+
+    class FakeVisualAdapter(LegacyBatchCaptureAdapter):
+        def detect_cards(self, screen_context: LegacyScreenContext, *, max_cards: int) -> list[LegacyLeftPanelCard]:
+            return [
+                LegacyLeftPanelCard("First", "Demo", "Remote", "first", 1, 612, 286),
+                LegacyLeftPanelCard("Duplicate", "Demo", "Remote", "duplicate", 2, 612, 380),
+            ]
+
+    run = FakeVisualAdapter(clipboard=FakeClipboard(), mouse=FakeMouse()).run(
+        run_id="legacy_duplicate",
+        max_pages=1,
+        max_jobs=2,
+        focus_delay_seconds=2,
+        delay_between_cards_seconds=0.25,
+        include_pagination=False,
+        capture_detail_phase=True,
+        debug_screenshots=False,
+        timeout_seconds=30,
+        stop_requested=lambda: False,
+    )
+
+    codes = {event.code for event in run.diagnostics}
+    assert run.status == "completed"
+    assert len(run.captured_jobs) == 1
+    assert EXP_DUPLICATE_JOB_ID in codes
+    assert EXP_CAPTURE_FAILED in codes
 
 
 def test_legacy_batch_stop_condition_is_respected(monkeypatch) -> None:

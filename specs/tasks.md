@@ -647,6 +647,7 @@ README states:
 - manual helper UX explains bookmarklet installation, Chrome `javascript:` URL blocking, and sample `JOLT_CAPTURE_V1` payload testing;
 - experimental LinkedIn capture exists only behind the disabled-by-default feature flag as schemas, API boundary, URL/currentJobId utilities, fake-data mock dry-run packages, selected-job-only prototype capture with focus handoff countdown, and Phase 18 legacy batch capture port with user-supervised card clicks, visible text capture, duplicate diagnostics, scrolling, optional start-offset pagination, review conversion, and diagnostics;
 - Phase 18A fixes the legacy batch operational UI, renders all diagnostics in a scrollable copyable panel, adds runtime checkpoints around dependencies/window/screenshot/card detection/clicking/URL/detail capture/scrolling, adds a no-click mouse-control test, and ensures Ctrl+A detail capture happens only after card click attempts;
+- Phase 18B removes synthetic approximate card candidates as the primary path, ports legacy v35 visual ROI/title-signal/card-rectangle detection, treats URL-only/too-short/missing-ID/duplicate-ID captures as failed or skipped rather than successful, and repairs the diagnostics panel styling;
 - configurable profiles make it reusable;
 - manual paste is fallback/debug;
 - React + backend architecture;

@@ -1386,3 +1386,38 @@
 - Remaining risks / follow-up:
   - Live validation is still needed to confirm estimated click coordinates align with the LinkedIn left panel on the user's browser size/zoom.
   - Pixel-perfect legacy screenshot card rectangle detection and debug screenshot annotation remain deferred.
+
+## 2026-05-26 - Phase 18B Real Legacy Capture Behavior Port
+
+- Type: Experimental capture parity / UI repair / Tests / Docs
+- Files changed:
+  - `backend/app/services/experimental_linkedin_capture/legacy_card_detection.py`
+  - `backend/app/services/experimental_linkedin_capture/legacy_batch_adapter.py`
+  - `backend/tests/test_experimental_capture.py`
+  - `frontend/src/styles.css`
+  - `docs/legacy-capture-port.md`
+  - `docs/engineering-log.md`
+  - `docs/demo-checklist.md`
+  - `specs/tasks.md`
+- Problem / goal:
+  - Phase 18/18A still used synthetic candidates such as `visible_card_candidate_1` and `screen_candidate_*`, which was not equivalent to the working legacy capture engine.
+- Root cause found:
+  - The previous JOLT adapter generated approximate click rows from active-window geometry instead of porting the legacy v35 screenshot/ROI/title-signal/card-rectangle detection pipeline.
+  - The diagnostics UI used a large dark terminal-style block that dominated the About page.
+- Approach taken:
+  - Ported legacy v35 visual card detection into `legacy_card_detection.py`: scrollbar rail ROI detection, content ROI derivation, pagination/footer trimming, LinkedIn-blue title-signal detection, card rectangle building, visibility filtering, card fingerprinting, and safe clickable-card selection.
+  - Removed the synthetic candidate fallback as the primary path; no screenshot means zero candidates with explicit diagnostics rather than invented rows.
+  - Updated legacy batch capture validity so URL-only detail text, too-short/unready detail text, missing currentJobId, and duplicate currentJobId are not counted as successful captured jobs.
+  - Reworked diagnostics panel styling to use compact JOLT-themed rows instead of a large black terminal block.
+  - Expanded tests for no synthetic fallback, URL-only detail failure, duplicate currentJobId skip, and existing experimental modes.
+- Tests/checks run:
+  - Ran focused backend tests from `backend/`: `.\.venv\Scripts\python.exe -m pytest tests\test_experimental_capture.py`.
+  - Ran full backend tests from `backend/`: `.\.venv\Scripts\python.exe -m pytest`.
+  - Ran frontend build from `frontend/`: `npm run build`.
+- Result:
+  - Focused experimental capture tests passed: 35 passed, 1 pytest cache warning.
+  - Full backend tests passed: 123 passed, 1 pytest cache warning.
+  - Frontend production build passed.
+- Remaining risks / follow-up:
+  - Full legacy viewport loop parity still needs adaptive scrollbar thumb dragging, repeated viewport overlap checks, visual footer next-click fallback, and stable-poll/reload detail capture.
+  - Live LinkedIn validation is still needed because tests use fake/mocked engine boundaries only.

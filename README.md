@@ -49,7 +49,7 @@ The Capture page is the primary workflow. Manual paste exists as a fallback/debu
 - Capture diagnostics showing input size, candidate cards found, accepted/rejected cards, source URL notes, and capture confidence.
 - Duplicate preview against local history before saving, without silently dropping likely duplicates.
 - Capture health endpoint showing browser automation disabled by default.
-- Experimental LinkedIn capture scaffold with disabled-by-default health/start/stop/status API responses, URL/currentJobId utilities, mock dry-run package generation, fake-job diagnostics, and review conversion into the normal capture pipeline.
+- Experimental LinkedIn capture scaffold with disabled-by-default health/start/stop/status API responses, URL/currentJobId utilities, mock dry-run package generation, selected-job-only prototype capture, diagnostics, and review conversion into the normal capture pipeline.
 - Frontend review dashboard with demo jobs, decision counts, filters, and decision cards.
 - Local export package generation under ignored `backend/data/exports/`.
 - JSON, CSV, and multi-sheet XLSX export formats.
@@ -67,11 +67,11 @@ The Capture page is the primary workflow. Manual paste exists as a fallback/debu
 | Page text | Implemented | User pastes visible page text; JOLT extracts local job blocks and sends them through the same parser and decision engine. |
 | HTML fragment / uploaded HTML content | Implemented | User provides copied HTML locally; JOLT strips page noise, preserves likely job links, and extracts job cards conservatively. |
 | Manual browser helper | Implemented | User manually clicks a bookmarklet/helper on a page they already opened; it copies visible card text and URLs for pasting into Page text mode. |
-| Experimental LinkedIn local capture | Disabled mock scaffold | Backend/API/UI boundary exists behind `JOLT_ENABLE_EXPERIMENTAL_LINKEDIN_CAPTURE=false` by default. When enabled, Phase 17B runs fake-data mock dry runs only and can convert the package into normal review cards; no browser automation is attempted. |
+| Experimental LinkedIn local capture | Disabled experimental scaffold | Backend/API/UI boundary exists behind `JOLT_ENABLE_EXPERIMENTAL_LINKEDIN_CAPTURE=false` by default. When enabled, mock dry runs use fake data, and the selected-job prototype can read the current URL plus visible copied page text for one job the user already selected manually. |
 
 Page text / HTML and manual helper capture are local and user-controlled. The helper does not open pages, navigate, crawl, store credentials, bypass authentication, bypass CAPTCHA, or submit applications.
 
-The experimental LinkedIn capture scaffold is not connected to Save to History automatically. When the flag is enabled, it can generate a mock package with fake jobs under ignored local data and let the user review that package through the normal parser/profile/decision cards. It still performs no pyautogui, pywin32, Selenium, Playwright, card clicking, page navigation, login, credential storage, CAPTCHA/rate-limit bypass, auto-apply, or recruiter messaging.
+The experimental LinkedIn capture scaffold is not connected to Save to History automatically. When the flag is enabled, it can generate a mock package with fake jobs under ignored local data, or capture one currently selected job by copying the focused browser URL and visible page text. It still performs no Selenium, Playwright, multi-card iteration, result-panel scrolling, pagination, login, credential storage, CAPTCHA/rate-limit bypass, auto-apply, or recruiter messaging. The selected-job prototype is Windows/local and depends on optional experimental keyboard/clipboard support.
 
 ## What It Intentionally Does Not Do
 

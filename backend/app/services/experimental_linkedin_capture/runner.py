@@ -8,19 +8,22 @@ from app.services.capture_runner import run_capture
 from app.services.experimental_linkedin_capture.adapter import MockExperimentalLinkedInCaptureAdapter
 from app.services.experimental_linkedin_capture.converter import experimental_run_to_raw_jobs
 from app.services.experimental_linkedin_capture.diagnostics import (
-    EXP_CAPTURE_COMPLETED,
     EXP_CAPTURE_DISABLED,
+    EXP_CAPTURE_FAILED,
     EXP_CAPTURE_STOPPED,
     diagnostic_event,
+    utc_now_iso,
 )
 from app.services.experimental_linkedin_capture.models import (
     ExperimentalCaptureResponse,
     ExperimentalCaptureRunPackage,
     ExperimentalCaptureStartRequest,
 )
+from app.services.experimental_linkedin_capture.windows_selected_job_adapter import WindowsSelectedJobCaptureAdapter
 
 _LATEST_RUN: ExperimentalCaptureRunPackage | None = None
 EXPERIMENTAL_CAPTURE_ROOT = Path(__file__).resolve().parents[3] / "data" / "experimental_capture"
+SELECTED_JOB_ADAPTER_FACTORY = WindowsSelectedJobCaptureAdapter
 
 
 def experimental_capture_enabled() -> bool:
@@ -56,10 +59,10 @@ def health_response() -> ExperimentalCaptureResponse:
     return ExperimentalCaptureResponse(
         enabled=True,
         status=_LATEST_RUN.status if _LATEST_RUN else "idle",
-        message="Experimental LinkedIn capture scaffold is enabled for dry-run status only. Real browser automation is not implemented.",
+        message="Experimental LinkedIn capture is enabled for mock dry runs and selected-job-only prototype capture.",
         run=_LATEST_RUN,
         warnings=[
-            "Mock dry-run only: no pyautogui, pywin32, Selenium, Playwright, card clicking, page navigation, login, credentials, CAPTCHA bypass, auto-apply, or messaging.",
+            "Experimental only: no Selenium, Playwright, job-card iteration, panel scrolling, pagination, login, credentials, CAPTCHA bypass, auto-apply, or messaging.",
         ],
         captured_count=len(_LATEST_RUN.captured_jobs) if _LATEST_RUN else 0,
         can_review=bool(_LATEST_RUN and _LATEST_RUN.captured_jobs),
@@ -70,6 +73,9 @@ def start_capture(request: ExperimentalCaptureStartRequest) -> ExperimentalCaptu
     global _LATEST_RUN
     if not experimental_capture_enabled():
         return disabled_response("start")
+
+    if request.mode == "selected_job_only":
+        return _start_selected_job_capture(request)
 
     run_id = f"exp_linkedin_mock_{uuid4().hex[:12]}"
     adapter = MockExperimentalLinkedInCaptureAdapter()
@@ -105,7 +111,7 @@ def stop_capture() -> ExperimentalCaptureResponse:
     return ExperimentalCaptureResponse(
         enabled=True,
         status=_LATEST_RUN.status if _LATEST_RUN else "idle",
-        message="Stop requested. No browser automation is running in the Phase 17A scaffold.",
+        message="Stop requested. No long-running browser automation is running in this experimental scaffold.",
         run=_LATEST_RUN,
         captured_count=len(_LATEST_RUN.captured_jobs) if _LATEST_RUN else 0,
         can_review=bool(_LATEST_RUN and _LATEST_RUN.captured_jobs),
@@ -120,7 +126,7 @@ def status_response() -> ExperimentalCaptureResponse:
     return ExperimentalCaptureResponse(
         enabled=True,
         status=_LATEST_RUN.status if _LATEST_RUN else "idle",
-        message="Experimental LinkedIn capture scaffold status. Real browser automation is not implemented.",
+        message="Experimental LinkedIn capture status. Full card iteration, scrolling, and pagination are not implemented.",
         run=_LATEST_RUN,
         captured_count=len(_LATEST_RUN.captured_jobs) if _LATEST_RUN else 0,
         can_review=bool(_LATEST_RUN and _LATEST_RUN.captured_jobs),
@@ -145,8 +151,8 @@ def review_latest_capture(profile: RuleProfile) -> CaptureRunResult:
     result = run_capture(request, profile)
     result.warnings.extend(
         [
-            "Experimental review uses fake mock dry-run data only.",
-            "No browser automation ran and nothing was saved to history automatically.",
+            "Experimental review uses the latest experimental package and does not save automatically.",
+            "Nothing was saved to history automatically.",
         ]
     )
     return result
@@ -156,3 +162,43 @@ def _write_run_package(run: ExperimentalCaptureRunPackage) -> None:
     EXPERIMENTAL_CAPTURE_ROOT.mkdir(parents=True, exist_ok=True)
     package_path = EXPERIMENTAL_CAPTURE_ROOT / f"{run.run_id}.json"
     package_path.write_text(json.dumps(run.model_dump(mode="json"), indent=2), encoding="utf-8")
+
+
+def _start_selected_job_capture(request: ExperimentalCaptureStartRequest) -> ExperimentalCaptureResponse:
+    global _LATEST_RUN
+    if not request.selected_job_only:
+        event = diagnostic_event(
+            EXP_CAPTURE_FAILED,
+            "selected_job_only=true is required for selected-job capture.",
+            level="error",
+            details={"mode": request.mode},
+        )
+        return ExperimentalCaptureResponse(
+            enabled=True,
+            status="failed",
+            message="Selected-job capture requires selected_job_only=true.",
+            diagnostics=[event],
+            warnings=["No browser URL or page text was captured."],
+        )
+
+    run_id = f"exp_linkedin_selected_{uuid4().hex[:12]}"
+    adapter = SELECTED_JOB_ADAPTER_FACTORY()
+    _LATEST_RUN = adapter.run(run_id=run_id, max_pages=1, max_jobs=1)
+    if _LATEST_RUN.status == "completed" or _LATEST_RUN.captured_jobs:
+        _write_run_package(_LATEST_RUN)
+    return ExperimentalCaptureResponse(
+        enabled=True,
+        status=_LATEST_RUN.status,
+        message=_selected_job_message(_LATEST_RUN),
+        run=_LATEST_RUN,
+        diagnostics=_LATEST_RUN.diagnostics,
+        warnings=_LATEST_RUN.warnings,
+        captured_count=len(_LATEST_RUN.captured_jobs),
+        can_review=bool(_LATEST_RUN.captured_jobs),
+    )
+
+
+def _selected_job_message(run: ExperimentalCaptureRunPackage) -> str:
+    if run.status == "failed":
+        return "Selected-job capture failed or dependencies are missing; no browser automation fallback was attempted."
+    return "Selected-job capture completed for the currently focused browser page; review before saving."

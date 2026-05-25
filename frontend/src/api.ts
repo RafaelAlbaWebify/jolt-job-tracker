@@ -322,6 +322,22 @@ export async function startExperimentalLinkedInDryRun(
   });
 }
 
+export async function startExperimentalLinkedInSelectedJobCapture(): Promise<ExperimentalCaptureResponse> {
+  return fetchJson<ExperimentalCaptureResponse>('/api/experimental-capture/linkedin/start', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      mode: 'selected_job_only',
+      max_pages: 1,
+      max_jobs: 1,
+      dry_run: false,
+      selected_job_only: true,
+    }),
+  });
+}
+
 export async function stopExperimentalLinkedInDryRun(): Promise<ExperimentalCaptureResponse> {
   return fetchJson<ExperimentalCaptureResponse>('/api/experimental-capture/linkedin/stop', {
     method: 'POST',

@@ -12,6 +12,7 @@ import {
   runCaptureReview,
   saveCaptureResultToHistory,
   startExperimentalLinkedInDryRun,
+  startExperimentalLinkedInSelectedJobCapture,
   stopExperimentalLinkedInDryRun,
   reviewExperimentalLinkedInDryRun,
   updateHistoryJobStatus,
@@ -443,6 +444,7 @@ function App() {
   const [experimentalMaxPages, setExperimentalMaxPages] = useState<number>(1);
   const [experimentalMaxJobs, setExperimentalMaxJobs] = useState<number>(4);
   const [experimentalLoading, setExperimentalLoading] = useState<boolean>(false);
+  const [experimentalSelectedJobLoading, setExperimentalSelectedJobLoading] = useState<boolean>(false);
   const [experimentalReviewLoading, setExperimentalReviewLoading] = useState<boolean>(false);
   const [rawJobText, setRawJobText] = useState<string>('');
   const [captureInputMode, setCaptureInputMode] = useState<CaptureInputMode>('manual_raw_jobs');
@@ -909,6 +911,21 @@ function App() {
       );
     } finally {
       setExperimentalLoading(false);
+    }
+  }
+
+  async function captureSelectedExperimentalJob() {
+    setExperimentalSelectedJobLoading(true);
+    setExperimentalCaptureHealthError(null);
+    try {
+      const result = await startExperimentalLinkedInSelectedJobCapture();
+      setExperimentalCaptureHealth(result);
+    } catch (error) {
+      setExperimentalCaptureHealthError(
+        error instanceof Error ? error.message : 'Could not capture selected experimental job',
+      );
+    } finally {
+      setExperimentalSelectedJobLoading(false);
     }
   }
 
@@ -1795,55 +1812,78 @@ English required.`
                     <span>{experimentalCaptureHealth?.status ?? 'unknown'}</span>
                   </div>
                   <p>
-                    Disabled by default. When explicitly enabled, this panel runs a mock dry run
-                    with fake demo jobs only. It does not control the browser, click cards,
-                    navigate pages, log in, store credentials, bypass CAPTCHA or rate limits,
-                    auto-apply, or send messages.
+                    Disabled by default. When explicitly enabled, this panel supports fake mock dry
+                    runs and an experimental selected-job-only capture. It does not click job cards,
+                    scroll panels, paginate, log in, store credentials, bypass CAPTCHA or rate
+                    limits, auto-apply, or send messages.
                   </p>
                   <p className="helper-text">
                     Backend flag: JOLT_ENABLE_EXPERIMENTAL_LINKEDIN_CAPTURE. Current status:{' '}
-                    {experimentalCaptureHealth?.enabled ? 'mock dry-run enabled' : 'disabled'}.
+                    {experimentalCaptureHealth?.enabled ? 'experimental options enabled' : 'disabled'}.
                   </p>
                   {experimentalCaptureHealth?.enabled ? (
                     <div className="experimental-controls">
-                      <label>
-                        <span>Max pages</span>
-                        <input
-                          type="number"
-                          min="1"
-                          max="10"
-                          value={experimentalMaxPages}
-                          onChange={(event) => setExperimentalMaxPages(Number(event.target.value))}
-                        />
-                      </label>
-                      <label>
-                        <span>Max jobs</span>
-                        <input
-                          type="number"
-                          min="1"
-                          max="250"
-                          value={experimentalMaxJobs}
-                          onChange={(event) => setExperimentalMaxJobs(Number(event.target.value))}
-                        />
-                      </label>
+                      <div className="experimental-option">
+                        <h4>Mock dry run</h4>
+                        <p className="helper-text compact-helper">
+                          Uses fake demo jobs to test package diagnostics and review conversion.
+                        </p>
+                        <label>
+                          <span>Max pages</span>
+                          <input
+                            type="number"
+                            min="1"
+                            max="10"
+                            value={experimentalMaxPages}
+                            onChange={(event) => setExperimentalMaxPages(Number(event.target.value))}
+                          />
+                        </label>
+                        <label>
+                          <span>Max jobs</span>
+                          <input
+                            type="number"
+                            min="1"
+                            max="250"
+                            value={experimentalMaxJobs}
+                            onChange={(event) => setExperimentalMaxJobs(Number(event.target.value))}
+                          />
+                        </label>
+                        <div className="button-row experimental-buttons">
+                          <button type="button" className="secondary-button" disabled={experimentalLoading} onClick={startExperimentalDryRun}>
+                            {experimentalLoading ? 'Running dry run...' : 'Start dry run'}
+                          </button>
+                          <button type="button" className="secondary-button" disabled={experimentalLoading} onClick={stopExperimentalDryRun}>
+                            Stop
+                          </button>
+                        </div>
+                      </div>
+                      <div className="experimental-option selected-job-option">
+                        <h4>Capture selected job only</h4>
+                        <p className="helper-text compact-helper">
+                          Manually open LinkedIn, select one job, keep the browser focused, then capture.
+                          This only copies the current URL and visible page text.
+                        </p>
+                        <button
+                          type="button"
+                          className="secondary-button"
+                          disabled={experimentalSelectedJobLoading}
+                          onClick={captureSelectedExperimentalJob}
+                        >
+                          {experimentalSelectedJobLoading ? 'Capturing selected job...' : 'Capture selected job'}
+                        </button>
+                      </div>
                       <div className="button-row experimental-buttons">
-                        <button type="button" className="secondary-button" disabled={experimentalLoading} onClick={startExperimentalDryRun}>
-                          {experimentalLoading ? 'Running dry run...' : 'Start dry run'}
-                        </button>
-                        <button type="button" className="secondary-button" disabled={experimentalLoading} onClick={stopExperimentalDryRun}>
-                          Stop
-                        </button>
                         <button
                           type="button"
                           className="secondary-button"
                           disabled={!experimentalCaptureHealth.can_review || experimentalReviewLoading}
                           onClick={reviewExperimentalDryRun}
                         >
-                          {experimentalReviewLoading ? 'Preparing review...' : 'Review dry-run package'}
+                          {experimentalReviewLoading ? 'Preparing review...' : 'Review latest package'}
                         </button>
                       </div>
                       <div className="run-compact-stats experimental-stats">
-                        <span>{experimentalCaptureHealth.captured_count} mock jobs</span>
+                        <span>{experimentalCaptureHealth.captured_count} captured</span>
                         <span>{experimentalCaptureHealth.run?.diagnostics.length ?? 0} diagnostics</span>
                       </div>
                     </div>

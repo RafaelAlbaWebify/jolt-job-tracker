@@ -51,7 +51,7 @@ Backend:
 - Rule-based parser service.
 - Decision engine service.
 - Capture runner and page text / HTML/manual helper adapter with diagnostics and duplicate preview.
-- Disabled-by-default experimental LinkedIn capture scaffold with API boundary, currentJobId URL helpers, future adapter protocol, fake-data mock dry-run packages, and review conversion.
+- Disabled-by-default experimental LinkedIn capture scaffold with API boundary, currentJobId URL helpers, fake-data mock dry-run packages, selected-job-only prototype capture, and review conversion.
 - Export package service for capture-result and saved-tracker JSON, CSV, and workflow-oriented multi-sheet XLSX.
 - JSONL local history store with duplicate-safe saves, backward-compatible status normalization, and immediate status updates.
 
@@ -75,6 +75,8 @@ Phase 15B reviewed the legacy Streamlit pipeline and ported only safe text-level
 Phase 17A adds an experimental LinkedIn capture scaffold behind `JOLT_ENABLE_EXPERIMENTAL_LINKEDIN_CAPTURE=false` by default. It prepares schemas, diagnostic codes, dry-run API responses, and currentJobId/URL identity utilities for future user-supervised local capture, but it does not automate a browser or connect dry-run output to history/export.
 
 Phase 17B proves the architecture with fake demo data only: the mock adapter simulates card selection, URL/currentJobId matches, detail readiness, duplicate currentJobId detection, and page/job limits. The generated package can be converted into normal review cards, but it is not auto-saved or auto-exported and it does not control LinkedIn or a browser.
+
+Phase 17C adds the first real-world prototype step: after the user manually opens LinkedIn and manually selects one job, JOLT can experimentally copy the focused browser URL and visible page text for that one selected job. It remains disabled by default, does not iterate cards, scroll panels, paginate, log in, bypass protections, auto-apply, or send messages, and review remains manual before any save.
 
 ## Where The Real Value Is
 

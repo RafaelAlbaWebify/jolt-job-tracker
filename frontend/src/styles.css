@@ -489,6 +489,19 @@ textarea {
   margin-top: 10px;
 }
 
+.experimental-option {
+  border: 1px solid #e7dfc9;
+  border-radius: 8px;
+  display: grid;
+  gap: 8px;
+  padding: 9px;
+}
+
+.experimental-option h4 {
+  font-size: 0.9rem;
+  margin: 0;
+}
+
 .experimental-controls label {
   color: #40545d;
   display: grid;
@@ -499,6 +512,10 @@ textarea {
 
 .experimental-controls input {
   max-width: 120px;
+}
+
+.selected-job-option {
+  background: #fffaf0;
 }
 
 .experimental-buttons {

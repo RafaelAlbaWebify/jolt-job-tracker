@@ -336,7 +336,8 @@ Tracks run ID, timestamps, active profile, input/output files, counts, diagnosti
 - Define raw run package models, captured job schemas, diagnostic codes, future adapter protocol, and URL/currentJobId duplicate utilities.
 - Generate fake demo run packages under ignored local experimental-capture data.
 - Convert the latest fake package into existing capture review cards only when the user explicitly requests review.
-- Do not use pyautogui, pywin32, Selenium, Playwright, browser card clicking, page navigation, login automation, credentials, CAPTCHA/rate-limit bypass, auto-apply, or messaging in Phase 17A/17B.
+- Add selected-job-only capture as an isolated experimental adapter that copies the focused browser URL and visible page text for one manually selected job.
+- Do not use Selenium, Playwright, browser card iteration, left-panel scrolling, pagination, login automation, credentials, CAPTCHA/rate-limit bypass, auto-apply, or messaging in Phase 17A/17B/17C.
 - Do not auto-save dry-run scaffold output to History, tracker export, or normal capture review.
 
 ### `history.py` / `status_tracker.py`

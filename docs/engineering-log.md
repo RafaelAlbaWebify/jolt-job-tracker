@@ -1201,3 +1201,49 @@
 - Remaining risks / follow-up:
   - Mock review can demonstrate pipeline shape but says nothing about live browser reliability.
   - Future real capture still needs a separate adapter, stop controls, strict limits, and mocked tests before any browser-control implementation.
+
+## 2026-05-25 - Phase 17C Selected Job Capture Prototype
+
+- Type: Experimental feature prototype / Test / Docs
+- Files changed:
+  - `backend/app/services/experimental_linkedin_capture/diagnostics.py`
+  - `backend/app/services/experimental_linkedin_capture/models.py`
+  - `backend/app/services/experimental_linkedin_capture/windows_selected_job_adapter.py`
+  - `backend/app/services/experimental_linkedin_capture/converter.py`
+  - `backend/app/services/experimental_linkedin_capture/runner.py`
+  - `backend/tests/test_experimental_capture.py`
+  - `frontend/src/App.tsx`
+  - `frontend/src/api.ts`
+  - `frontend/src/styles.css`
+  - `README.md`
+  - `docs/architecture.md`
+  - `docs/demo-checklist.md`
+  - `docs/portfolio-walkthrough.md`
+  - `docs/engineering-log.md`
+  - `specs/product-spec.md`
+  - `specs/technical-plan.md`
+  - `specs/tasks.md`
+- Problem / goal:
+  - Add the first real-world experimental capture step without implementing full browser automation: one manually selected LinkedIn job only.
+- Root cause / context:
+  - The mock dry-run package proved the future architecture, but there was no isolated adapter for capturing the currently focused browser URL and visible selected-job text.
+- Change made:
+  - Added selected-job diagnostic codes for URL capture, currentJobId extraction/missing, visible text capture/too short, detail readiness, completion, failure, and missing dependencies.
+  - Added request mode `selected_job_only` with explicit `selected_job_only=true` requirement.
+  - Added `windows_selected_job_adapter.py`, isolated behind the feature flag, to copy the focused browser URL and visible page text using optional local keyboard/clipboard support.
+  - Added conservative readiness checks for copied text length and job-detail markers.
+  - Converted selected-job packages into existing review input with `experimental_linkedin_selected_job` source notes.
+  - Updated About-page experimental UI with separate mock dry-run and selected-job-only options.
+  - Added backend tests using fake adapters, avoiding real LinkedIn/browser interaction.
+  - Updated docs/specs to clarify disabled-by-default behavior and no card iteration, scrolling, pagination, login automation, protection bypass, auto-apply, or messaging.
+- Tests/checks run:
+  - Ran focused backend tests from `backend/`: `.\.venv\Scripts\python.exe -m pytest tests\test_experimental_capture.py`.
+  - Ran full backend tests from `backend/`: `.\.venv\Scripts\python.exe -m pytest`.
+  - Ran frontend build from `frontend/`: `npm run build`.
+- Result:
+  - Focused experimental capture tests passed: 19 passed, 1 pytest cache warning.
+  - Full backend tests passed: 107 passed, 1 pytest cache warning.
+  - Frontend production build passed.
+- Remaining risks / follow-up:
+  - Selected-job capture depends on focused-browser state, clipboard availability, and optional local keyboard/clipboard support.
+  - It captures visible copied text only; full right-panel scrolling and multi-card iteration are still intentionally unimplemented.

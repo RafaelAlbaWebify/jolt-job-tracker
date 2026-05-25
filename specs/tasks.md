@@ -645,7 +645,7 @@ README states:
 - capture is primary productivity workflow;
 - capture includes safe manual paste/helper workflows and any real browser automation remains disabled/experimental;
 - manual helper UX explains bookmarklet installation, Chrome `javascript:` URL blocking, and sample `JOLT_CAPTURE_V1` payload testing;
-- experimental LinkedIn capture scaffold exists only as disabled-by-default schemas, API boundary, URL/currentJobId utilities, fake-data mock dry-run packages, review conversion, and diagnostics; no real browser automation is implemented;
+- experimental LinkedIn capture scaffold exists only as disabled-by-default schemas, API boundary, URL/currentJobId utilities, fake-data mock dry-run packages, selected-job-only prototype capture, review conversion, and diagnostics; no full browser automation, card iteration, scrolling, or pagination is implemented;
 - configurable profiles make it reusable;
 - manual paste is fallback/debug;
 - React + backend architecture;

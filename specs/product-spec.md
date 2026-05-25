@@ -71,7 +71,7 @@ Capture is a core productivity feature. In the current portfolio demo it is limi
 
 The manual browser helper must not navigate, crawl, store credentials, bypass CAPTCHA/login/rate-limit protections, run in the background, or submit applications.
 
-Phase 17A adds only an experimental LinkedIn capture scaffold: disabled-by-default feature flag, health/start/stop/status API boundaries, raw run package schemas, currentJobId URL utilities, duplicate-reference helpers, and diagnostic status codes. Phase 17B extends that scaffold with fake-data mock dry-run packages and explicit conversion into normal review cards. It must not perform real browser automation, click job cards, navigate result pages, use pyautogui/pywin32/Selenium/Playwright, log in, store credentials, bypass protections, auto-apply, send messages, or auto-save dry-run output into History.
+Phase 17A adds only an experimental LinkedIn capture scaffold: disabled-by-default feature flag, health/start/stop/status API boundaries, raw run package schemas, currentJobId URL utilities, duplicate-reference helpers, and diagnostic status codes. Phase 17B extends that scaffold with fake-data mock dry-run packages and explicit conversion into normal review cards. Phase 17C adds selected-job-only capture for one job the user manually selected, using current URL plus visible copied text. It must not click through multiple job cards, scroll panels, paginate, use Selenium/Playwright, log in, store credentials, bypass protections, auto-apply, send messages, or auto-save experimental output into History.
 
 ---
 

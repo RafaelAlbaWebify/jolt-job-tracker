@@ -5,8 +5,9 @@ from app.services.experimental_linkedin_capture.models import ExperimentalCaptur
 def experimental_run_to_raw_jobs(run: ExperimentalCaptureRunPackage) -> list[CapturedRawJob]:
     raw_jobs: list[CapturedRawJob] = []
     for job in run.captured_jobs:
+        source = "experimental_linkedin_selected_job" if job.capture_state.startswith("selected_job_only") else "experimental_linkedin_mock"
         notes = [
-            "mock experimental LinkedIn capture dry-run",
+            "selected-job experimental capture" if source.endswith("selected_job") else "mock experimental LinkedIn capture dry-run",
             f"capture_state={job.capture_state}",
         ]
         if job.current_job_id:
@@ -16,7 +17,7 @@ def experimental_run_to_raw_jobs(run: ExperimentalCaptureRunPackage) -> list[Cap
 
         raw_jobs.append(
             CapturedRawJob(
-                source="experimental_linkedin_mock",
+                source=source,
                 source_url=job.source_url,
                 raw_text=job.raw_text,
                 captured_at=run.finished_at or run.started_at or "",

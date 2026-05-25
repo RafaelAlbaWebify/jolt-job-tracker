@@ -6,6 +6,7 @@ from pydantic import BaseModel, Field
 ExperimentalCaptureStatus = Literal["disabled", "idle", "running", "completed", "failed", "stopped"]
 ExperimentalCaptureMode = Literal["experimental_local_capture"]
 ExperimentalCapturePlatform = Literal["linkedin_jobs"]
+ExperimentalCaptureStartMode = Literal["mock_dry_run", "selected_job_only"]
 
 
 class ExperimentalCaptureDiagnostic(BaseModel):
@@ -47,9 +48,11 @@ class ExperimentalCaptureRunPackage(BaseModel):
 
 
 class ExperimentalCaptureStartRequest(BaseModel):
+    mode: ExperimentalCaptureStartMode = "mock_dry_run"
     max_pages: int = Field(default=1, ge=1, le=10)
     max_jobs: int = Field(default=25, ge=1, le=250)
     dry_run: bool = True
+    selected_job_only: bool = False
 
 
 class ExperimentalCaptureResponse(BaseModel):

@@ -103,7 +103,8 @@ Expected result:
 3. Explain that enabling `JOLT_ENABLE_EXPERIMENTAL_LINKEDIN_CAPTURE=true` allows mock dry-run controls only.
 4. In an enabled local test session, click `Start dry run` and confirm it reports fake mock jobs and diagnostics.
 5. Click `Review dry-run package` to send the fake package through the normal parser/profile/decision review cards.
-6. State clearly that Phase 17B does not use pyautogui, pywin32, Selenium, Playwright, card clicking, page navigation, login automation, credential storage, CAPTCHA/rate-limit bypass, auto-apply, or recruiter messaging.
+6. For selected-job capture, explain the user must manually open LinkedIn, manually select one job, and keep the browser focused before clicking `Capture selected job`.
+7. State clearly that selected-job capture only copies the current URL and visible page text. It does not click cards, iterate results, scroll panels, paginate, log in, store credentials, bypass CAPTCHA/rate limits, auto-apply, or message anyone.
 
 Example synthetic multi-job text:
 

@@ -3,6 +3,7 @@ from pathlib import Path
 from fastapi.testclient import TestClient
 
 from app.main import app
+from app.services import history_store
 
 client = TestClient(app)
 
@@ -81,6 +82,8 @@ def test_one_raw_remote_english_microsoft_365_job_parses_and_classifies() -> Non
     assert result["parsed_job"]["work_mode"] == "remote"
     assert "English" in result["parsed_job"]["mandatory_languages"]
     assert result["decision"]["profile_id"] == "rafael_default"
+    assert data["capture_diagnostics"]["capture_mode_used"] == "manual_raw_jobs"
+    assert data["capture_diagnostics"]["candidate_cards_found"] == 1
 
 
 def test_mandatory_german_job_discards_with_rafael_default() -> None:
@@ -183,6 +186,8 @@ English required. Support Microsoft 365 and endpoint tickets.
         "Technical Support Specialist",
         "IT Support Engineer",
     ]
+    assert data["capture_diagnostics"]["candidate_cards_found"] == 2
+    assert data["capture_diagnostics"]["cards_accepted"] == 2
 
 
 def test_page_text_with_labelled_blocks_separated_by_dashes() -> None:
@@ -333,6 +338,65 @@ def test_html_with_two_article_blocks_extracts_two_jobs_and_strips_noise() -> No
     assert data["results"][1]["raw_job"]["source_url"] == "https://example.test/careers/456"
     assert "Navigation should not become a job" not in data["results"][0]["raw_job"]["raw_text"]
     assert any("HTML block" in note for note in data["results"][0]["raw_job"]["capture_notes"])
+    assert data["capture_diagnostics"]["source_url_extraction_notes"]
+
+
+def test_html_fragment_capture_mode_extracts_anchor_href() -> None:
+    html_content = """
+<article>
+  <a href="https://example.test/jobs/html-fragment-1">Title: Microsoft 365 Support Specialist</a>
+  <p>Company: Example SaaS</p>
+  <p>Location: Remote, Spain</p>
+  <p>Work mode: Remote</p>
+  <p>English required. Microsoft 365 support.</p>
+</article>
+"""
+
+    response = client.post(
+        "/api/capture/run",
+        json={
+            "profile_id": "rafael_default",
+            "capture_mode": "html_fragment",
+            "source": "html_fragment",
+            "max_results": 5,
+            "dry_run": True,
+            "html_content": html_content,
+        },
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["total_captured"] == 1
+    assert data["capture_diagnostics"]["capture_mode_used"] == "html_fragment"
+    assert data["results"][0]["raw_job"]["source_url"] == "https://example.test/jobs/html-fragment-1"
+
+
+def test_uploaded_html_content_capture_mode_extracts_job() -> None:
+    response = client.post(
+        "/api/capture/run",
+        json={
+            "profile_id": "rafael_default",
+            "capture_mode": "uploaded_html_content",
+            "source": "uploaded_html_content",
+            "max_results": 5,
+            "dry_run": True,
+            "uploaded_html_content": """
+<section>
+  <h2>Title: Infrastructure Support Technician</h2>
+  <p>Company: Example Infra</p>
+  <p>Location: Vigo, Spain</p>
+  <p>Work mode: Onsite</p>
+  <p>English required. Endpoint and networking support.</p>
+</section>
+""",
+        },
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["total_captured"] == 1
+    assert data["capture_diagnostics"]["capture_mode_used"] == "uploaded_html_content"
+    assert data["results"][0]["parsed_job"]["title"] == "Infrastructure Support Technician"
 
 
 def test_global_source_url_fallback_is_used_when_block_has_no_link() -> None:
@@ -372,6 +436,38 @@ def test_unclear_page_text_returns_one_result_with_capture_note() -> None:
     data = response.json()
     assert data["total_captured"] == 1
     assert any("unclear" in note.lower() for note in data["results"][0]["raw_job"]["capture_notes"])
+    assert data["capture_diagnostics"]["capture_confidence"] == "low"
+
+
+def test_full_page_without_clear_cards_warns_about_fallback() -> None:
+    response = client.post(
+        "/api/capture/run",
+        json={
+            "profile_id": "rafael_default",
+            "capture_mode": "page_text",
+            "source": "page_text",
+            "max_results": 5,
+            "dry_run": True,
+            "page_text": "\n".join(
+                [
+                    "Navigation",
+                    "Search jobs",
+                    "Filters",
+                    "Promoted",
+                    "Easy Apply",
+                    "Actively recruiting",
+                    "Support role maybe remote",
+                    "Saved jobs",
+                    "Footer",
+                ]
+            ),
+        },
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["total_captured"] == 1
+    assert any("full page" in warning.lower() for warning in data["warnings"])
 
 
 def test_page_text_avoids_over_splitting_tiny_fragments() -> None:
@@ -400,6 +496,43 @@ Apply
     data = response.json()
     assert data["total_captured"] == 1
     assert len(data["results"][0]["raw_job"]["raw_text"].splitlines()) <= 2
+
+
+def test_tiny_noisy_cards_are_rejected_and_reported() -> None:
+    page_text = """
+Job Card
+Promoted
+Easy Apply
+---
+Job Card
+Title: Microsoft 365 Support Specialist
+Company: Example SaaS
+Location: Remote, Spain
+Work mode: Remote
+English required. Microsoft 365 support.
+---
+Job Card
+View job
+Apply
+"""
+
+    response = client.post(
+        "/api/capture/run",
+        json={
+            "profile_id": "rafael_default",
+            "capture_mode": "page_text",
+            "source": "page_text",
+            "max_results": 5,
+            "dry_run": True,
+            "page_text": page_text,
+        },
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["total_captured"] == 1
+    assert data["capture_diagnostics"]["cards_rejected"] >= 1
+    assert data["capture_diagnostics"]["rejection_reasons"]
 
 
 def test_page_text_max_results_is_enforced() -> None:
@@ -466,3 +599,26 @@ def test_browser_assisted_does_not_attempt_automation_by_default() -> None:
     data = response.json()
     assert data["total_captured"] == 0
     assert any("not enabled" in warning for warning in data["warnings"])
+    assert data["capture_diagnostics"]["capture_mode_used"] == "browser_assisted"
+
+
+def test_capture_marks_likely_duplicate_before_save(tmp_path, monkeypatch) -> None:
+    monkeypatch.setattr(history_store, "HISTORY_ROOT", tmp_path / "backend" / "data" / "history")
+    monkeypatch.setattr(history_store, "HISTORY_FILE", tmp_path / "backend" / "data" / "history" / "jobs.jsonl")
+
+    first = run_capture([raw_job(support_job(), "https://example.test/duplicate-preview")])
+    save_response = client.post(
+        "/api/history/save-capture-result",
+        json={
+            "capture_result": first,
+            "include_raw_text": False,
+            "default_application_status": "Not started",
+        },
+    )
+    assert save_response.status_code == 200
+
+    second = run_capture([raw_job(support_job(), "https://example.test/duplicate-preview")])
+
+    assert second["results"][0]["duplicate_preview"] is True
+    assert "source_url" in second["results"][0]["duplicate_reason"]
+    assert second["results"][0]["duplicate_history_id"]

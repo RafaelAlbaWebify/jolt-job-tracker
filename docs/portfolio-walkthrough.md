@@ -11,7 +11,7 @@ JOLT is a local job-offer decision assistant. It takes user-provided job text, p
 The current milestone is a local portfolio demo. It proves the core product chain without risky automation:
 
 ```text
-manual jobs or pasted page text/HTML
+manual jobs, pasted page text, or copied HTML content
 -> parser
 -> rule profile
 -> decision engine
@@ -23,8 +23,8 @@ manual jobs or pasted page text/HTML
 ## Workflow
 
 1. The user selects a rule profile.
-2. The user loads synthetic demo jobs, stages manual job text, or pastes visible page text / copied HTML.
-3. The backend capture runner converts that input into raw job entries.
+2. The user loads synthetic demo jobs, stages manual job text, pastes visible page text, or provides copied HTML content.
+3. The backend capture runner converts that input into raw job entries and returns ingestion diagnostics.
 4. The parser extracts structured fields and parser confidence.
 5. The decision engine applies profile rules and returns Apply, Maybe, Discard, Manual Review, or Duplicate.
 6. The frontend shows decision counts, filters, and explainable cards.
@@ -47,7 +47,7 @@ Backend:
 - Profile service backed by JSON default profiles.
 - Rule-based parser service.
 - Decision engine service.
-- Capture runner and page text / HTML adapter.
+- Capture runner and page text / HTML adapter with diagnostics and duplicate preview.
 - Export package service for JSON, CSV, and XLSX.
 - JSONL local history store.
 
@@ -62,6 +62,8 @@ The current safe boundary supports:
 - explicit disabled browser-assisted placeholder.
 
 This keeps the valuable parser/profile/decision/review workflow testable while making the limits honest.
+
+Phase 15A improves that safe ingestion layer: it adds clearer capture source modes, stronger card extraction from user-provided text/HTML, diagnostics for accepted/rejected candidate cards, source URL extraction notes, and duplicate preview against local history before saving.
 
 ## Where The Real Value Is
 
@@ -92,7 +94,7 @@ That is what makes the app reusable and portfolio-safe.
 
 - Richer XLSX tracker sheets and export package reports.
 - Apply Today and Manual Review queues from saved history.
-- Capture-time duplicate/already-reviewed labels.
+- Richer capture-time duplicate/already-reviewed labels.
 - Profile editing and validation UI.
 - Optional browser-assisted capture only if explicit, local, observable, and respectful of site terms.
 - Portfolio screenshots and a short demo video using synthetic data.

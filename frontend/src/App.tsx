@@ -27,7 +27,7 @@ import {
 } from './api';
 
 type PageId = 'capture' | 'review' | 'profiles' | 'history' | 'manual' | 'about';
-type CaptureInputMode = 'manual_raw_jobs' | 'page_text';
+type CaptureInputMode = 'manual_raw_jobs' | 'page_text' | 'html_fragment';
 type DecisionFilter = 'All' | 'Apply' | 'Maybe' | 'Discard' | 'Manual Review' | 'Duplicate' | 'Errors';
 type DecisionCountKey = DecisionFilter | 'Errors';
 type HistoryFilter =
@@ -177,7 +177,7 @@ function buildDecisionCounts(results: CaptureJobResult[]): Record<DecisionCountK
         counts.Errors += 1;
       }
 
-      const decision = result.decision?.decision;
+      const decision = result.duplicate_preview ? 'Duplicate' : result.decision?.decision;
       if (decision && decision in counts) {
         counts[decision as DecisionFilter] += 1;
       }
@@ -282,6 +282,7 @@ function DecisionCard({ result, index }: { result: CaptureJobResult; index: numb
         <div>
           <div className="decision-title-row">
             <span className={decisionClass(decision?.decision)}>{decision?.decision ?? 'Error'}</span>
+            {result.duplicate_preview ? <span className="duplicate-preview-pill">Duplicate preview</span> : null}
             <span className="confidence-pill">{job?.parser_confidence ?? 'unknown confidence'}</span>
           </div>
           <h3>{job?.title || `Raw job ${index + 1}`}</h3>
@@ -307,6 +308,16 @@ function DecisionCard({ result, index }: { result: CaptureJobResult; index: numb
 
       <div className="card-section-grid">
         <TextList title="Reasons" items={decision?.reasons} />
+        {result.duplicate_preview ? (
+          <TextList
+            title="Duplicate warning"
+            items={[
+              `${result.duplicate_reason || 'Likely already saved in local history'}${
+                result.duplicate_history_id ? ` (${result.duplicate_history_id})` : ''
+              }`,
+            ]}
+          />
+        ) : null}
         {result.errors.length > 0 ? <TextList title="Errors" items={result.errors} /> : null}
       </div>
 
@@ -385,6 +396,10 @@ function App() {
 
     if (activeFilter === 'Errors') {
       return captureResult.results.filter(hasErrors);
+    }
+
+    if (activeFilter === 'Duplicate') {
+      return captureResult.results.filter((result) => result.duplicate_preview || result.decision?.decision === 'Duplicate');
     }
 
     return captureResult.results.filter((result) => result.decision?.decision === activeFilter);
@@ -557,7 +572,7 @@ function App() {
       setCaptureError('Select a rule profile before running capture review.');
       return;
     }
-    if (captureInputMode === 'page_text' && !pageCaptureText.trim()) {
+    if (captureInputMode !== 'manual_raw_jobs' && !pageCaptureText.trim()) {
       setCaptureError('Paste page text or HTML before extracting and reviewing.');
       return;
     }
@@ -569,11 +584,17 @@ function App() {
       const result = await runCaptureReview({
         profile_id: selectedProfileId,
         capture_mode: captureInputMode,
-        source: captureInputMode === 'page_text' ? 'page_text_frontend' : 'manual_frontend',
+        source:
+          captureInputMode === 'manual_raw_jobs'
+            ? 'manual_frontend'
+            : captureInputMode === 'html_fragment'
+              ? 'html_fragment_frontend'
+              : 'page_text_frontend',
         source_url: pageCaptureSourceUrl.trim(),
         dry_run: true,
-        max_results: captureInputMode === 'page_text' ? 25 : stagedJobs.length || 25,
+        max_results: captureInputMode === 'manual_raw_jobs' ? stagedJobs.length || 25 : 25,
         page_text: captureInputMode === 'page_text' ? pageCaptureText : '',
+        html_content: captureInputMode === 'html_fragment' ? pageCaptureText : '',
         raw_jobs:
           captureInputMode === 'manual_raw_jobs'
             ? stagedJobs.map((rawText, index) => ({
@@ -805,7 +826,13 @@ function App() {
                 <section className="control-section raw-input-section">
                   <div className="section-heading">
                     <h2>Capture input</h2>
-                    <span>{captureInputMode === 'page_text' ? 'Page text' : `${stagedJobs.length} staged`}</span>
+                    <span>
+                      {captureInputMode === 'manual_raw_jobs'
+                        ? `${stagedJobs.length} staged`
+                        : captureInputMode === 'html_fragment'
+                          ? 'HTML fragment'
+                          : 'Page text'}
+                    </span>
                   </div>
                   <div className="mode-switch" aria-label="Capture input mode">
                     <button
@@ -820,15 +847,23 @@ function App() {
                       className={captureInputMode === 'page_text' ? 'filter-button active' : 'filter-button'}
                       onClick={() => setCaptureInputMode('page_text')}
                     >
-                      Page text / HTML
+                      Page text
+                    </button>
+                    <button
+                      type="button"
+                      className={captureInputMode === 'html_fragment' ? 'filter-button active' : 'filter-button'}
+                      onClick={() => setCaptureInputMode('html_fragment')}
+                    >
+                      HTML fragment
                     </button>
                     <button type="button" className="filter-button" disabled>
                       Browser-assisted experimental
                     </button>
                   </div>
                   <p className="helper-text">
-                    Use only content you are allowed to access. Page text / HTML mode uses pasted
-                    visible text or copied HTML. Browser-assisted capture is disabled and experimental.
+                    Use only content you are allowed to access. Page text and HTML fragment modes
+                    use local user-provided content. Browser-assisted capture is disabled and
+                    experimental.
                   </p>
                   {captureInputMode === 'manual_raw_jobs' ? (
                     <>
@@ -877,14 +912,29 @@ function App() {
                         placeholder="https://example.test/jobs"
                       />
                       <label className="field-label" htmlFor="page-capture-text">
-                        Pasted page text or HTML
+                        {captureInputMode === 'html_fragment' ? 'Copied HTML fragment' : 'Pasted page text'}
                       </label>
                       <textarea
                         id="page-capture-text"
                         value={pageCaptureText}
                         onChange={(event) => setPageCaptureText(event.target.value)}
                         rows={10}
-                        placeholder={`Paste visible job-board text or copied HTML here.
+                        placeholder={
+                          captureInputMode === 'html_fragment'
+                            ? `<article>
+  <a href="https://example.test/jobs/123">Microsoft 365 Support Specialist</a>
+  <p>Company: Example SaaS</p>
+  <p>Location: Remote, Spain</p>
+  <p>Work mode: Remote</p>
+  <p>English required. Microsoft 365 and endpoint support.</p>
+</article>
+<article>
+  <a href="https://example.test/jobs/456">IT Support Analyst</a>
+  <p>Company: Example Desk</p>
+  <p>Location: Vigo, Spain</p>
+  <p>Work mode: Onsite</p>
+</article>`
+                            : `Paste visible job-board text here.
 
 Title: Microsoft 365 Support Specialist
 Company: Example SaaS
@@ -898,11 +948,13 @@ Role: IT Support Engineer
 Employer: Example Desk
 Location: Vigo, Spain
 Work mode: Onsite
-English required.`}
+Posted 2 days ago
+English required.`
+                        }
                       />
                       <p className="helper-text">
-                        The backend extracts local user-provided content only. Clear labels, job
-                        card separators, or copied HTML cards produce cleaner review results.
+                        Clear labels, job-card separators, visible URLs, and copied anchor links
+                        produce cleaner review results. No external pages are fetched.
                       </p>
                     </>
                   )}
@@ -932,9 +984,11 @@ English required.`}
                 >
                   {captureLoading
                     ? 'Running capture review...'
-                    : captureInputMode === 'page_text'
-                      ? 'Extract and review'
-                      : 'Run capture review'}
+                    : captureInputMode === 'html_fragment'
+                      ? 'Extract HTML and review'
+                      : captureInputMode === 'page_text'
+                        ? 'Extract page text and review'
+                        : 'Run capture review'}
                 </button>
                 {captureError ? <p className="status-message">{captureError}</p> : null}
               </div>
@@ -964,6 +1018,27 @@ English required.`}
                         <span>Classified {captureResult.classified_count}</span>
                         <span>Failed {captureResult.failed_count}</span>
                       </div>
+                      <details className="capture-diagnostics">
+                        <summary>
+                          <span>Capture diagnostics</span>
+                          <strong>{captureResult.capture_diagnostics.capture_confidence}</strong>
+                        </summary>
+                        <div className="diagnostics-grid">
+                          <span>Mode: {captureResult.capture_diagnostics.capture_mode_used}</span>
+                          <span>Input: {captureResult.capture_diagnostics.input_size} chars</span>
+                          <span>Candidates: {captureResult.capture_diagnostics.candidate_cards_found}</span>
+                          <span>Accepted: {captureResult.capture_diagnostics.cards_accepted}</span>
+                          <span>Rejected: {captureResult.capture_diagnostics.cards_rejected}</span>
+                        </div>
+                        <DetailSection
+                          title="Rejection reasons"
+                          items={captureResult.capture_diagnostics.rejection_reasons}
+                        />
+                        <DetailSection
+                          title="Source URL notes"
+                          items={captureResult.capture_diagnostics.source_url_extraction_notes}
+                        />
+                      </details>
                       {captureResult.warnings.length > 0 ? (
                         <TextList title="Run warnings" items={captureResult.warnings} />
                       ) : null}

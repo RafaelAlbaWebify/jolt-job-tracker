@@ -33,6 +33,18 @@ export type CaptureHealthStatus = {
   warnings: string[];
 };
 
+export type CaptureDiagnostics = {
+  capture_mode_used: string;
+  input_size: number;
+  candidate_cards_found: number;
+  cards_accepted: number;
+  cards_rejected: number;
+  rejection_reasons: string[];
+  source_url_extraction_notes: string[];
+  capture_confidence: 'high' | 'medium' | 'low';
+  warnings: string[];
+};
+
 export type CapturedRawJob = {
   source?: string;
   source_url?: string;
@@ -83,11 +95,14 @@ export type CaptureJobResult = {
   parsed_job: NormalizedJob | null;
   decision: DecisionResult | null;
   errors: string[];
+  duplicate_preview: boolean;
+  duplicate_reason: string;
+  duplicate_history_id: string;
 };
 
 export type CaptureRunRequest = {
   profile_id: string;
-  capture_mode?: 'manual_raw_jobs' | 'page_text' | 'browser_assisted';
+  capture_mode?: 'manual_raw_jobs' | 'page_text' | 'html_fragment' | 'uploaded_html_content' | 'browser_assisted';
   source: string;
   source_url?: string;
   query?: string;
@@ -97,6 +112,7 @@ export type CaptureRunRequest = {
   dry_run: boolean;
   page_text?: string;
   html_content?: string;
+  uploaded_html_content?: string;
   raw_jobs: CapturedRawJob[];
 };
 
@@ -111,6 +127,7 @@ export type CaptureRunResult = {
   results: CaptureJobResult[];
   warnings: string[];
   capture_health: CaptureHealthStatus;
+  capture_diagnostics: CaptureDiagnostics;
 };
 
 export type ExportFormat = 'json' | 'csv' | 'xlsx';

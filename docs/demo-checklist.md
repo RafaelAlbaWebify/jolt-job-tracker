@@ -68,14 +68,15 @@ Expected result:
 ## Page Text / HTML Capture Demo
 
 1. Return to the Capture page.
-2. Select `Page text / HTML`.
+2. Select `Page text`.
 3. Paste synthetic page text with two job blocks, each using `Title:`, `Company:`, and `Location:` labels.
 4. Add an optional source URL.
-5. Click `Extract and review`.
+5. Click `Extract page text and review`.
 6. Confirm the same parser, decision engine, review cards, export, and history controls are used.
 7. Try a second synthetic sample using `---`, `Job Card`, or compact title/company/location blocks to show cleaner multi-job extraction.
-8. Open a result card's capture notes to show extraction hints and source URL inference.
-9. Explain that this mode uses user-provided pasted content and does not automate a browser.
+8. Open capture diagnostics to show candidate cards, accepted/rejected counts, source URL notes, and capture confidence.
+9. Open a result card's capture notes to show extraction hints and source URL inference.
+10. Explain that this mode uses user-provided pasted content and does not automate a browser.
 
 Example synthetic multi-job text:
 
@@ -94,6 +95,13 @@ Location: Vigo, Spain
 Work mode: Onsite
 English required.
 ```
+
+For HTML fragment capture:
+
+1. Select `HTML fragment`.
+2. Paste a synthetic `<article>` or copied card fragment with an `<a href="https://example.test/jobs/123">` job link.
+3. Click `Extract HTML and review`.
+4. Confirm JOLT extracts the job locally and preserves the anchor URL.
 
 ## Suggested Short Demo Flow
 
@@ -116,7 +124,9 @@ English required.
 - Save to history should persist reviewed jobs under ignored `backend/data/history/`.
 - History / Tracker should allow local application status updates across page visits.
 - About should explain demo safety and allow manual cleanup of generated local demo exports/history.
-- Page text / HTML capture should split clear synthetic job blocks and fall back to one reviewed item when structure is unclear.
+- Page text / HTML capture should split clear synthetic job blocks, reject tiny/noisy fragments, and fall back to one reviewed item when structure is unclear.
+- Capture diagnostics should show input size, candidate cards, accepted/rejected cards, source URL notes, and capture confidence.
+- If the same synthetic job is saved to history and captured again, the result should show a duplicate preview warning.
 
 ## Useful Screenshots
 

@@ -496,6 +496,43 @@ textarea {
   padding: 4px 8px;
 }
 
+.capture-diagnostics {
+  border: 1px solid #e3e9ec;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.capture-diagnostics summary {
+  align-items: center;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 10px;
+}
+
+.capture-diagnostics summary span,
+.capture-diagnostics summary strong {
+  color: #354951;
+  font-size: 0.84rem;
+  font-weight: 800;
+}
+
+.diagnostics-grid {
+  display: grid;
+  gap: 6px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  padding: 0 10px 10px;
+}
+
+.diagnostics-grid span {
+  border: 1px solid #edf1f3;
+  border-radius: 999px;
+  color: #40545d;
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 4px 8px;
+}
+
 .run-action-grid {
   display: grid;
   gap: 10px;
@@ -620,6 +657,16 @@ textarea {
   color: #40545d;
   font-size: 0.76rem;
   font-weight: 700;
+  padding: 5px 8px;
+}
+
+.duplicate-preview-pill {
+  border: 1px solid #c9b47b;
+  border-radius: 999px;
+  background: #fff8ea;
+  color: #6c4b13;
+  font-size: 0.76rem;
+  font-weight: 800;
   padding: 5px 8px;
 }
 
@@ -1063,6 +1110,7 @@ dd {
   .profile-fields,
   .keyword-sections,
   .detail-grid,
+  .diagnostics-grid,
   .history-row {
     grid-template-columns: 1fr;
   }

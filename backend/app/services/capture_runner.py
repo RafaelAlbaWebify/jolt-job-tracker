@@ -1,6 +1,7 @@
 from uuid import uuid4
 
 from app.models import (
+    CaptureDiagnostics,
     CaptureHealthStatus,
     CaptureJobResult,
     CaptureRunRequest,
@@ -10,20 +11,22 @@ from app.models import (
 )
 from app.services.browser_capture import capture_from_page_content
 from app.services.decision_engine import classify_job
+from app.services.history_store import find_duplicate_history_match
 from app.services.parser import parse_job
 
 BROWSER_AUTOMATION_WARNING = "Browser automation is not implemented or attempted by default."
-PAGE_TEXT_WARNING = "Page text/HTML capture uses pasted user-provided content only."
+PAGE_TEXT_WARNING = "Page text/HTML capture uses pasted or uploaded user-provided content only."
+PAGE_CAPTURE_MODES = {"page_text", "html_fragment", "uploaded_html_content"}
 
 
 def get_capture_health(last_run_status: str | None = None) -> CaptureHealthStatus:
     return CaptureHealthStatus(
-        capture_mode="manual_raw_jobs,page_text",
+        capture_mode="manual_raw_jobs,page_text,html_fragment,uploaded_html_content",
         browser_automation_enabled=False,
         last_run_status=last_run_status,
         warnings=[
             BROWSER_AUTOMATION_WARNING,
-            "Use manual_raw_jobs or page_text capture with content you are allowed to access.",
+            "Use manual_raw_jobs, page_text, html_fragment, or uploaded_html_content with content you are allowed to access.",
         ],
     )
 
@@ -42,13 +45,24 @@ def _limited_raw_jobs(request: CaptureRunRequest, warnings: list[str]) -> list[C
 
 def run_capture(request: CaptureRunRequest, profile: RuleProfile) -> CaptureRunResult:
     warnings: list[str] = [BROWSER_AUTOMATION_WARNING]
+    diagnostics = CaptureDiagnostics(
+        capture_mode_used=request.capture_mode,
+        input_size=sum(len(job.raw_text) for job in request.raw_jobs)
+        if request.capture_mode == "manual_raw_jobs"
+        else len(request.page_text or request.html_content or request.uploaded_html_content),
+        candidate_cards_found=len(request.raw_jobs) if request.capture_mode == "manual_raw_jobs" else 0,
+        cards_accepted=0,
+        cards_rejected=0,
+        capture_confidence="high" if request.raw_jobs else "medium",
+    )
     if request.dry_run:
         warnings.append("dry_run is true; no browser automation was attempted.")
 
     raw_jobs = request.raw_jobs
-    if request.capture_mode == "page_text":
-        extracted_jobs, extraction_warnings = capture_from_page_content(request)
+    if request.capture_mode in PAGE_CAPTURE_MODES:
+        extracted_jobs, extraction_warnings, extraction_diagnostics = capture_from_page_content(request)
         raw_jobs = extracted_jobs
+        diagnostics = extraction_diagnostics
         warnings.append(PAGE_TEXT_WARNING)
         warnings.extend(extraction_warnings)
     elif request.capture_mode == "browser_assisted":
@@ -92,9 +106,34 @@ def run_capture(request: CaptureRunRequest, profile: RuleProfile) -> CaptureRunR
             results.append(CaptureJobResult(raw_job=raw_job, parsed_job=parsed_job, errors=errors))
             continue
 
-        results.append(CaptureJobResult(raw_job=raw_job, parsed_job=parsed_job, decision=decision, errors=[]))
+        duplicate_preview = False
+        duplicate_reason = ""
+        duplicate_history_id = ""
+        try:
+            duplicate_entry, duplicate_reason = find_duplicate_history_match(parsed_job, raw_job)
+            if duplicate_entry is not None:
+                duplicate_preview = True
+                duplicate_history_id = duplicate_entry.history_id
+                duplicate_warning = f"Likely duplicate before save: {duplicate_reason}."
+                decision = decision.model_copy(update={"warnings": [*decision.warnings, duplicate_warning]})
+        except ValueError as exc:
+            warnings.append(f"Duplicate preview skipped because local history could not be read: {exc}")
+
+        results.append(
+            CaptureJobResult(
+                raw_job=raw_job,
+                parsed_job=parsed_job,
+                decision=decision,
+                errors=[],
+                duplicate_preview=duplicate_preview,
+                duplicate_reason=duplicate_reason,
+                duplicate_history_id=duplicate_history_id,
+            )
+        )
 
     status = "completed_with_errors" if failed_count else "completed"
+    diagnostics.cards_accepted = len(results)
+    diagnostics.cards_rejected = max(diagnostics.cards_rejected, diagnostics.candidate_cards_found - diagnostics.cards_accepted)
     return CaptureRunResult(
         run_id=f"capture_{uuid4().hex}",
         status=status,
@@ -106,4 +145,5 @@ def run_capture(request: CaptureRunRequest, profile: RuleProfile) -> CaptureRunR
         results=results,
         warnings=warnings,
         capture_health=get_capture_health(status),
+        capture_diagnostics=diagnostics,
     )

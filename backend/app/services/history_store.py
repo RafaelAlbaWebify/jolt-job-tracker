@@ -6,7 +6,9 @@ from uuid import uuid4
 from app.models import (
     ApplicationStatus,
     CaptureRunResult,
+    CapturedRawJob,
     HistoryJobEntry,
+    NormalizedJob,
     SaveCaptureResultHistoryResponse,
 )
 
@@ -33,6 +35,25 @@ def _same_job(existing: HistoryJobEntry, candidate: HistoryJobEntry) -> bool:
     if candidate.external_id and existing.external_id == candidate.external_id:
         return True
     return bool(candidate.title and candidate.company and _fallback_key(existing) == _fallback_key(candidate))
+
+
+def find_duplicate_history_match(
+    parsed_job: NormalizedJob,
+    raw_job: CapturedRawJob,
+) -> tuple[HistoryJobEntry | None, str]:
+    source_url = raw_job.source_url or parsed_job.source_url
+    external_id = raw_job.external_id or parsed_job.job_id or ""
+    fallback_key = "|".join([_normalize(parsed_job.title), _normalize(parsed_job.company), _normalize(parsed_job.location)])
+
+    for entry in list_history_entries():
+        if source_url and entry.source_url == source_url:
+            return entry, "same source_url as saved history item"
+        if external_id and entry.external_id == external_id:
+            return entry, "same external_id as saved history item"
+        if parsed_job.title and parsed_job.company and _fallback_key(entry) == fallback_key:
+            return entry, "same title, company, and location as saved history item"
+
+    return None, ""
 
 
 def _ensure_history_root() -> None:

@@ -33,7 +33,13 @@ DecisionLabel = Literal["Apply", "Maybe", "Discard", "Manual Review", "Duplicate
 PriorityLabel = Literal["High", "Medium", "Low"]
 ParserConfidence = Literal["high", "medium", "low"]
 CaptureRunStatus = Literal["completed", "completed_with_errors", "failed"]
-CaptureMode = Literal["manual_raw_jobs", "page_text", "browser_assisted"]
+CaptureMode = Literal[
+    "manual_raw_jobs",
+    "page_text",
+    "html_fragment",
+    "uploaded_html_content",
+    "browser_assisted",
+]
 ExportFormat = Literal["json", "csv", "xlsx"]
 ExportStatus = Literal["completed", "failed"]
 ApplicationStatus = Literal["Not started", "Applied", "Interview", "Rejected", "Archived", "Watchlist"]
@@ -104,9 +110,21 @@ class CapturedRawJob(BaseModel):
 
 
 class CaptureHealthStatus(BaseModel):
-    capture_mode: str = "manual_raw_jobs,page_text"
+    capture_mode: str = "manual_raw_jobs,page_text,html_fragment,uploaded_html_content"
     browser_automation_enabled: bool = False
     last_run_status: str | None = None
+    warnings: list[str] = []
+
+
+class CaptureDiagnostics(BaseModel):
+    capture_mode_used: str
+    input_size: int = 0
+    candidate_cards_found: int = 0
+    cards_accepted: int = 0
+    cards_rejected: int = 0
+    rejection_reasons: list[str] = []
+    source_url_extraction_notes: list[str] = []
+    capture_confidence: ParserConfidence = "medium"
     warnings: list[str] = []
 
 
@@ -122,6 +140,7 @@ class CaptureRunRequest(BaseModel):
     dry_run: bool = False
     page_text: str = ""
     html_content: str = ""
+    uploaded_html_content: str = ""
     raw_jobs: list[CapturedRawJob] = []
 
 
@@ -130,6 +149,9 @@ class CaptureJobResult(BaseModel):
     parsed_job: NormalizedJob | None = None
     decision: DecisionResult | None = None
     errors: list[str] = []
+    duplicate_preview: bool = False
+    duplicate_reason: str = ""
+    duplicate_history_id: str = ""
 
 
 class CaptureRunResult(BaseModel):
@@ -143,6 +165,7 @@ class CaptureRunResult(BaseModel):
     results: list[CaptureJobResult]
     warnings: list[str]
     capture_health: CaptureHealthStatus
+    capture_diagnostics: CaptureDiagnostics
 
 
 class ExportCaptureResultRequest(BaseModel):

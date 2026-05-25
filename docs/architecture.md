@@ -102,17 +102,19 @@ It accepts manually supplied `raw_jobs` or raw jobs produced by capture adapters
 
 ### Capture Adapter
 
-`backend/app/services/browser_capture.py` currently implements the safe capture adapter boundary for pasted page text/HTML.
+`backend/app/services/browser_capture.py` currently implements the safe capture adapter boundary for pasted page text/HTML and copied/uploaded HTML content.
 
 Supported modes:
 
 - `manual_raw_jobs`: existing explicit raw job input.
-- `page_text`: user-provided copied page text or HTML is normalized and conservatively split into job blocks.
+- `page_text`: user-provided copied page text is normalized and conservatively split into job blocks.
+- `html_fragment`: user-provided copied HTML is stripped, normalized, and conservatively split into job blocks.
+- `uploaded_html_content`: uploaded/copied HTML content follows the same safe local extraction path.
 - `browser_assisted`: accepted as an experimental mode but not enabled; no browser automation is attempted.
 
 The adapter does not store credentials, bypass protections, crawl pages, or hardcode LinkedIn as the core architecture.
 
-The page text/HTML extractor is dependency-light and conservative. It handles clear labelled fields, repeated `Job Card` or separator blocks, compact title/company/location listings, simple copied HTML card structures, and job-like links from visible URLs or anchor `href` values. When structure is unclear, it returns one captured job with capture notes instead of over-splitting noisy page fragments.
+The page text/HTML extractor is dependency-light and conservative. It handles clear labelled fields, repeated `Job Card` or separator blocks, compact title/company/location listings, simple copied HTML card structures, and job-like links from visible URLs or anchor `href` values. It rejects tiny/noisy candidate cards, reports extraction diagnostics, and returns one fallback captured job with notes when structure is unclear instead of over-splitting page fragments.
 
 ### Export Service
 
@@ -130,7 +132,7 @@ Generated files are written under ignored `backend/data/exports/`. Raw job text 
 
 `backend/app/services/history_store.py` persists reviewed jobs locally under ignored `backend/data/history/`.
 
-The current implementation uses JSONL file storage rather than a database. It can save reviewed capture results, list saved jobs, load one saved job, update application status, and detect duplicates by source URL, external ID, or normalized title/company/location fallback.
+The current implementation uses JSONL file storage rather than a database. It can save reviewed capture results, list saved jobs, load one saved job, update application status, and detect duplicates by source URL, external ID, or normalized title/company/location fallback. Capture runs also use this duplicate logic as a preview so likely duplicates are labelled before save rather than silently removed.
 
 ### Demo Cleanup
 
@@ -144,7 +146,7 @@ The current frontend is a compact React app rather than a fully split page/compo
 
 Implemented views:
 
-- Capture: primary demo workflow, profile selector, capture health, manual jobs, page text/HTML capture, demo jobs, review dashboard, decision filters, decision cards.
+- Capture: primary demo workflow, profile selector, capture health, manual jobs, page text/HTML/HTML-fragment capture, capture diagnostics, demo jobs, review dashboard, duplicate preview, decision filters, decision cards.
 - Rule Profiles: profile list and profile detail view.
 - History / Tracker: saved reviewed jobs, simple filters, and application status updates.
 - About: project purpose, demo safety notes, intentionally disabled features, and local cleanup control.
@@ -173,12 +175,13 @@ Current local endpoints:
 
 ```text
 Frontend Capture page
--> user loads demo jobs, stages raw text, or pastes page text/HTML
+-> user loads demo jobs, stages raw text, pastes page text, or provides HTML content
 -> POST /api/capture/run
--> capture runner and adapter validate raw jobs/page content
+-> capture runner and adapter validate raw jobs/page content and return diagnostics
 -> parser service normalizes raw text
 -> decision engine applies selected profile
--> backend returns run summary and per-job results
+-> history duplicate preview labels likely already-saved jobs
+-> backend returns run summary, diagnostics, and per-job results
 -> frontend displays decision overview, filters, and cards
 -> user optionally exports JSON, CSV, or XLSX
 -> backend writes files under backend/data/exports/

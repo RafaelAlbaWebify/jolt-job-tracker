@@ -43,8 +43,10 @@ The Capture page is the primary workflow. Manual paste exists as a fallback/debu
 - Rule Profiles page for inspecting available profiles and profile details.
 - Rule-based parser with parser confidence and parser notes.
 - Decision engine with explainable scoring and hard-discard rules.
-- Capture runner for manual `raw_jobs` and pasted page text/HTML.
-- Conservative page text/HTML extractor for labelled blocks, `Job Card` sections, compact job-board-like text, copied HTML cards, and job-like links.
+- Capture runner for manual `raw_jobs`, pasted page text, HTML fragments, and uploaded/copied HTML content.
+- Conservative page text/HTML extractor for labelled blocks, `Job Card` sections, compact job-board-like text, copied HTML cards, visible URLs, and anchor links.
+- Capture diagnostics showing input size, candidate cards found, accepted/rejected cards, source URL notes, and capture confidence.
+- Duplicate preview against local history before saving, without silently dropping likely duplicates.
 - Capture health endpoint showing browser automation disabled by default.
 - Frontend review dashboard with demo jobs, decision counts, filters, and decision cards.
 - Local export package generation under ignored `backend/data/exports/`.
@@ -60,7 +62,8 @@ The Capture page is the primary workflow. Manual paste exists as a fallback/debu
 | Mode | Status | What it does |
 | --- | --- | --- |
 | Manual jobs | Implemented | User stages one or more raw job texts in the Capture page. |
-| Page text / HTML | Implemented | User pastes visible page text or copied HTML; JOLT extracts local job blocks and sends them through the same parser and decision engine. |
+| Page text | Implemented | User pastes visible page text; JOLT extracts local job blocks and sends them through the same parser and decision engine. |
+| HTML fragment / uploaded HTML content | Implemented | User provides copied HTML locally; JOLT strips page noise, preserves likely job links, and extracts job cards conservatively. |
 | Browser-assisted experimental | Disabled placeholder | Shown honestly in the UI/API as not enabled; no browser automation is attempted. |
 
 Page text / HTML capture is local and user-controlled. It does not make external network calls, store credentials, bypass authentication, bypass CAPTCHA, or crawl websites.
@@ -154,10 +157,10 @@ http://localhost:5173
 
 Page text / HTML demo:
 
-1. Switch Capture to `Page text / HTML`.
+1. Switch Capture to `Page text` or `HTML fragment`.
 2. Paste synthetic labelled job blocks or copied HTML.
-3. Click `Extract and review`.
-4. Open capture notes on a result card to see extraction hints.
+3. Click `Extract page text and review` or `Extract HTML and review`.
+4. Open capture diagnostics and capture notes to see extraction hints, source URL notes, accepted/rejected candidate counts, and duplicate preview warnings.
 
 More demo steps are in [docs/demo-checklist.md](docs/demo-checklist.md).
 
@@ -238,7 +241,7 @@ See [docs/screenshots/README.md](docs/screenshots/README.md) for the screenshot 
 - Add richer XLSX tracker sheets and export package metadata.
 - Add downloadable export UX.
 - Add Apply Today and Manual Review queues derived from saved history.
-- Add capture-time duplicate/already-reviewed labels from local history.
+- Improve capture-time duplicate/already-reviewed labels from local history.
 - Add profile editing and validation UI.
 - Add optional browser-assisted capture only if it can remain explicit, local, recoverable, and respectful of site terms.
 - Add a short demo video.

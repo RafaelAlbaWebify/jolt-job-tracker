@@ -813,3 +813,41 @@
   - Frontend production build passed.
 - Remaining risks / follow-up:
   - Public repository rename to `jolt-job-tracker` still needs to happen on GitHub if not already completed there.
+
+## 2026-05-25 - Phase 15A Capture v2 Ingestion Improvements
+
+- Type: Feature / Tests / Docs
+- Files changed:
+  - `backend/app/models.py`
+  - `backend/app/services/browser_capture.py`
+  - `backend/app/services/capture_runner.py`
+  - `backend/app/services/history_store.py`
+  - `backend/tests/test_capture_runner.py`
+  - `frontend/src/api.ts`
+  - `frontend/src/App.tsx`
+  - `frontend/src/styles.css`
+  - `README.md`
+  - `docs/architecture.md`
+  - `docs/demo-checklist.md`
+  - `docs/portfolio-walkthrough.md`
+  - `docs/engineering-log.md`
+- Problem / goal:
+  - Improve local, user-controlled capture ingestion quality for JOLT without implementing browser automation, scraping, credential handling, or auto-apply behavior.
+- Change made:
+  - Added explicit safe capture modes for `manual_raw_jobs`, `page_text`, `html_fragment`, and `uploaded_html_content`; `browser_assisted` remains disabled/experimental.
+  - Extended capture results with diagnostics for capture mode, input size, candidate cards, accepted/rejected cards, rejection reasons, source URL notes, and capture confidence.
+  - Improved page text/HTML extraction to reject tiny/noisy cards, preserve visible URLs and anchor links, and warn when full-page-looking content has no clear cards.
+  - Added duplicate preview against local history using existing source URL, external ID, and title/company/location matching, without silently dropping duplicates during capture.
+  - Updated the Capture page with clearer mode labels, HTML placeholder examples, diagnostics display, duplicate preview badges, and compact source/capture notes.
+  - Updated documentation to describe Phase 15A as user-provided ingestion quality and diagnostics, not scraping or browser automation.
+- Tests/checks run:
+  - Ran `cd backend && .\.venv\Scripts\python.exe -m pytest tests\test_capture_runner.py`.
+  - Ran `cd backend && .\.venv\Scripts\python.exe -m pytest`.
+  - Ran `cd frontend && npm run build`.
+- Result:
+  - Focused capture runner tests passed.
+  - Full backend test suite passed.
+  - Frontend production build passed.
+- Remaining risks / follow-up:
+  - Extraction remains conservative and rule-based; real job boards may still require users to paste cleaner visible text or copied card HTML.
+  - Browser automation remains intentionally disabled/experimental.

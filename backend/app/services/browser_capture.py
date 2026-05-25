@@ -1,7 +1,7 @@
 import html
 import re
 
-from app.models import CaptureRunRequest, CapturedRawJob
+from app.models import CaptureDiagnostics, CaptureRunRequest, CapturedRawJob
 
 FIELD_LABELS = r"job\s+title|title|role|company|employer|organization|organisation|location|office|based in|work\s+mode|url|link"
 TITLE_PATTERN = re.compile(r"^(?:job\s+title|title|role)\s*[:\-]\s*(.+)$", re.IGNORECASE | re.MULTILINE)
@@ -173,6 +173,21 @@ def _split_on_separator_lines(lines: list[str]) -> list[str]:
     return [block for block in blocks if block]
 
 
+def _split_candidates_on_separator_lines(lines: list[str]) -> list[str]:
+    blocks: list[str] = []
+    current: list[str] = []
+    for line in lines:
+        if SEPARATOR_LINE_PATTERN.match(line):
+            if current:
+                blocks.append("\n".join(current).strip())
+                current = []
+            continue
+        current.append(line)
+    if current:
+        blocks.append("\n".join(current).strip())
+    return [block for block in blocks if block]
+
+
 def _split_on_repeated_titles(text: str) -> list[str]:
     matches = list(TITLE_START_PATTERN.finditer(text))
     if len(matches) < 2:
@@ -223,48 +238,100 @@ def _dedupe_blocks(blocks: list[str]) -> list[str]:
     return result
 
 
-def _extract_blocks(text: str, is_html: bool) -> tuple[list[tuple[str, list[str]]], list[str]]:
+def _capture_confidence(accepted_count: int, rejected_count: int, fallback_used: bool) -> str:
+    if fallback_used:
+        return "low"
+    if accepted_count > 0 and rejected_count == 0:
+        return "high"
+    return "medium"
+
+
+def _extract_blocks(text: str, is_html: bool) -> tuple[list[tuple[str, list[str]]], list[str], int, int, list[str]]:
     lines = _normalize_lines(text)
     warnings: list[str] = []
+    rejection_reasons: list[str] = []
+
+    separated_blocks = _split_candidates_on_separator_lines(lines)
+    if len(separated_blocks) > 1:
+        accepted: list[tuple[str, list[str]]] = []
+        rejected_count = 0
+        for block in _dedupe_blocks(separated_blocks):
+            if _is_useful_block(block):
+                note = (
+                    "Extracted from HTML block."
+                    if is_html
+                    else "Extracted from labelled job block."
+                    if _has_job_shape(block)
+                    else "Extracted from separated job block."
+                )
+                accepted.append((block, [note]))
+            else:
+                rejected_count += 1
+                rejection_reasons.append("Rejected short/noisy candidate card from separated page text.")
+
+        if accepted:
+            if rejected_count:
+                warnings.append(f"Rejected {rejected_count} short/noisy candidate card(s).")
+            return accepted, warnings, len(separated_blocks), rejected_count, rejection_reasons
 
     labelled_blocks = [block for block in _split_on_separator_lines(lines) if _has_job_shape(block)]
     if len(labelled_blocks) > 1:
         note = "Extracted from HTML block." if is_html else "Extracted from labelled job block."
-        return [(block, [note]) for block in _dedupe_blocks(labelled_blocks)], warnings
+        return [(block, [note]) for block in _dedupe_blocks(labelled_blocks)], warnings, len(labelled_blocks), 0, []
 
     repeated_title_blocks = [block for block in _split_on_repeated_titles(text) if _has_job_shape(block)]
     if len(repeated_title_blocks) > 1:
         note = "Extracted from HTML block." if is_html else "Extracted from labelled job block."
-        return [(block, [note]) for block in _dedupe_blocks(repeated_title_blocks)], warnings
+        return [(block, [note]) for block in _dedupe_blocks(repeated_title_blocks)], warnings, len(repeated_title_blocks), 0, []
 
     compact_blocks = [block for block in _split_compact_blocks(lines) if _is_useful_block(block)]
     if compact_blocks:
         note = "Extracted from HTML block." if is_html else "Extracted from compact job-board-like lines."
-        return [(block, [note]) for block in _dedupe_blocks(compact_blocks)], warnings
+        return [(block, [note]) for block in _dedupe_blocks(compact_blocks)], warnings, len(compact_blocks), 0, []
 
     single_useful_blocks = [block for block in _split_on_separator_lines(lines) if _is_useful_block(block)]
     if len(single_useful_blocks) == 1:
         note = "Extracted from HTML block." if is_html else "Extracted from labelled job block."
-        return [(single_useful_blocks[0], [note])], warnings
+        return [(single_useful_blocks[0], [note])], warnings, 1, 0, []
 
     fallback_text = "\n".join(line for line in lines if not _is_noise_line(line)).strip() or text
-    warnings.append("Page text structure was unclear; captured the full content as one job.")
-    return [(fallback_text, ["Page text structure was unclear; captured the full content as one job."])], warnings
+    warning = "Page text structure was unclear; captured the full content as one job."
+    if len(lines) > 8:
+        warning = "Content looked like a full page, but no clear job cards were found; captured one fallback item."
+    warnings.append(warning)
+    return [(fallback_text, [warning])], warnings, 1, 0, []
 
 
-def capture_from_page_content(request: CaptureRunRequest) -> tuple[list[CapturedRawJob], list[str]]:
-    raw_content = request.html_content.strip() or request.page_text.strip()
+def capture_from_page_content(request: CaptureRunRequest) -> tuple[list[CapturedRawJob], list[str], CaptureDiagnostics]:
+    raw_content = request.uploaded_html_content.strip() or request.html_content.strip() or request.page_text.strip()
+    diagnostics = CaptureDiagnostics(
+        capture_mode_used=request.capture_mode,
+        input_size=len(raw_content),
+        warnings=[],
+    )
     if not raw_content:
-        return [], ["No page_text or html_content was provided for page_text capture mode."]
+        warning = "No page_text, html_content, or uploaded_html_content was provided for capture extraction."
+        diagnostics.warnings.append(warning)
+        diagnostics.capture_confidence = "low"
+        return [], [warning], diagnostics
 
-    is_html = bool(request.html_content.strip()) or _looks_like_html(raw_content)
+    is_html = bool(request.html_content.strip() or request.uploaded_html_content.strip() or request.capture_mode in {"html_fragment", "uploaded_html_content"}) or _looks_like_html(raw_content)
     normalized = _normalize_text(_strip_html(raw_content) if is_html else raw_content)
     if not normalized:
-        return [], ["Page content was empty after normalization."]
+        warning = "Page content was empty after normalization."
+        diagnostics.warnings.append(warning)
+        diagnostics.capture_confidence = "low"
+        return [], [warning], diagnostics
 
-    blocks_with_notes, warnings = _extract_blocks(normalized, is_html)
+    blocks_with_notes, warnings, candidate_count, rejected_count, rejection_reasons = _extract_blocks(normalized, is_html)
+    diagnostics.candidate_cards_found = candidate_count
+    diagnostics.cards_rejected = rejected_count
+    diagnostics.rejection_reasons = rejection_reasons
     if request.max_results < 1:
-        return [], ["max_results was below 1; no page text jobs were processed."]
+        warning = "max_results was below 1; no page text jobs were processed."
+        diagnostics.warnings.extend([*warnings, warning])
+        diagnostics.capture_confidence = "low"
+        return [], [warning], diagnostics
 
     if len(blocks_with_notes) > request.max_results:
         max_note = (
@@ -272,6 +339,7 @@ def capture_from_page_content(request: CaptureRunRequest) -> tuple[list[Captured
             f"only the first {request.max_results} were processed."
         )
         warnings.append(max_note)
+        diagnostics.warnings.append(max_note)
         blocks_with_notes = blocks_with_notes[: request.max_results]
         blocks_with_notes = [
             (block, [*notes, "max_results applied; additional extracted jobs were skipped."])
@@ -295,6 +363,7 @@ def capture_from_page_content(request: CaptureRunRequest) -> tuple[list[Captured
 
         source_url, url_notes = _source_url_for_block(block, request.source_url)
         notes.extend(url_notes)
+        diagnostics.source_url_extraction_notes.extend(url_notes)
 
         raw_jobs.append(
             CapturedRawJob(
@@ -306,4 +375,11 @@ def capture_from_page_content(request: CaptureRunRequest) -> tuple[list[Captured
             )
         )
 
-    return raw_jobs, warnings
+    diagnostics.cards_accepted = len(raw_jobs)
+    diagnostics.capture_confidence = _capture_confidence(
+        diagnostics.cards_accepted,
+        diagnostics.cards_rejected,
+        any("fallback" in warning.lower() or "unclear" in warning.lower() for warning in warnings),
+    )
+    diagnostics.warnings.extend(warnings)
+    return raw_jobs, warnings, diagnostics

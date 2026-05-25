@@ -285,4 +285,11 @@ def test_no_browser_automation_or_scraping_dependencies_added() -> None:
 
     assert "selenium" not in requirements
     assert "playwright" not in requirements
-    assert "linkedin" not in source_files
+    assert "pyautogui" not in requirements
+    assert "pywin32" not in requirements
+    assert "import selenium" not in source_files
+    assert "from selenium" not in source_files
+    assert "import playwright" not in source_files
+    assert "from playwright" not in source_files
+    assert "import pyautogui" not in source_files
+    assert "import win32" not in source_files

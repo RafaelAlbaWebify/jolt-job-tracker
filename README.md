@@ -49,6 +49,7 @@ The Capture page is the primary workflow. Manual paste exists as a fallback/debu
 - Capture diagnostics showing input size, candidate cards found, accepted/rejected cards, source URL notes, and capture confidence.
 - Duplicate preview against local history before saving, without silently dropping likely duplicates.
 - Capture health endpoint showing browser automation disabled by default.
+- Experimental LinkedIn capture scaffold with disabled-by-default health/start/stop/status API responses, URL/currentJobId utilities, dry-run-only runner boundary, and stable diagnostic status codes.
 - Frontend review dashboard with demo jobs, decision counts, filters, and decision cards.
 - Local export package generation under ignored `backend/data/exports/`.
 - JSON, CSV, and multi-sheet XLSX export formats.
@@ -66,9 +67,11 @@ The Capture page is the primary workflow. Manual paste exists as a fallback/debu
 | Page text | Implemented | User pastes visible page text; JOLT extracts local job blocks and sends them through the same parser and decision engine. |
 | HTML fragment / uploaded HTML content | Implemented | User provides copied HTML locally; JOLT strips page noise, preserves likely job links, and extracts job cards conservatively. |
 | Manual browser helper | Implemented | User manually clicks a bookmarklet/helper on a page they already opened; it copies visible card text and URLs for pasting into Page text mode. |
-| Browser-assisted experimental | Disabled placeholder | Shown honestly in the UI/API as not enabled; no automated browsing is attempted. |
+| Experimental LinkedIn local capture | Disabled scaffold | Backend/API/UI boundary exists behind `JOLT_ENABLE_EXPERIMENTAL_LINKEDIN_CAPTURE=false` by default. Phase 17A implements schemas, URL utilities, diagnostics, and dry-run responses only; no browser automation is attempted. |
 
 Page text / HTML and manual helper capture are local and user-controlled. The helper does not open pages, navigate, crawl, store credentials, bypass authentication, bypass CAPTCHA, or submit applications.
+
+The experimental LinkedIn capture scaffold is not connected to Save to History or normal capture review. Even when the flag is enabled, it returns dry-run responses only: no pyautogui, pywin32, Selenium, Playwright, card clicking, page navigation, login, credential storage, CAPTCHA/rate-limit bypass, auto-apply, or recruiter messaging.
 
 ## What It Intentionally Does Not Do
 
@@ -180,6 +183,10 @@ Run the backend locally, then use `http://127.0.0.1:8000`.
 | POST | `/api/classify/job` | Classify an already-normalized job. |
 | GET | `/api/capture/health` | Report safe capture modes and automation status. |
 | POST | `/api/capture/run` | Run capture review from manual jobs or pasted page text/HTML. |
+| GET | `/api/experimental-capture/linkedin/health` | Report disabled/dry-run status for the experimental LinkedIn capture scaffold. |
+| POST | `/api/experimental-capture/linkedin/start` | Return disabled by default, or dry-run scaffold metadata when explicitly enabled. |
+| POST | `/api/experimental-capture/linkedin/stop` | Safe no-op stop boundary for the experimental scaffold. |
+| GET | `/api/experimental-capture/linkedin/status` | Report disabled/idle/dry-run scaffold status. |
 | POST | `/api/export/capture-result` | Generate JSON, CSV, or XLSX files from a capture result. |
 | POST | `/api/export/history` | Generate JSON, CSV, or XLSX files from saved History / Tracker data. |
 | POST | `/api/history/save-capture-result` | Save reviewed capture results into local history. |

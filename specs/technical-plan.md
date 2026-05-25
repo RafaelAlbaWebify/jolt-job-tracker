@@ -328,6 +328,15 @@ Tracks run ID, timestamps, active profile, input/output files, counts, diagnosti
 - Skip duplicate/already-reviewed rows on Save to History by default while reporting skipped counts and preserving existing statuses.
 - Preserve optional visible `Duplicate` / `Already Reviewed` history entries only when duplicate saving is explicitly enabled or old data already contains them.
 
+### `experimental_linkedin_capture/`
+
+- Keep future real LinkedIn capture isolated from the safe capture runner.
+- Default `JOLT_ENABLE_EXPERIMENTAL_LINKEDIN_CAPTURE` to false.
+- Expose disabled/dry-run-only `/api/experimental-capture/linkedin/*` endpoints.
+- Define raw run package models, captured job schemas, diagnostic codes, future adapter protocol, and URL/currentJobId duplicate utilities.
+- Do not use pyautogui, pywin32, Selenium, Playwright, browser card clicking, page navigation, login automation, credentials, CAPTCHA/rate-limit bypass, auto-apply, or messaging in Phase 17A.
+- Do not connect dry-run scaffold output to Save to History, tracker export, or normal capture review.
+
 ### `history.py` / `status_tracker.py`
 
 - Save seen jobs.

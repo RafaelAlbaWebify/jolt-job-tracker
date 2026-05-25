@@ -27,6 +27,7 @@ backend/
       capture.py
       classify.py
       demo.py
+      experimental_capture.py
       export.py
       health.py
       history.py
@@ -38,6 +39,12 @@ backend/
       capture_runner.py
       browser_capture.py
       decision_engine.py
+      experimental_linkedin_capture/
+        adapter.py
+        diagnostics.py
+        models.py
+        runner.py
+        url_utils.py
       export_package.py
       demo_cleanup.py
       history_store.py
@@ -120,6 +127,12 @@ The page text/HTML extractor is dependency-light and conservative. It handles cl
 
 Phase 15B also reuses safe text-only lessons from the legacy pipeline: copied left-panel-style card text can be split into separate jobs, card state markers such as viewed/applied/easy-apply are preserved as capture notes, and title/company/location extraction remains local and conservative. The legacy click automation, session assumptions, and platform-specific navigation were not ported.
 
+### Experimental LinkedIn Capture Scaffold
+
+`backend/app/services/experimental_linkedin_capture/` is a disabled-by-default boundary for possible future user-supervised local LinkedIn capture. Phase 17A adds schemas, URL/currentJobId identity helpers, duplicate-reference utilities, diagnostic event codes, a future adapter protocol, and a dry-run runner. It does not import or use pyautogui, pywin32, Selenium, or Playwright, and it does not click cards, navigate pages, log in, store credentials, bypass CAPTCHA/rate limits, auto-apply, or send messages.
+
+The feature flag is `JOLT_ENABLE_EXPERIMENTAL_LINKEDIN_CAPTURE=false` by default. When disabled, `/api/experimental-capture/linkedin/health`, `/start`, `/stop`, and `/status` return clear disabled/no-op responses. When enabled, `/start` returns dry-run scaffold metadata only and is not connected to the normal Capture -> Review -> History flow.
+
 ### Export Service
 
 `backend/app/services/export_package.py` writes local export files for either a current capture review result or saved History / Tracker records.
@@ -170,6 +183,10 @@ Current local endpoints:
 - `POST /api/classify/job`
 - `GET /api/capture/health`
 - `POST /api/capture/run`
+- `GET /api/experimental-capture/linkedin/health`
+- `POST /api/experimental-capture/linkedin/start`
+- `POST /api/experimental-capture/linkedin/stop`
+- `GET /api/experimental-capture/linkedin/status`
 - `POST /api/export/capture-result`
 - `POST /api/export/history`
 - `POST /api/history/save-capture-result`

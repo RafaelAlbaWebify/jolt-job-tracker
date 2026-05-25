@@ -244,12 +244,17 @@ p {
 }
 
 .section-heading h2,
+.section-heading h3,
 .section-heading p {
   margin: 0;
 }
 
 .section-heading h2 {
   font-size: 1rem;
+}
+
+.section-heading h3 {
+  font-size: 0.98rem;
 }
 
 .section-heading span {
@@ -472,6 +477,14 @@ textarea {
 
 .browser-helper-panel {
   background: #fbfcfc;
+}
+
+.experimental-capture-card {
+  background: #fffdf7;
+}
+
+.compact-heading {
+  margin-bottom: 6px;
 }
 
 .compact-steps {

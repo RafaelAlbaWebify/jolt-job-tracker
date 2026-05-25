@@ -63,10 +63,11 @@ Expected result:
 20. Click a Tracker export button and explain that it exports saved tracker data with the latest statuses.
 21. Open About.
 22. Confirm the page explains local-only demo safety and intentionally disabled automation.
-23. Optionally check the cleanup confirmation and click `Clean local demo data` to reset local demo history/export data.
-24. Confirm deleted export/history file counts are shown.
-25. Open the Rule Profiles page.
-26. Confirm Rafael Default is labeled as a demo/default preset, not global hardcoded behavior.
+23. Confirm the Experimental LinkedIn capture card says the scaffold is disabled by default unless `JOLT_ENABLE_EXPERIMENTAL_LINKEDIN_CAPTURE` is enabled, and explain that Phase 17A implements no real browser automation.
+24. Optionally check the cleanup confirmation and click `Clean local demo data` to reset local demo history/export data.
+25. Confirm deleted export/history file counts are shown.
+26. Open the Rule Profiles page.
+27. Confirm Rafael Default is labeled as a demo/default preset, not global hardcoded behavior.
 
 ## Page Text / HTML Capture Demo
 
@@ -94,6 +95,13 @@ Expected result:
 8. Return to JOLT, select `Page text`, paste the `JOLT_CAPTURE_V1` payload, and run capture review.
 9. Confirm diagnostics show `manual_browser_helper`, payload/card counts, accepted/rejected card counts, preserved URLs, and page URL notes.
 10. Say clearly that the helper only runs after a user click, extracts visible content from the current page, stores no credentials, opens no pages, and submits no applications.
+
+## Experimental Capture Scaffold Demo
+
+1. Open About and point to the Experimental LinkedIn capture card.
+2. Confirm the status is `disabled` on a normal demo run.
+3. Explain that the scaffold only defines API boundaries, schemas, currentJobId URL utilities, and diagnostics for future work.
+4. State clearly that Phase 17A does not use pyautogui, pywin32, Selenium, Playwright, card clicking, page navigation, login automation, credential storage, CAPTCHA/rate-limit bypass, auto-apply, or recruiter messaging.
 
 Example synthetic multi-job text:
 

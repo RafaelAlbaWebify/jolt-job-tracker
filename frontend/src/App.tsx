@@ -5,6 +5,7 @@ import {
   exportHistoryTracker,
   fetchBackendHealth,
   fetchCaptureHealth,
+  fetchExperimentalLinkedInCaptureHealth,
   fetchHistoryJobs,
   fetchProfile,
   fetchProfiles,
@@ -19,6 +20,7 @@ import {
   type DemoCleanupResponse,
   type ExportCaptureResultResponse,
   type ExportFormat,
+  type ExperimentalCaptureResponse,
   type HealthResponse,
   type HistoryJobEntry,
   type NormalizedJob,
@@ -432,6 +434,9 @@ function App() {
   const [profilesLoading, setProfilesLoading] = useState<boolean>(true);
   const [captureHealth, setCaptureHealth] = useState<CaptureHealthStatus | null>(null);
   const [captureHealthError, setCaptureHealthError] = useState<string | null>(null);
+  const [experimentalCaptureHealth, setExperimentalCaptureHealth] =
+    useState<ExperimentalCaptureResponse | null>(null);
+  const [experimentalCaptureHealthError, setExperimentalCaptureHealthError] = useState<string | null>(null);
   const [rawJobText, setRawJobText] = useState<string>('');
   const [captureInputMode, setCaptureInputMode] = useState<CaptureInputMode>('manual_raw_jobs');
   const [pageCaptureText, setPageCaptureText] = useState<string>('');
@@ -564,6 +569,22 @@ function App() {
         if (!cancelled) {
           setCaptureHealth(null);
           setCaptureHealthError(error instanceof Error ? error.message : 'Capture health unavailable');
+        }
+      });
+
+    fetchExperimentalLinkedInCaptureHealth()
+      .then((result) => {
+        if (!cancelled) {
+          setExperimentalCaptureHealth(result);
+          setExperimentalCaptureHealthError(null);
+        }
+      })
+      .catch((error: unknown) => {
+        if (!cancelled) {
+          setExperimentalCaptureHealth(null);
+          setExperimentalCaptureHealthError(
+            error instanceof Error ? error.message : 'Experimental capture health unavailable',
+          );
         }
       });
 
@@ -1693,6 +1714,28 @@ English required.`
                     Browser automation, LinkedIn scraping, profile editing, authentication,
                     database storage, and auto-apply behavior are not part of this safe demo.
                   </p>
+                </article>
+                <article className="experimental-capture-card">
+                  <div className="section-heading compact-heading">
+                    <h3>Experimental LinkedIn capture</h3>
+                    <span>{experimentalCaptureHealth?.status ?? 'unknown'}</span>
+                  </div>
+                  <p>
+                    Disabled by default. The scaffold is reserved for future user-supervised local
+                    capture from an already-open browser; Phase 17A does not click cards, navigate
+                    pages, log in, store credentials, bypass CAPTCHA or rate limits, auto-apply, or
+                    send messages.
+                  </p>
+                  <p className="helper-text">
+                    Backend flag: JOLT_ENABLE_EXPERIMENTAL_LINKEDIN_CAPTURE. Current status:{' '}
+                    {experimentalCaptureHealth?.enabled ? 'dry-run scaffold enabled' : 'disabled'}.
+                  </p>
+                  {experimentalCaptureHealthError ? (
+                    <p className="status-message">{experimentalCaptureHealthError}</p>
+                  ) : null}
+                  {experimentalCaptureHealth?.message ? (
+                    <p className="inline-warning">{experimentalCaptureHealth.message}</p>
+                  ) : null}
                 </article>
                 <article>
                   <h3>Local and private</h3>

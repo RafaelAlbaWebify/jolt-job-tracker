@@ -220,6 +220,46 @@ export type DemoCleanupResponse = {
   warnings: string[];
 };
 
+export type ExperimentalCaptureStatus =
+  | 'disabled'
+  | 'idle'
+  | 'running'
+  | 'completed'
+  | 'failed'
+  | 'stopped';
+
+export type ExperimentalCaptureDiagnostic = {
+  code: string;
+  message: string;
+  level: 'info' | 'warning' | 'error';
+  timestamp: string;
+  details: Record<string, string | number | boolean | null>;
+};
+
+export type ExperimentalCaptureRunPackage = {
+  run_id: string;
+  status: ExperimentalCaptureStatus;
+  started_at: string | null;
+  finished_at: string | null;
+  source_platform: 'linkedin_jobs';
+  mode: 'experimental_local_capture';
+  max_pages: number;
+  max_jobs: number;
+  captured_jobs: unknown[];
+  diagnostics: ExperimentalCaptureDiagnostic[];
+  warnings: string[];
+  errors: string[];
+};
+
+export type ExperimentalCaptureResponse = {
+  enabled: boolean;
+  status: ExperimentalCaptureStatus;
+  message: string;
+  run: ExperimentalCaptureRunPackage | null;
+  diagnostics: ExperimentalCaptureDiagnostic[];
+  warnings: string[];
+};
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000';
 
 async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
@@ -246,6 +286,10 @@ export async function fetchProfile(profileId: string): Promise<RuleProfile> {
 
 export async function fetchCaptureHealth(): Promise<CaptureHealthStatus> {
   return fetchJson<CaptureHealthStatus>('/api/capture/health');
+}
+
+export async function fetchExperimentalLinkedInCaptureHealth(): Promise<ExperimentalCaptureResponse> {
+  return fetchJson<ExperimentalCaptureResponse>('/api/experimental-capture/linkedin/health');
 }
 
 export async function runCaptureReview(request: CaptureRunRequest): Promise<CaptureRunResult> {

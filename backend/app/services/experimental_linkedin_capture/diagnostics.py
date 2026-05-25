@@ -1,0 +1,63 @@
+from datetime import UTC, datetime
+
+from app.services.experimental_linkedin_capture.models import ExperimentalCaptureDiagnostic
+
+
+EXP_CAPTURE_DISABLED = "EXP_CAPTURE_DISABLED"
+EXP_CAPTURE_STARTED = "EXP_CAPTURE_STARTED"
+EXP_CAPTURE_STOPPED = "EXP_CAPTURE_STOPPED"
+EXP_LEFT_PANEL_NOT_FOUND = "EXP_LEFT_PANEL_NOT_FOUND"
+EXP_CARD_CLICK_ATTEMPTED = "EXP_CARD_CLICK_ATTEMPTED"
+EXP_CARD_SELECTED = "EXP_CARD_SELECTED"
+EXP_URL_CURRENT_JOB_ID_MATCHED = "EXP_URL_CURRENT_JOB_ID_MATCHED"
+EXP_URL_CURRENT_JOB_ID_MISMATCH = "EXP_URL_CURRENT_JOB_ID_MISMATCH"
+EXP_DETAIL_TEXT_READY = "EXP_DETAIL_TEXT_READY"
+EXP_DETAIL_TEXT_STALE = "EXP_DETAIL_TEXT_STALE"
+EXP_DUPLICATE_JOB_ID = "EXP_DUPLICATE_JOB_ID"
+EXP_PAGE_LIMIT_REACHED = "EXP_PAGE_LIMIT_REACHED"
+EXP_JOB_LIMIT_REACHED = "EXP_JOB_LIMIT_REACHED"
+EXP_NEXT_PAGE_ATTEMPTED = "EXP_NEXT_PAGE_ATTEMPTED"
+EXP_NEXT_PAGE_NOT_FOUND = "EXP_NEXT_PAGE_NOT_FOUND"
+EXP_CAPTURE_COMPLETED = "EXP_CAPTURE_COMPLETED"
+EXP_CAPTURE_FAILED = "EXP_CAPTURE_FAILED"
+
+EXPERIMENTAL_CAPTURE_CODES = [
+    EXP_CAPTURE_DISABLED,
+    EXP_CAPTURE_STARTED,
+    EXP_CAPTURE_STOPPED,
+    EXP_LEFT_PANEL_NOT_FOUND,
+    EXP_CARD_CLICK_ATTEMPTED,
+    EXP_CARD_SELECTED,
+    EXP_URL_CURRENT_JOB_ID_MATCHED,
+    EXP_URL_CURRENT_JOB_ID_MISMATCH,
+    EXP_DETAIL_TEXT_READY,
+    EXP_DETAIL_TEXT_STALE,
+    EXP_DUPLICATE_JOB_ID,
+    EXP_PAGE_LIMIT_REACHED,
+    EXP_JOB_LIMIT_REACHED,
+    EXP_NEXT_PAGE_ATTEMPTED,
+    EXP_NEXT_PAGE_NOT_FOUND,
+    EXP_CAPTURE_COMPLETED,
+    EXP_CAPTURE_FAILED,
+]
+
+
+def utc_now_iso() -> str:
+    return datetime.now(UTC).replace(microsecond=0).isoformat()
+
+
+def diagnostic_event(
+    code: str,
+    message: str,
+    *,
+    level: str = "info",
+    details: dict[str, str | int | bool | None] | None = None,
+) -> ExperimentalCaptureDiagnostic:
+    return ExperimentalCaptureDiagnostic(
+        code=code,
+        message=message,
+        level=level,  # type: ignore[arg-type]
+        timestamp=utc_now_iso(),
+        details=details or {},
+    )
+

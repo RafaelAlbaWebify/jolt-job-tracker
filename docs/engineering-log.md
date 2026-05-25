@@ -1105,3 +1105,55 @@
   - Browser bookmarklet installation still varies by browser and browser policy.
   - Bookmarklet extraction remains generic and conservative.
   - Browser automation remains disabled/experimental.
+
+## 2026-05-25 - Phase 17A Experimental Capture Scaffold
+
+- Type: Feature scaffold / Tests / Docs
+- Files changed:
+  - `backend/app/api/experimental_capture.py`
+  - `backend/app/main.py`
+  - `backend/app/services/experimental_linkedin_capture/__init__.py`
+  - `backend/app/services/experimental_linkedin_capture/adapter.py`
+  - `backend/app/services/experimental_linkedin_capture/diagnostics.py`
+  - `backend/app/services/experimental_linkedin_capture/models.py`
+  - `backend/app/services/experimental_linkedin_capture/runner.py`
+  - `backend/app/services/experimental_linkedin_capture/url_utils.py`
+  - `backend/tests/test_experimental_capture.py`
+  - `frontend/src/App.tsx`
+  - `frontend/src/api.ts`
+  - `frontend/src/styles.css`
+  - `README.md`
+  - `docs/architecture.md`
+  - `docs/demo-checklist.md`
+  - `docs/portfolio-walkthrough.md`
+  - `docs/engineering-log.md`
+  - `specs/product-spec.md`
+  - `specs/technical-plan.md`
+  - `specs/tasks.md`
+- Problem / goal:
+  - Prepare JOLT for possible future user-supervised local LinkedIn capture without implementing real browser automation or changing the current safe capture workflow.
+- Root cause / context:
+  - Legacy review showed useful concepts such as currentJobId identity, diagnostics, limits, and mismatch safeguards, but the old automation relied on fragile live-browser clicking, clipboard, screenshots, and Windows-specific controls that should not be ported wholesale.
+- Change made:
+  - Added a disabled-by-default `JOLT_ENABLE_EXPERIMENTAL_LINKEDIN_CAPTURE` backend scaffold.
+  - Added raw run package, captured job, diagnostic, and response models for experimental capture.
+  - Added pure URL/currentJobId utilities and duplicate-reference helpers.
+  - Added stable diagnostic status codes for future capture work.
+  - Added a future adapter protocol and dry-run runner with health/start/stop/status responses.
+  - Added FastAPI routes under `/api/experimental-capture/linkedin/*`.
+  - Added an About-page panel showing current experimental capture status and guardrails.
+  - Updated docs/specs to clarify that Phase 17A implements no pyautogui, pywin32, Selenium, Playwright, card clicking, page navigation, login, credentials, CAPTCHA/rate-limit bypass, auto-apply, or messaging.
+- Tests/checks run:
+  - Attempted requested root command `.\.venv\Scripts\python.exe -m pytest backend\tests\test_experimental_capture.py`; root `.venv` was not present.
+  - Attempted `python -m pytest backend\tests\test_experimental_capture.py`; system Python did not have pytest installed.
+  - Ran focused backend tests with the project backend venv from `backend/`: `.\.venv\Scripts\python.exe -m pytest tests\test_experimental_capture.py`.
+  - Ran full backend tests with the project backend venv from `backend/`: `.\.venv\Scripts\python.exe -m pytest`.
+  - Ran frontend build from `frontend/`: `npm run build`.
+- Result:
+  - Focused experimental capture tests passed: 10 passed, 1 pytest cache warning.
+  - Full backend tests passed: 98 passed, 1 pytest cache warning.
+  - Frontend production build passed.
+  - Scaffold keeps real browser automation disabled and isolated from Save to History, tracker export, and normal capture review.
+- Remaining risks / follow-up:
+  - Future real capture must remain behind explicit user enablement, hard limits, stop controls, diagnostics, and a separate adapter.
+  - No live LinkedIn automation tests should be added; future tests should use mocked adapters and synthetic fixtures.

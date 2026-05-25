@@ -77,7 +77,7 @@ export type NormalizedJob = {
 };
 
 export type DecisionResult = {
-  decision: 'Apply' | 'Maybe' | 'Discard' | 'Manual Review' | 'Duplicate';
+  decision: 'Apply' | 'Maybe' | 'Discard' | 'Manual Review' | 'Duplicate' | 'Already Reviewed';
   score: number;
   priority: 'High' | 'Medium' | 'Low';
   reasons: string[];
@@ -146,12 +146,20 @@ export type ExportCaptureResultResponse = {
 };
 
 export type ApplicationStatus =
+  | 'New'
+  | 'Apply Today'
+  | 'Manual Review'
+  | 'Waiting'
+  | 'Follow Up'
   | 'Not started'
   | 'Applied'
   | 'Interview'
   | 'Rejected'
   | 'Archived'
-  | 'Watchlist';
+  | 'Watchlist'
+  | 'Discarded'
+  | 'Duplicate'
+  | 'Already Reviewed';
 
 export type HistoryJobEntry = {
   history_id: string;

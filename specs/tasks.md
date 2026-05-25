@@ -184,11 +184,15 @@ Schema includes:
 Create:
 
 ```text
-backend/config/default_profiles/rafael_default.json
-backend/config/default_profiles/generic_it_support.json
-backend/config/default_profiles/remote_support_demo.json
-backend/config/default_profiles/portfolio_safe_demo.json
+backend/app/config/default_profiles.json
 ```
+
+Current profile IDs:
+
+- `rafael_default`
+- `generic_remote_it_support`
+- `saas_support`
+- `infrastructure_support`
 
 Acceptance criteria:
 
@@ -324,18 +328,17 @@ Statuses supported:
 ```text
 New
 Apply Today
-Applied
+Manual Review
 Waiting
 Follow Up
-Interview
+Applied
 Rejected
-Discarded
 Archived
 Duplicate
 Already Reviewed
 ```
 
-User can update status from Results/History/Apply Today pages.
+User can update status from the History / Tracker queue view. Legacy local statuses such as `Not started`, `Interview`, `Watchlist`, and `Discarded` remain accepted for backward compatibility.
 
 Status persists locally and exports to XLSX.
 
@@ -385,7 +388,7 @@ Deduplication checks:
 - normalized company + title + location;
 - history action status.
 
-Duplicates are labeled, counted, and optionally hidden, not silently deleted.
+Duplicates are labeled, counted, and optionally hidden from active queues, not silently deleted. Saving a repeated job should create a visible `Duplicate` or `Already Reviewed` history entry.
 
 ---
 
@@ -556,7 +559,7 @@ Acceptance criteria:
 
 Acceptance criteria:
 
-- `portfolio_safe_demo` profile contains no private details.
+- Current portfolio-safe profiles contain no private details.
 - Samples contain no real recruiter names, private notes, personal emails, or real job-history data.
 - README can demonstrate app without exposing personal data.
 

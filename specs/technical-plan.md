@@ -2,7 +2,7 @@
 
 ## 1. Architecture Goal
 
-Create a local React + Python backend application that preserves the useful existing capture/parser/classifier pipeline while replacing the Streamlit GUI and improving modularity.
+Create a local React + Python backend application that preserves useful, safe text-level lessons from the existing capture/parser/classifier pipeline while replacing the Streamlit GUI and improving modularity. Risky browser automation remains disabled/experimental until explicitly designed and reviewed.
 
 Primary flow:
 
@@ -55,9 +55,9 @@ JOLT/
     config/
       default_profiles/
         rafael_default.json
-        generic_it_support.json
-        remote_support_demo.json
-        portfolio_safe_demo.json
+        generic_remote_it_support.json
+        saas_support.json
+        infrastructure_support.json
       user_profiles/
         .gitkeep
     tests/
@@ -325,11 +325,14 @@ Tracks run ID, timestamps, active profile, input/output files, counts, diagnosti
 
 - Detect duplicates using job ID, URL, normalized title/company/location, and history.
 - Label duplicates/already-reviewed jobs without silently deleting them.
+- Preserve visible `Duplicate` / `Already Reviewed` history entries when repeated jobs are saved.
 
 ### `history.py` / `status_tracker.py`
 
 - Save seen jobs.
 - Save application statuses.
+- Support active statuses: `New`, `Apply Today`, `Manual Review`, `Waiting`, `Follow Up`, `Applied`, `Rejected`, `Archived`, `Duplicate`, and `Already Reviewed`.
+- Continue accepting older local statuses such as `Not started`, `Interview`, `Watchlist`, and `Discarded`.
 - Support updating statuses from UI.
 - Preserve profile and run ID for auditability.
 

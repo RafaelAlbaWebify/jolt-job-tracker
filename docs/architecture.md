@@ -10,6 +10,7 @@ manual raw job text or pasted page text/HTML
 -> configurable rule profile
 -> decision engine
 -> frontend review dashboard
+-> saved workflow queues
 -> optional export and local history
 ```
 
@@ -116,6 +117,8 @@ The adapter does not store credentials, bypass protections, crawl pages, or hard
 
 The page text/HTML extractor is dependency-light and conservative. It handles clear labelled fields, repeated `Job Card` or separator blocks, compact title/company/location listings, simple copied HTML card structures, and job-like links from visible URLs or anchor `href` values. It rejects tiny/noisy candidate cards, reports extraction diagnostics, and returns one fallback captured job with notes when structure is unclear instead of over-splitting page fragments.
 
+Phase 15B also reuses safe text-only lessons from the legacy pipeline: copied left-panel-style card text can be split into separate jobs, card state markers such as viewed/applied/easy-apply are preserved as capture notes, and title/company/location extraction remains local and conservative. The legacy click automation, session assumptions, and platform-specific navigation were not ported.
+
 ### Export Service
 
 `backend/app/services/export_package.py` writes local export files for a capture review result.
@@ -132,7 +135,9 @@ Generated files are written under ignored `backend/data/exports/`. Raw job text 
 
 `backend/app/services/history_store.py` persists reviewed jobs locally under ignored `backend/data/history/`.
 
-The current implementation uses JSONL file storage rather than a database. It can save reviewed capture results, list saved jobs, load one saved job, update application status, and detect duplicates by source URL, external ID, or normalized title/company/location fallback. Capture runs also use this duplicate logic as a preview so likely duplicates are labelled before save rather than silently removed.
+The current implementation uses JSONL file storage rather than a database. It can save reviewed capture results, list saved jobs, load one saved job, update application status, and detect duplicates by normalized source URL, external ID, normalized title/company/location fallback, or normalized title/company fallback. Capture runs also use this duplicate logic as a preview so likely duplicates are labelled before save rather than silently removed. Duplicate saves are retained as visible `Duplicate` or `Already Reviewed` history entries instead of disappearing.
+
+Current user-facing workflow statuses are `New`, `Apply Today`, `Manual Review`, `Waiting`, `Follow Up`, `Applied`, `Rejected`, `Archived`, `Duplicate`, and `Already Reviewed`. Legacy saved statuses such as `Not started`, `Interview`, and `Watchlist` still validate so old local history remains readable.
 
 ### Demo Cleanup
 
@@ -148,7 +153,7 @@ Implemented views:
 
 - Capture: primary demo workflow, profile selector, capture health, manual jobs, page text/HTML/HTML-fragment capture, capture diagnostics, demo jobs, review dashboard, duplicate preview, decision filters, decision cards.
 - Rule Profiles: profile list and profile detail view.
-- History / Tracker: saved reviewed jobs, simple filters, and application status updates.
+- History / Tracker: saved reviewed jobs, queue cards for Apply Today, Manual Review, Follow Up, Waiting, and Duplicates / Reviewed, plus application status updates.
 - About: project purpose, demo safety notes, intentionally disabled features, and local cleanup control.
 - Review Dashboard and Manual Paste / Debug: visible navigation placeholders for future phases.
 
@@ -187,7 +192,7 @@ Frontend Capture page
 -> backend writes files under backend/data/exports/
 -> user optionally saves reviewed jobs
 -> backend writes JSONL history under backend/data/history/
--> History / Tracker displays saved jobs and updates application status
+-> History / Tracker displays queue cards, saved jobs, duplicate/reviewed entries, and status updates
 -> About can manually clean generated local demo exports/history
 ```
 
@@ -206,8 +211,8 @@ These exclusions keep the project honest and portfolio-safe while the parser/pro
 ## Future Extension Points
 
 - Richer XLSX tracker and auditable run package sheets.
-- Apply Today and Manual Review queues built from saved history.
-- Richer duplicate/already-reviewed labels using saved history during capture/classification.
+- Richer Apply Today ranking and bulk queue actions.
+- Richer duplicate/already-reviewed labels in exports.
 - Optional browser-assisted capture adapter with explicit user control and no credential storage.
 - Profile editing and validation UI.
 - Demo mode with committed fake/anonymized sample runs.

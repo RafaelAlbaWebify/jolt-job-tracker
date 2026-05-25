@@ -67,7 +67,7 @@ Open supported job results page
 → Continue applying and tracking progress
 ```
 
-Capture is a core productivity feature. Because it is browser-assisted and fragile, the app must expose clear diagnostics, logs, and recovery options.
+Capture is a core productivity feature. In the current portfolio demo it is limited to manual jobs, pasted page text, HTML fragments, and uploaded/copied HTML content. Browser-assisted capture remains disabled/experimental and must expose clear diagnostics, logs, and recovery options before any future implementation.
 
 ---
 
@@ -79,7 +79,7 @@ Manual paste supports:
 - debugging the parser;
 - testing a rule profile;
 - demonstrating the decision engine without running capture;
-- recovering when browser-assisted capture fails.
+- recovering when capture extraction is unclear or when a future browser-assisted adapter fails.
 
 Manual paste must use the same parser, profile system, and decision engine as captured jobs.
 
@@ -93,9 +93,9 @@ Required default/demo profiles:
 
 ```text
 rafael_default
-generic_it_support
-remote_support_demo
-portfolio_safe_demo
+generic_remote_it_support
+saas_support
+infrastructure_support
 ```
 
 Each profile should define:
@@ -275,16 +275,17 @@ Recommended statuses:
 ```text
 New
 Apply Today
-Applied
+Manual Review
 Waiting
 Follow Up
-Interview
+Applied
 Rejected
-Discarded
 Archived
 Duplicate
 Already Reviewed
 ```
+
+Backward-compatible saved statuses such as `Not started`, `Interview`, `Watchlist`, and `Discarded` may remain readable for old local history, but the active queue UI should emphasize the statuses above.
 
 The user should be able to update status from the Results/History view. Status changes should persist locally and appear in XLSX exports.
 

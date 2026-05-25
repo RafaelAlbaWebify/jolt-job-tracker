@@ -294,6 +294,44 @@ English required. Networking and endpoint troubleshooting.
     assert any("compact job-board-like" in note for note in data["results"][0]["raw_job"]["capture_notes"])
 
 
+def test_copied_left_panel_style_cards_are_split_with_state_notes() -> None:
+    page_text = """
+42 results
+Northstar logo
+Microsoft 365 Support Specialist
+Northstar SaaS
+Remote, Spain (Remote)
+Viewed
+Easy Apply
+Metro logo
+Infrastructure Support Engineer
+Metro Systems
+Vigo, Spain (Hybrid)
+Applied
+Are these results helpful?
+"""
+
+    response = client.post(
+        "/api/capture/run",
+        json={
+            "profile_id": "rafael_default",
+            "capture_mode": "page_text",
+            "source": "page_text",
+            "max_results": 5,
+            "dry_run": True,
+            "page_text": page_text,
+        },
+    )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["total_captured"] == 2
+    assert data["results"][0]["parsed_job"]["title"] == "Microsoft 365 Support Specialist"
+    assert data["results"][0]["parsed_job"]["company"] == "Northstar SaaS"
+    assert "Card state: Viewed; Easy Apply" in data["results"][0]["raw_job"]["raw_text"]
+    assert any("left-panel style" in note for note in data["results"][0]["raw_job"]["capture_notes"])
+
+
 def test_html_with_two_article_blocks_extracts_two_jobs_and_strips_noise() -> None:
     html_content = """
 <html>

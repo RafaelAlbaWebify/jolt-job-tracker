@@ -851,3 +851,55 @@
 - Remaining risks / follow-up:
   - Extraction remains conservative and rule-based; real job boards may still require users to paste cleaner visible text or copied card HTML.
   - Browser automation remains intentionally disabled/experimental.
+
+## 2026-05-25 - Phase 15B Legacy Review and Queue Alignment
+
+- Type: Feature / Refactor / Test / Docs
+- Files changed:
+  - `backend/app/models.py`
+  - `backend/app/services/browser_capture.py`
+  - `backend/app/services/history_store.py`
+  - `backend/tests/test_capture_runner.py`
+  - `backend/tests/test_history_store.py`
+  - `frontend/src/api.ts`
+  - `frontend/src/App.tsx`
+  - `frontend/src/styles.css`
+  - `README.md`
+  - `docs/architecture.md`
+  - `docs/demo-checklist.md`
+  - `docs/portfolio-walkthrough.md`
+  - `docs/engineering-log.md`
+  - `specs/product-spec.md`
+  - `specs/technical-plan.md`
+  - `specs/tasks.md`
+- Problem / goal:
+  - Review the legacy Streamlit pipeline and align the current React/FastAPI workflow around safer capture ingestion, visible duplicate handling, and clearer next-action queues.
+- Legacy review findings:
+  - The legacy capture script contains browser-window interaction, visual card detection, direct URL/page navigation, optional raw text capture, launcher/diagnostic logs, and output files under `captures_id/`, `debug_outputs/`, and `logs/`.
+  - The legacy parser contains useful text-level assumptions: card text often appears as logo/title/company/location/state lines; copied pages contain noisy UI lines; state markers such as viewed, applied, promoted, and easy apply are useful review context; title/company/location extraction should be conservative.
+  - The legacy classifier contains useful duplicate/history concepts: match by job ID or URL first, then normalized company/title/location, keep archives/audit outputs, and distinguish already-actioned history from merely seen-before rows.
+- What was useful:
+  - Safe copied-text card splitting, card-state preservation, normalized URL matching, title/company duplicate fallback, and explicit duplicate/reviewed labels.
+- What should not be ported:
+  - Browser clicking, window focus control, session assumptions, direct page navigation, platform-specific scraping flows, raw private capture outputs, credential/session handling, CAPTCHA/login/rate-limit bypasses, and hardcoded personal-only workflows.
+- Root cause:
+  - Phase 15A improved user-provided page/HTML ingestion, but history still used the older status vocabulary and duplicate saves were counted without creating visible duplicate/reviewed queue records.
+- Change made:
+  - Added safe left-panel-style copied text extraction to the current page-text adapter, preserving card state markers in local capture notes.
+  - Added normalized URL matching and title/company fallback to history duplicate detection.
+  - Expanded application statuses to the active queue set: `New`, `Apply Today`, `Manual Review`, `Waiting`, `Follow Up`, `Applied`, `Rejected`, `Archived`, `Duplicate`, and `Already Reviewed`.
+  - Preserved backward compatibility for older local statuses: `Not started`, `Interview`, `Watchlist`, and `Discarded`.
+  - Changed save-to-history duplicate handling so repeated jobs are retained as visible `Duplicate` or `Already Reviewed` records instead of only being counted.
+  - Added compact History / Tracker queue cards for Apply Today, Manual Review, Follow Up, Waiting, and Duplicates / Reviewed.
+  - Updated README, architecture notes, demo checklist, portfolio walkthrough, and specs to match current profile IDs, safe capture modes, disabled browser automation, and queue/status behavior.
+- Tests/checks run:
+  - Ran `cd backend && .\.venv\Scripts\python.exe -m pytest`.
+  - Ran `cd frontend && npm run build`.
+- Result:
+  - Backend tests passed: 76 passed, 1 pytest cache warning.
+  - Frontend production build passed.
+- Remaining risks / follow-up:
+  - Browser automation remains disabled/experimental.
+  - Queue ranking is status/filter based, not a full scoring optimizer.
+  - XLSX export still needs richer multi-sheet tracker alignment.
+  - Copied-card extraction is conservative and may need more examples from synthetic/demo data.

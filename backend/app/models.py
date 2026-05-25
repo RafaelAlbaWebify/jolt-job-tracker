@@ -29,7 +29,7 @@ class RuleProfileSummary(BaseModel):
     portfolio_safe: bool
 
 
-DecisionLabel = Literal["Apply", "Maybe", "Discard", "Manual Review", "Duplicate"]
+DecisionLabel = Literal["Apply", "Maybe", "Discard", "Manual Review", "Duplicate", "Already Reviewed"]
 PriorityLabel = Literal["High", "Medium", "Low"]
 ParserConfidence = Literal["high", "medium", "low"]
 CaptureRunStatus = Literal["completed", "completed_with_errors", "failed"]
@@ -42,7 +42,22 @@ CaptureMode = Literal[
 ]
 ExportFormat = Literal["json", "csv", "xlsx"]
 ExportStatus = Literal["completed", "failed"]
-ApplicationStatus = Literal["Not started", "Applied", "Interview", "Rejected", "Archived", "Watchlist"]
+ApplicationStatus = Literal[
+    "New",
+    "Apply Today",
+    "Manual Review",
+    "Waiting",
+    "Follow Up",
+    "Applied",
+    "Rejected",
+    "Archived",
+    "Duplicate",
+    "Already Reviewed",
+    "Not started",
+    "Interview",
+    "Watchlist",
+    "Discarded",
+]
 
 
 class NormalizedJob(BaseModel):
@@ -210,7 +225,7 @@ class HistoryJobEntry(BaseModel):
 class SaveCaptureResultHistoryRequest(BaseModel):
     capture_result: CaptureRunResult
     include_raw_text: bool = False
-    default_application_status: ApplicationStatus = "Not started"
+    default_application_status: ApplicationStatus = "New"
 
 
 class SaveCaptureResultHistoryResponse(BaseModel):

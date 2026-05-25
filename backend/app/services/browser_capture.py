@@ -30,6 +30,24 @@ SEPARATOR_LINE_PATTERN = re.compile(
     re.IGNORECASE,
 )
 NOISE_LINE_PATTERN = re.compile(r"^(?:view\s+job|apply|promoted|easy\s+apply|actively\s+recruiting)$", re.IGNORECASE)
+LEFT_PANEL_STOP_LINES = {
+    "are these results helpful?",
+    "your feedback helps us improve job recommendations.",
+    "next",
+    "previous",
+    "about",
+    "accessibility",
+    "help center",
+}
+LEFT_PANEL_STATE_MARKERS = (
+    "actively reviewing applicants",
+    "viewed",
+    "promoted",
+    "easy apply",
+    "applied",
+    "be an early applicant",
+    "company review time",
+)
 
 ROLE_WORDS = (
     "administrator",
@@ -51,6 +69,14 @@ LOCATION_WORDS = (
     "remote",
     "spain",
     "vigo",
+    "portugal",
+    "lisbon",
+    "europe",
+    "ireland",
+    "dublin",
+    "france",
+    "paris",
+    "germany",
 )
 JOB_LINK_HINTS = ("job", "jobs", "career", "careers", "position", "posting", "view")
 
@@ -141,7 +167,9 @@ def _looks_like_role(line: str) -> bool:
 
 def _looks_like_location(line: str) -> bool:
     lower = line.lower()
-    return any(word in lower for word in LOCATION_WORDS)
+    return any(word in lower for word in LOCATION_WORDS) or bool(
+        re.search(r"\((remote|hybrid|on-site|onsite)\)", lower)
+    )
 
 
 def _is_noise_line(line: str) -> bool:
@@ -227,6 +255,68 @@ def _split_compact_blocks(lines: list[str]) -> list[str]:
     return blocks
 
 
+def _normalize_signature(title: str, company: str, location: str) -> str:
+    base = f"{company}|{title}|{location}".lower().replace("&", " and ")
+    base = re.sub(r"[^a-z0-9]+", " ", base)
+    return re.sub(r"\s+", " ", base).strip()
+
+
+def _extract_left_panel_style_blocks(lines: list[str]) -> list[tuple[str, list[str]]]:
+    blocks: list[tuple[str, list[str]]] = []
+    seen: set[str] = set()
+    start = 0
+    for index, line in enumerate(lines):
+        if re.search(r"\b\d+\s+results\b", line.lower()):
+            start = index + 1
+            break
+
+    index = start
+    while index < len(lines) - 3:
+        line = lines[index]
+        lower = line.lower()
+        if lower in LEFT_PANEL_STOP_LINES or lower.startswith("are you finding what"):
+            break
+        if line.lower().endswith(" logo") and index + 3 < len(lines):
+            title = lines[index + 1]
+            company = lines[index + 2]
+            location = lines[index + 3]
+            if _looks_like_role(title) and _looks_like_location(location):
+                state_lines: list[str] = []
+                cursor = index + 4
+                while cursor < len(lines):
+                    next_line = lines[cursor]
+                    next_lower = next_line.lower()
+                    if next_lower.endswith(" logo") or next_lower in LEFT_PANEL_STOP_LINES:
+                        break
+                    if any(marker in next_lower for marker in LEFT_PANEL_STATE_MARKERS):
+                        state_lines.append(next_line)
+                    cursor += 1
+
+                signature = _normalize_signature(title, company, location)
+                if signature and signature not in seen:
+                    seen.add(signature)
+                    workplace_match = re.search(r"\((Remote|Hybrid|On-site|Onsite)\)", location, flags=re.IGNORECASE)
+                    workplace = workplace_match.group(1).replace("Onsite", "On-site") if workplace_match else ""
+                    block_lines = [
+                        f"Title: {title}",
+                        f"Company: {company}",
+                        f"Location: {location}",
+                    ]
+                    if workplace:
+                        block_lines.append(f"Work mode: {workplace}")
+                    if state_lines:
+                        block_lines.append("Card state: " + "; ".join(dict.fromkeys(state_lines)))
+                    notes = ["Extracted from copied left-panel style card text."]
+                    if state_lines:
+                        notes.append("Card state markers preserved for review.")
+                    blocks.append(("\n".join(block_lines), notes))
+                index = max(cursor, index + 4)
+                continue
+        index += 1
+
+    return blocks
+
+
 def _dedupe_blocks(blocks: list[str]) -> list[str]:
     seen: set[str] = set()
     result: list[str] = []
@@ -283,6 +373,10 @@ def _extract_blocks(text: str, is_html: bool) -> tuple[list[tuple[str, list[str]
     if len(repeated_title_blocks) > 1:
         note = "Extracted from HTML block." if is_html else "Extracted from labelled job block."
         return [(block, [note]) for block in _dedupe_blocks(repeated_title_blocks)], warnings, len(repeated_title_blocks), 0, []
+
+    left_panel_blocks = _extract_left_panel_style_blocks(lines)
+    if left_panel_blocks:
+        return left_panel_blocks, warnings, len(left_panel_blocks), 0, []
 
     compact_blocks = [block for block in _split_compact_blocks(lines) if _is_useful_block(block)]
     if compact_blocks:

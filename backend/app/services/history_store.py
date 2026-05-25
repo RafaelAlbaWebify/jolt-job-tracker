@@ -1,6 +1,7 @@
 import json
 from datetime import UTC, datetime
 from pathlib import Path
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 from uuid import uuid4
 
 from app.models import (
@@ -15,6 +16,18 @@ from app.models import (
 BACKEND_ROOT = Path(__file__).resolve().parents[2]
 HISTORY_ROOT = BACKEND_ROOT / "data" / "history"
 HISTORY_FILE = HISTORY_ROOT / "jobs.jsonl"
+LEGACY_NEW_STATUSES = {"", "not started", "new", "watchlist"}
+REVIEWED_STATUSES = {
+    "applied",
+    "waiting",
+    "follow up",
+    "interview",
+    "rejected",
+    "discarded",
+    "archived",
+    "duplicate",
+    "already reviewed",
+}
 
 
 def _utc_now() -> str:
@@ -25,16 +38,47 @@ def _normalize(value: str) -> str:
     return " ".join(value.lower().strip().split())
 
 
+def _normalize_url(value: str) -> str:
+    if not value:
+        return ""
+    try:
+        parts = urlsplit(value.strip())
+    except ValueError:
+        return value.strip()
+    query = [
+        (key, val)
+        for key, val in parse_qsl(parts.query, keep_blank_values=True)
+        if not key.lower().startswith("utm_") and key.lower() not in {"trk", "ref", "refid"}
+    ]
+    normalized = parts._replace(query=urlencode(query, doseq=True), fragment="")
+    return urlunsplit(normalized).rstrip("/")
+
+
 def _fallback_key(entry: HistoryJobEntry) -> str:
     return "|".join([_normalize(entry.title), _normalize(entry.company), _normalize(entry.location)])
 
 
+def _title_company_key(title: str, company: str) -> str:
+    return "|".join([_normalize(title), _normalize(company)])
+
+
+def _is_reviewed_status(status: str) -> bool:
+    normalized = _normalize(status)
+    return bool(normalized and normalized not in LEGACY_NEW_STATUSES) or normalized in REVIEWED_STATUSES
+
+
 def _same_job(existing: HistoryJobEntry, candidate: HistoryJobEntry) -> bool:
-    if candidate.source_url and existing.source_url == candidate.source_url:
+    if candidate.source_url and _normalize_url(existing.source_url) == _normalize_url(candidate.source_url):
         return True
     if candidate.external_id and existing.external_id == candidate.external_id:
         return True
-    return bool(candidate.title and candidate.company and _fallback_key(existing) == _fallback_key(candidate))
+    if candidate.title and candidate.company and _fallback_key(existing) == _fallback_key(candidate):
+        return True
+    return bool(
+        candidate.title
+        and candidate.company
+        and _title_company_key(existing.title, existing.company) == _title_company_key(candidate.title, candidate.company)
+    )
 
 
 def find_duplicate_history_match(
@@ -44,14 +88,18 @@ def find_duplicate_history_match(
     source_url = raw_job.source_url or parsed_job.source_url
     external_id = raw_job.external_id or parsed_job.job_id or ""
     fallback_key = "|".join([_normalize(parsed_job.title), _normalize(parsed_job.company), _normalize(parsed_job.location)])
+    title_company_key = _title_company_key(parsed_job.title, parsed_job.company)
 
     for entry in list_history_entries():
-        if source_url and entry.source_url == source_url:
-            return entry, "same source_url as saved history item"
+        already_reviewed_note = " with an actioned status" if _is_reviewed_status(entry.application_status) else ""
+        if source_url and _normalize_url(entry.source_url) == _normalize_url(source_url):
+            return entry, f"same source_url as saved history item{already_reviewed_note}"
         if external_id and entry.external_id == external_id:
-            return entry, "same external_id as saved history item"
+            return entry, f"same external_id as saved history item{already_reviewed_note}"
         if parsed_job.title and parsed_job.company and _fallback_key(entry) == fallback_key:
-            return entry, "same title, company, and location as saved history item"
+            return entry, f"same title, company, and location as saved history item{already_reviewed_note}"
+        if parsed_job.title and parsed_job.company and _title_company_key(entry.title, entry.company) == title_company_key:
+            return entry, f"same title and company as saved history item{already_reviewed_note}"
 
     return None, ""
 
@@ -88,7 +136,7 @@ def get_history_entry(history_id: str) -> HistoryJobEntry | None:
 def save_capture_result_entries(
     capture_result: CaptureRunResult,
     include_raw_text: bool = False,
-    default_application_status: ApplicationStatus = "Not started",
+    default_application_status: ApplicationStatus = "New",
 ) -> SaveCaptureResultHistoryResponse:
     existing_entries = list_history_entries()
     new_entries: list[HistoryJobEntry] = []
@@ -127,9 +175,25 @@ def save_capture_result_entries(
             application_status=default_application_status,
         )
 
-        if any(_same_job(existing, candidate) for existing in [*existing_entries, *new_entries]):
+        duplicate_entry = next(
+            (existing for existing in [*existing_entries, *new_entries] if _same_job(existing, candidate)),
+            None,
+        )
+        if duplicate_entry is not None:
             duplicate_count += 1
-            continue
+            duplicate_status: ApplicationStatus = (
+                "Already Reviewed" if _is_reviewed_status(duplicate_entry.application_status) else "Duplicate"
+            )
+            duplicate_warning = (
+                f"Saved as {duplicate_status} because it matches history item {duplicate_entry.history_id}."
+            )
+            candidate = candidate.model_copy(
+                update={
+                    "decision": duplicate_status,
+                    "application_status": duplicate_status,
+                    "warnings": [*candidate.warnings, duplicate_warning],
+                }
+            )
 
         new_entries.append(candidate)
 

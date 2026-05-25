@@ -55,7 +55,7 @@ def save_capture_result(capture_result: dict[str, object] | None = None) -> dict
         json={
             "capture_result": capture_result or sample_capture_result(),
             "include_raw_text": False,
-            "default_application_status": "Not started",
+            "default_application_status": "New",
         },
     )
     assert response.status_code == 200
@@ -94,7 +94,7 @@ def test_listing_saved_jobs_returns_records(tmp_path, monkeypatch) -> None:
     jobs = response.json()
     assert len(jobs) == 1
     assert jobs[0]["title"] == "Technical Support Specialist"
-    assert jobs[0]["application_status"] == "Not started"
+    assert jobs[0]["application_status"] == "New"
 
 
 def test_getting_one_saved_job_works(tmp_path, monkeypatch) -> None:
@@ -130,8 +130,10 @@ def test_duplicate_source_url_or_external_id_is_detected(tmp_path, monkeypatch) 
     second = save_capture_result(capture_result)
 
     assert first["saved_count"] == 1
-    assert second["saved_count"] == 0
+    assert second["saved_count"] == 1
     assert second["duplicate_count"] == 1
+    jobs = client.get("/api/history/jobs").json()
+    assert {job["application_status"] for job in jobs} == {"New", "Duplicate"}
 
 
 def test_fallback_duplicate_title_company_location_works(tmp_path, monkeypatch) -> None:
@@ -147,11 +149,11 @@ def test_fallback_duplicate_title_company_location_works(tmp_path, monkeypatch) 
     save_capture_result(first_result)
     second = save_capture_result(second_result)
 
-    assert second["saved_count"] == 0
+    assert second["saved_count"] == 1
     assert second["duplicate_count"] == 1
 
 
-def test_malformed_status_update_returns_controlled_error(tmp_path, monkeypatch) -> None:
+def test_new_queue_status_update_works(tmp_path, monkeypatch) -> None:
     monkeypatch.setattr(history_store, "HISTORY_ROOT", tmp_path / "backend" / "data" / "history")
     monkeypatch.setattr(history_store, "HISTORY_FILE", tmp_path / "backend" / "data" / "history" / "jobs.jsonl")
     saved = save_capture_result()
@@ -161,7 +163,45 @@ def test_malformed_status_update_returns_controlled_error(tmp_path, monkeypatch)
         json={"application_status": "Waiting"},
     )
 
-    assert response.status_code == 422
+    assert response.status_code == 200
+    assert response.json()["application_status"] == "Waiting"
+
+
+def test_legacy_statuses_still_validate(tmp_path, monkeypatch) -> None:
+    monkeypatch.setattr(history_store, "HISTORY_ROOT", tmp_path / "backend" / "data" / "history")
+    monkeypatch.setattr(history_store, "HISTORY_FILE", tmp_path / "backend" / "data" / "history" / "jobs.jsonl")
+    capture_result = sample_capture_result()
+
+    response = client.post(
+        "/api/history/save-capture-result",
+        json={
+            "capture_result": capture_result,
+            "include_raw_text": False,
+            "default_application_status": "Not started",
+        },
+    )
+
+    assert response.status_code == 200
+    jobs = client.get("/api/history/jobs").json()
+    assert jobs[0]["application_status"] == "Not started"
+
+
+def test_duplicate_against_actioned_history_is_saved_as_already_reviewed(tmp_path, monkeypatch) -> None:
+    monkeypatch.setattr(history_store, "HISTORY_ROOT", tmp_path / "backend" / "data" / "history")
+    monkeypatch.setattr(history_store, "HISTORY_FILE", tmp_path / "backend" / "data" / "history" / "jobs.jsonl")
+    first = save_capture_result()
+    response = client.patch(
+        f"/api/history/jobs/{first['history_ids'][0]}/status",
+        json={"application_status": "Applied"},
+    )
+    assert response.status_code == 200
+
+    second = save_capture_result(sample_capture_result())
+
+    assert second["saved_count"] == 1
+    jobs = client.get("/api/history/jobs").json()
+    assert jobs[-1]["application_status"] == "Already Reviewed"
+    assert jobs[-1]["decision"] == "Already Reviewed"
 
 
 def test_no_browser_automation_or_scraping_dependencies_added() -> None:

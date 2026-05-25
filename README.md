@@ -26,6 +26,7 @@ manual jobs or pasted page text/HTML
 -> configurable rule profile
 -> decision engine
 -> review dashboard
+-> Apply Today / Manual Review / Waiting / Follow Up queues
 -> JSON / CSV / XLSX export
 -> local history / tracker
 -> optional demo cleanup
@@ -44,7 +45,7 @@ The Capture page is the primary workflow. Manual paste exists as a fallback/debu
 - Rule-based parser with parser confidence and parser notes.
 - Decision engine with explainable scoring and hard-discard rules.
 - Capture runner for manual `raw_jobs`, pasted page text, HTML fragments, and uploaded/copied HTML content.
-- Conservative page text/HTML extractor for labelled blocks, `Job Card` sections, compact job-board-like text, copied HTML cards, visible URLs, and anchor links.
+- Conservative page text/HTML extractor for labelled blocks, `Job Card` sections, copied left-panel-style card text, compact job-board-like text, copied HTML cards, visible URLs, and anchor links.
 - Capture diagnostics showing input size, candidate cards found, accepted/rejected cards, source URL notes, and capture confidence.
 - Duplicate preview against local history before saving, without silently dropping likely duplicates.
 - Capture health endpoint showing browser automation disabled by default.
@@ -52,7 +53,7 @@ The Capture page is the primary workflow. Manual paste exists as a fallback/debu
 - Local export package generation under ignored `backend/data/exports/`.
 - JSON, CSV, and XLSX export formats.
 - Local JSONL history/tracker under ignored `backend/data/history/`.
-- Save-to-history and application status updates.
+- Save-to-history, queue filters, backward-compatible status updates, and visible Duplicate / Already Reviewed records.
 - Demo cleanup endpoint and UI for local exports/history.
 - Backend tests for health, profiles, parser, decision engine, capture, export, history, and cleanup.
 - Frontend production build with `npm run build`.
@@ -152,7 +153,7 @@ http://localhost:5173
 8. Review Apply / Discard / Manual Review cards.
 9. Export JSON, CSV, or XLSX.
 10. Click `Save to history`.
-11. Open History / Tracker and update one application status.
+11. Open History / Tracker, review the Apply Today / Manual Review / Waiting / Follow Up queues, and update one application status.
 12. Open About and optionally clean local demo data.
 
 Page text / HTML demo:
@@ -240,8 +241,8 @@ See [docs/screenshots/README.md](docs/screenshots/README.md) for the screenshot 
 
 - Add richer XLSX tracker sheets and export package metadata.
 - Add downloadable export UX.
-- Add Apply Today and Manual Review queues derived from saved history.
-- Improve capture-time duplicate/already-reviewed labels from local history.
+- Add richer queue ranking and bulk status actions.
+- Improve already-reviewed labels in exports.
 - Add profile editing and validation UI.
 - Add optional browser-assisted capture only if it can remain explicit, local, recoverable, and respectful of site terms.
 - Add a short demo video.

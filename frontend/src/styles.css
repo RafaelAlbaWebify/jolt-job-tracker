@@ -922,6 +922,43 @@ dd {
   margin: 0;
 }
 
+.queue-card-grid {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.queue-card {
+  background: #ffffff;
+  border: 1px solid #d9e0e4;
+  border-radius: 8px;
+  color: #21313a;
+  cursor: pointer;
+  padding: 10px;
+  text-align: left;
+}
+
+.queue-card.active {
+  border-color: #2b6f77;
+  box-shadow: 0 0 0 2px rgba(43, 111, 119, 0.14);
+}
+
+.queue-card span,
+.queue-card strong {
+  display: block;
+}
+
+.queue-card span {
+  color: #60717b;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.queue-card strong {
+  font-size: 1.25rem;
+  margin-top: 4px;
+}
+
 .history-table {
   border: 1px solid #d9e0e4;
   border-radius: 8px;
@@ -1111,6 +1148,7 @@ dd {
   .keyword-sections,
   .detail-grid,
   .diagnostics-grid,
+  .queue-card-grid,
   .history-row {
     grid-template-columns: 1fr;
   }

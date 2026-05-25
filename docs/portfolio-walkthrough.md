@@ -16,6 +16,7 @@ manual jobs, pasted page text, or copied HTML content
 -> rule profile
 -> decision engine
 -> review dashboard
+-> workflow queues
 -> export
 -> local history/tracker
 ```
@@ -29,7 +30,8 @@ manual jobs, pasted page text, or copied HTML content
 5. The decision engine applies profile rules and returns Apply, Maybe, Discard, Manual Review, or Duplicate.
 6. The frontend shows decision counts, filters, and explainable cards.
 7. The user can export JSON / CSV / XLSX or save the reviewed run to local history.
-8. The History / Tracker page lets the user update application status locally.
+8. The History / Tracker page shows Apply Today, Manual Review, Waiting, Follow Up, and Duplicates / Reviewed queues.
+9. The user updates application status locally without auto-applying or hiding duplicates.
 
 ## Architecture
 
@@ -39,6 +41,7 @@ Frontend:
 - Capture page as the main workflow.
 - Rule Profiles page for profile inspection.
 - History / Tracker page for saved local decisions.
+- Queue cards for next actions and duplicate/reviewed follow-up.
 - About page for demo safety and cleanup.
 
 Backend:
@@ -49,7 +52,7 @@ Backend:
 - Decision engine service.
 - Capture runner and page text / HTML adapter with diagnostics and duplicate preview.
 - Export package service for JSON, CSV, and XLSX.
-- JSONL local history store.
+- JSONL local history store with backward-compatible statuses.
 
 ## Why The Safe Capture Boundary Exists
 
@@ -65,6 +68,8 @@ This keeps the valuable parser/profile/decision/review workflow testable while m
 
 Phase 15A improves that safe ingestion layer: it adds clearer capture source modes, stronger card extraction from user-provided text/HTML, diagnostics for accepted/rejected candidate cards, source URL extraction notes, and duplicate preview against local history before saving.
 
+Phase 15B reviewed the legacy Streamlit pipeline and ported only safe text-level lessons: copied card-style text splitting, state marker preservation, URL normalization, and visible duplicate/already-reviewed history entries. The legacy browser clicking, session assumptions, and platform-specific automation remain out of the React/FastAPI app.
+
 ## Where The Real Value Is
 
 The strongest part of JOLT is not scraping. The real value is the explainable review pipeline:
@@ -75,7 +80,7 @@ The strongest part of JOLT is not scraping. The real value is the explainable re
 - parser confidence;
 - visible missing information;
 - review dashboard before export;
-- local tracker and export package.
+- local tracker queues and export package.
 
 That is what makes the app reusable and portfolio-safe.
 
@@ -93,8 +98,8 @@ That is what makes the app reusable and portfolio-safe.
 ## Future Roadmap
 
 - Richer XLSX tracker sheets and export package reports.
-- Apply Today and Manual Review queues from saved history.
-- Richer capture-time duplicate/already-reviewed labels.
+- Richer queue ranking and bulk status actions.
+- Richer duplicate/already-reviewed labels in exports.
 - Profile editing and validation UI.
 - Optional browser-assisted capture only if explicit, local, observable, and respectful of site terms.
-- Portfolio screenshots and a short demo video using synthetic data.
+- A short demo video using synthetic data.

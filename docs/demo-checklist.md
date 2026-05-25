@@ -57,13 +57,14 @@ Expected result:
 14. Click `Save to history`.
 15. Open History / Tracker.
 16. Confirm saved jobs appear with decision, score, parser confidence, saved date, and application status.
-17. Change one status to `Applied`, `Interview`, `Watchlist`, or `Archived`.
-18. Open About.
-19. Confirm the page explains local-only demo safety and intentionally disabled automation.
-20. Optionally check the cleanup confirmation and click `Clean local demo data`.
-21. Confirm deleted export/history file counts are shown.
-22. Open the Rule Profiles page.
-23. Confirm Rafael Default is labeled as a demo/default preset, not global hardcoded behavior.
+17. Use the queue cards for `Apply Today`, `Manual Review`, `Waiting`, `Follow Up`, and `Duplicates / Reviewed`.
+18. Change one status to `Apply Today`, `Waiting`, `Follow Up`, `Applied`, or `Archived`.
+19. Open About.
+20. Confirm the page explains local-only demo safety and intentionally disabled automation.
+21. Optionally check the cleanup confirmation and click `Clean local demo data`.
+22. Confirm deleted export/history file counts are shown.
+23. Open the Rule Profiles page.
+24. Confirm Rafael Default is labeled as a demo/default preset, not global hardcoded behavior.
 
 ## Page Text / HTML Capture Demo
 
@@ -74,9 +75,10 @@ Expected result:
 5. Click `Extract page text and review`.
 6. Confirm the same parser, decision engine, review cards, export, and history controls are used.
 7. Try a second synthetic sample using `---`, `Job Card`, or compact title/company/location blocks to show cleaner multi-job extraction.
-8. Open capture diagnostics to show candidate cards, accepted/rejected counts, source URL notes, and capture confidence.
-9. Open a result card's capture notes to show extraction hints and source URL inference.
-10. Explain that this mode uses user-provided pasted content and does not automate a browser.
+8. Try copied card-style text with `Company logo`, title, company, location, and state lines such as `Viewed` or `Applied` to show safe legacy-inspired extraction.
+9. Open capture diagnostics to show candidate cards, accepted/rejected counts, source URL notes, and capture confidence.
+10. Open a result card's capture notes to show extraction hints and source URL inference.
+11. Explain that this mode uses user-provided pasted content and does not automate a browser.
 
 Example synthetic multi-job text:
 
@@ -110,7 +112,7 @@ For HTML fragment capture:
 3. Run capture review.
 4. Export XLSX.
 5. Save to history.
-6. Update one status.
+6. Review queue cards and update one status.
 7. Optionally clean local demo data from About.
 
 ## Expected Visible Results
@@ -142,6 +144,7 @@ For GitHub or LinkedIn, capture:
 - History / Tracker showing saved jobs and the application status selector.
 - About page showing local-only privacy notes and cleanup confirmation.
 - Rule Profiles page showing Rafael Default as a demo/default profile.
+- History / Tracker page showing queue cards and statuses without hiding duplicates.
 
 ## What To Say During The Demo
 

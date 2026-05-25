@@ -28,18 +28,26 @@ import {
 
 type PageId = 'capture' | 'review' | 'profiles' | 'history' | 'manual' | 'about';
 type CaptureInputMode = 'manual_raw_jobs' | 'page_text' | 'html_fragment';
-type DecisionFilter = 'All' | 'Apply' | 'Maybe' | 'Discard' | 'Manual Review' | 'Duplicate' | 'Errors';
-type DecisionCountKey = DecisionFilter | 'Errors';
-type HistoryFilter =
+type DecisionFilter =
   | 'All'
   | 'Apply'
   | 'Maybe'
   | 'Discard'
   | 'Manual Review'
   | 'Duplicate'
+  | 'Already Reviewed'
+  | 'Errors';
+type DecisionCountKey = DecisionFilter | 'Errors';
+type HistoryFilter =
+  | 'All'
+  | 'Apply Today'
+  | 'Manual Review'
+  | 'Follow Up'
+  | 'Waiting'
+  | 'Duplicates / Reviewed'
+  | 'New'
   | 'Applied'
-  | 'Interview'
-  | 'Watchlist'
+  | 'Rejected'
   | 'Archived';
 
 type Page = {
@@ -65,7 +73,7 @@ const pages: Page[] = [
     eyebrow: 'After capture',
     title: 'Review dashboard',
     body:
-      'Capture run results now appear on the Capture page after a simulated run. Persistent queues and editable statuses arrive in later phases.',
+      'Capture run results appear on the Capture page first, then saved jobs move into focused queues on the History / Tracker page.',
   },
   {
     id: 'profiles',
@@ -108,29 +116,38 @@ const decisionFilters: DecisionFilter[] = [
   'Discard',
   'Manual Review',
   'Duplicate',
+  'Already Reviewed',
   'Errors',
 ];
 
 const historyFilters: HistoryFilter[] = [
   'All',
-  'Apply',
-  'Maybe',
-  'Discard',
+  'Apply Today',
   'Manual Review',
-  'Duplicate',
+  'Follow Up',
+  'Waiting',
+  'Duplicates / Reviewed',
+  'New',
   'Applied',
-  'Interview',
-  'Watchlist',
+  'Rejected',
   'Archived',
 ];
 
 const applicationStatuses: ApplicationStatus[] = [
-  'Not started',
+  'New',
+  'Apply Today',
+  'Manual Review',
+  'Waiting',
+  'Follow Up',
   'Applied',
-  'Interview',
   'Rejected',
   'Archived',
+  'Duplicate',
+  'Already Reviewed',
+  'Not started',
+  'Interview',
   'Watchlist',
+  'Discarded',
 ];
 
 const demoJobs = [
@@ -191,6 +208,7 @@ function buildDecisionCounts(results: CaptureJobResult[]): Record<DecisionCountK
       Discard: 0,
       'Manual Review': 0,
       Duplicate: 0,
+      'Already Reviewed': 0,
       Errors: 0,
     },
   );
@@ -200,10 +218,15 @@ function historyMatchesFilter(entry: HistoryJobEntry, filter: HistoryFilter): bo
   if (filter === 'All') {
     return true;
   }
-  if (['Applied', 'Interview', 'Watchlist', 'Archived'].includes(filter)) {
-    return entry.application_status === filter;
+  if (filter === 'Duplicates / Reviewed') {
+    return (
+      entry.application_status === 'Duplicate' ||
+      entry.application_status === 'Already Reviewed' ||
+      entry.decision === 'Duplicate' ||
+      entry.decision === 'Already Reviewed'
+    );
   }
-  return entry.decision === filter;
+  return entry.application_status === filter || entry.decision === filter;
 }
 
 function SummaryMetric({ label, value }: { label: string; value: number | string }) {
@@ -421,6 +444,32 @@ function App() {
         counts[filter] = historyJobs.filter((entry) => historyMatchesFilter(entry, filter)).length;
         return counts;
       }, {} as Record<HistoryFilter, number>),
+    [historyJobs],
+  );
+
+  const queueHighlights = useMemo(
+    () => [
+      {
+        label: 'Apply Today' as HistoryFilter,
+        count: historyJobs.filter((entry) => historyMatchesFilter(entry, 'Apply Today')).length,
+      },
+      {
+        label: 'Manual Review' as HistoryFilter,
+        count: historyJobs.filter((entry) => historyMatchesFilter(entry, 'Manual Review')).length,
+      },
+      {
+        label: 'Follow Up' as HistoryFilter,
+        count: historyJobs.filter((entry) => historyMatchesFilter(entry, 'Follow Up')).length,
+      },
+      {
+        label: 'Waiting' as HistoryFilter,
+        count: historyJobs.filter((entry) => historyMatchesFilter(entry, 'Waiting')).length,
+      },
+      {
+        label: 'Duplicates / Reviewed' as HistoryFilter,
+        count: historyJobs.filter((entry) => historyMatchesFilter(entry, 'Duplicates / Reviewed')).length,
+      },
+    ],
     [historyJobs],
   );
 
@@ -656,7 +705,7 @@ function App() {
       const result = await saveCaptureResultToHistory({
         capture_result: captureResult,
         include_raw_text: includeRawTextInHistory,
-        default_application_status: 'Not started',
+        default_application_status: 'New',
       });
       setHistorySaveSummary(result);
       await loadHistoryJobs();
@@ -1291,6 +1340,20 @@ English required.`
               </section>
 
               {historyError ? <p className="status-message">{historyError}</p> : null}
+
+              <section className="queue-card-grid" aria-label="Workflow queues">
+                {queueHighlights.map((queue) => (
+                  <button
+                    key={queue.label}
+                    type="button"
+                    className={queue.label === activeHistoryFilter ? 'queue-card active' : 'queue-card'}
+                    onClick={() => setActiveHistoryFilter(queue.label)}
+                  >
+                    <span>{queue.label}</span>
+                    <strong>{queue.count}</strong>
+                  </button>
+                ))}
+              </section>
 
               <section className="filter-bar" aria-label="History filters">
                 {historyFilters.map((filter) => (

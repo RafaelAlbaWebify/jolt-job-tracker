@@ -200,7 +200,9 @@ Capture starts from a local portfolio demo workflow with profile selection, capt
 
 Page text mode accepts user-provided visible page text or copied HTML and keeps browser automation disabled.
 
-The Capture page also includes a manual browser helper/bookmarklet. The user opens a job results page themselves, clicks the helper, and pastes the copied `JOLT_CAPTURE_V1` payload back into JOLT. It only inspects visible content in the current page when clicked and does not automate browsing.
+The Capture page also includes a manual browser helper/bookmarklet. Install it as a browser bookmark first; clicking the helper inside JOLT will not capture jobs, and Chrome may block `javascript:` URLs pasted or clicked directly. The user opens a job results page themselves, clicks the installed bookmark there, and pastes the copied `JOLT_CAPTURE_V1` payload back into JOLT. It only inspects visible content in the current page when clicked and does not automate browsing.
+
+Chrome setup: press `Ctrl + Shift + B`, copy the bookmarklet code from JOLT, right-click the bookmarks bar, choose Add page, name it `JOLT Capture`, paste the copied code into URL, then use that bookmark on a page you opened manually.
 
 ![Page text capture](docs/screenshots/02-page-text-capture.png)
 

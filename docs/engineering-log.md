@@ -1070,3 +1070,38 @@
   - Bookmarklet extraction is intentionally generic and conservative; some sites may produce too few or noisy cards.
   - Clipboard APIs may be blocked by some browsers/pages, so the helper includes a prompt fallback.
   - Browser automation remains disabled/experimental.
+
+## 2026-05-25 - Phase 16B Manual Helper Setup UX
+
+- Type: UX fix / Docs / Test
+- Files changed:
+  - `backend/app/services/browser_capture.py`
+  - `backend/tests/test_capture_runner.py`
+  - `frontend/src/App.tsx`
+  - `frontend/src/styles.css`
+  - `README.md`
+  - `docs/demo-checklist.md`
+  - `docs/portfolio-walkthrough.md`
+  - `docs/engineering-log.md`
+  - `specs/tasks.md`
+- Problem / goal:
+  - The manual browser helper looked like a normal in-app action, and Chrome may show "Blocked JavaScript URL as a security precaution" when `javascript:` bookmarklet code is clicked or pasted directly.
+- Root cause:
+  - The Capture panel presented the bookmarklet as a regular link without enough installation context, so users could reasonably think clicking it inside JOLT would capture jobs.
+- Change made:
+  - Reworded the helper panel to say it does not run inside JOLT and must be installed as a browser bookmark first.
+  - Intercepted in-app bookmarklet clicks with a warning that it will not capture jobs from inside JOLT.
+  - Added compact Chrome setup steps and a warning not to paste the code into the address bar.
+  - Added a `Copy sample payload` button with fake/demo `JOLT_CAPTURE_V1` jobs so users can verify parsing without a job board page.
+  - Updated Page text placeholder and helper copy to mention copied page text, HTML, or `JOLT_CAPTURE_V1` payloads.
+  - Added capture diagnostics display for diagnostic warnings and included helper page URL notes when payloads provide a page URL.
+- Tests/checks run:
+  - Ran full backend tests from `backend/`: `.\.venv\Scripts\python.exe -m pytest`.
+  - Ran frontend build from `frontend/`: `npm run build`.
+- Result:
+  - Full backend tests passed: 88 passed, 1 pytest cache warning.
+  - Frontend production build passed.
+- Remaining risks / follow-up:
+  - Browser bookmarklet installation still varies by browser and browser policy.
+  - Bookmarklet extraction remains generic and conservative.
+  - Browser automation remains disabled/experimental.

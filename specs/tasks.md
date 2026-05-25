@@ -644,6 +644,7 @@ README states:
 - local job-offer automation and decision assistant;
 - capture is primary productivity workflow;
 - capture includes safe manual paste/helper workflows and any real browser automation remains disabled/experimental;
+- manual helper UX explains bookmarklet installation, Chrome `javascript:` URL blocking, and sample `JOLT_CAPTURE_V1` payload testing;
 - configurable profiles make it reusable;
 - manual paste is fallback/debug;
 - React + backend architecture;

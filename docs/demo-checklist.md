@@ -85,12 +85,15 @@ Expected result:
 ## Manual Browser Helper Demo
 
 1. On Capture, point out the `Manual browser helper` section.
-2. Explain that the user drags `JOLT Capture` to the bookmarks bar or copies the bookmarklet code.
-3. Open a safe synthetic/local job-results page manually, then click the helper bookmark.
-4. Confirm the browser says the JOLT capture payload was copied.
-5. Return to JOLT, select `Page text`, paste the `JOLT_CAPTURE_V1` payload, and run capture review.
-6. Confirm diagnostics show `manual_browser_helper`, accepted/rejected card counts, and preserved URLs.
-7. Say clearly that the helper only runs after a user click, extracts visible content from the current page, stores no credentials, opens no pages, and submits no applications.
+2. Explain that clicking `JOLT Capture` inside JOLT does not capture jobs; it must be installed as a bookmark first.
+3. Mention Chrome may block `javascript:` URLs if pasted or clicked directly.
+4. Show compact Chrome setup: `Ctrl + Shift + B`, copy bookmarklet code, right-click bookmarks bar, Add page, name `JOLT Capture`, paste code into URL.
+5. Optionally click `Copy sample payload`, paste it into Page text mode, and run capture review to prove `JOLT_CAPTURE_V1` parsing with demo data.
+6. Open a safe synthetic/local job-results page manually, then click the installed helper bookmark.
+7. Confirm the browser says the JOLT capture payload was copied.
+8. Return to JOLT, select `Page text`, paste the `JOLT_CAPTURE_V1` payload, and run capture review.
+9. Confirm diagnostics show `manual_browser_helper`, payload/card counts, accepted/rejected card counts, preserved URLs, and page URL notes.
+10. Say clearly that the helper only runs after a user click, extracts visible content from the current page, stores no credentials, opens no pages, and submits no applications.
 
 Example synthetic multi-job text:
 

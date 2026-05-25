@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { type MouseEvent, useEffect, useMemo, useState } from 'react';
 import {
   cleanupDemoData,
   exportCaptureResult,
@@ -149,6 +149,37 @@ const applicationStatuses: ApplicationStatus[] = [
 
 const manualBrowserHelperBookmarklet =
   "javascript:(()=>{const c=s=>String(s||'').replace(/\\s+/g,' ').trim();const v=e=>{const r=e.getBoundingClientRect();const s=getComputedStyle(e);return r.width>80&&r.height>30&&s.display!=='none'&&s.visibility!=='hidden'};const seen=new Set();const cards=[];const nodes=[...document.querySelectorAll('article,li,section,div')];for(const el of nodes){if(!v(el))continue;const text=c(el.innerText);if(text.length<80||text.length>3000)continue;if(!/(remote|hybrid|on-site|onsite|support|engineer|analyst|specialist|technician|developer|manager|company|location|job|career)/i.test(text))continue;const key=text.slice(0,300).toLowerCase();if(seen.has(key))continue;seen.add(key);const a=el.querySelector('a[href]');const h=el.querySelector('h1,h2,h3,[role=heading]');cards.push({title:c(h&&h.innerText),company:'',location:'',url:a?new URL(a.getAttribute('href'),location.href).href:'',text});if(cards.length>=25)break}const payload='JOLT_CAPTURE_V1\\n'+JSON.stringify({source:'manual_browser_helper',page_title:document.title,page_url:location.href,captured_at:new Date().toISOString(),cards},null,2);const ok=()=>alert('JOLT capture copied. Paste it into JOLT.');if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(payload).then(ok).catch(()=>prompt('Copy this JOLT capture payload, then paste it into JOLT.',payload))}else{prompt('Copy this JOLT capture payload, then paste it into JOLT.',payload)}})();";
+
+const sampleJoltCapturePayload = `JOLT_CAPTURE_V1
+{
+  "source": "manual_browser_helper_demo",
+  "page_title": "Demo job results",
+  "page_url": "https://example.test/demo-results",
+  "captured_at": "2026-05-25T10:00:00Z",
+  "cards": [
+    {
+      "title": "Microsoft 365 Support Specialist",
+      "company": "Northstar SaaS",
+      "location": "Remote, Spain",
+      "url": "https://example.test/jobs/m365-support",
+      "text": "English required. Remote Microsoft 365, endpoint troubleshooting, and SaaS support."
+    },
+    {
+      "title": "Infrastructure Support Technician",
+      "company": "Metro Systems",
+      "location": "Vigo, Spain",
+      "url": "https://example.test/jobs/infra-support",
+      "text": "English required. Hybrid endpoint, networking, and ticket queue support."
+    },
+    {
+      "title": "Service Desk Analyst",
+      "company": "Blue Harbor IT",
+      "location": "Remote, Portugal",
+      "url": "https://example.test/jobs/service-desk",
+      "text": "English required. Service desk support, identity troubleshooting, and user onboarding."
+    }
+  ]
+}`;
 
 function captureModeLabels(captureMode: string | undefined): string[] {
   if (!captureMode) {
@@ -658,6 +689,21 @@ function App() {
     }
   }
 
+  async function copySampleJoltPayload() {
+    setHelperCopyMessage(null);
+    try {
+      await navigator.clipboard.writeText(sampleJoltCapturePayload);
+      setHelperCopyMessage('Sample payload copied');
+    } catch {
+      setHelperCopyMessage('Could not copy sample payload');
+    }
+  }
+
+  function warnBookmarkletClick(event: MouseEvent<HTMLAnchorElement>) {
+    event.preventDefault();
+    setHelperCopyMessage('Install this as a browser bookmark first. It will not capture jobs from inside JOLT.');
+  }
+
   async function runReview() {
     if (!selectedProfileId) {
       setCaptureError('Select a rule profile before running capture review.');
@@ -876,27 +922,41 @@ function App() {
                 <section className="control-section browser-helper-panel">
                   <div className="section-heading">
                     <h2>Manual browser helper</h2>
-                    <span>User-triggered</span>
+                    <span>Install first</span>
                   </div>
+                  <p className="inline-warning helper-warning">
+                    This does not run inside JOLT. Install it as a browser bookmark first; do not paste
+                    the javascript code into the address bar.
+                  </p>
                   <p>
-                    Drag the helper to your bookmarks bar. On a job results page you opened manually,
-                    click it to copy visible card text and URLs, then paste the payload into Page text.
+                    Then open a job results page yourself and click the bookmark there to copy visible
+                    card text and URLs.
                   </p>
                   <div className="helper-actions">
-                    <a className="bookmarklet-link" href={manualBrowserHelperBookmarklet}>
-                      JOLT Capture
+                    <a
+                      className="bookmarklet-link"
+                      href={manualBrowserHelperBookmarklet}
+                      onClick={warnBookmarkletClick}
+                      title="Drag this link to your bookmarks bar; clicking inside JOLT will not capture jobs."
+                    >
+                      Drag to bookmarks bar: JOLT Capture
                     </a>
                     <button type="button" className="secondary-button" onClick={copyManualBrowserHelper}>
-                      Copy code
+                      Copy bookmarklet code
+                    </button>
+                    <button type="button" className="secondary-button" onClick={copySampleJoltPayload}>
+                      Copy sample payload
                     </button>
                   </div>
                   <ol className="compact-steps">
-                    <li>Open the job results page.</li>
-                    <li>Click the JOLT Capture bookmark.</li>
-                    <li>Return to JOLT and paste into Page text.</li>
-                    <li>Run capture review.</li>
+                    <li>Press Ctrl + Shift + B to show Chrome bookmarks.</li>
+                    <li>Copy code, then right-click bookmarks bar and add page.</li>
+                    <li>Name it JOLT Capture and paste the code into URL.</li>
+                    <li>Open a job results page and click the bookmark.</li>
+                    <li>Return here, paste into Page text, and run review.</li>
                   </ol>
                   <p className="helper-text compact-helper">
+                    Sample payload uses fake jobs so you can test parsing without any job board page.
                     No auto-navigation, credential storage, background scraping, or applications.
                   </p>
                   {helperCopyMessage ? <p className="success-message">{helperCopyMessage}</p> : null}
@@ -1078,7 +1138,7 @@ function App() {
   <p>Location: Vigo, Spain</p>
   <p>Work mode: Onsite</p>
 </article>`
-                            : `Paste visible job-board text here.
+                            : `Paste copied page text, HTML, or a JOLT_CAPTURE_V1 payload here.
 
 Title: Microsoft 365 Support Specialist
 Company: Example SaaS
@@ -1097,8 +1157,8 @@ English required.`
                         }
                       />
                       <p className="helper-text">
-                        Clear labels, job-card separators, visible URLs, and copied anchor links
-                        produce cleaner review results. No external pages are fetched.
+                        Clear labels, job-card separators, visible URLs, copied anchor links, and
+                        JOLT_CAPTURE_V1 payloads produce cleaner review results. No external pages are fetched.
                       </p>
                     </>
                   )}
@@ -1181,6 +1241,10 @@ English required.`
                         <DetailSection
                           title="Source URL notes"
                           items={captureResult.capture_diagnostics.source_url_extraction_notes}
+                        />
+                        <DetailSection
+                          title="Capture notes"
+                          items={captureResult.capture_diagnostics.warnings}
                         />
                       </details>
                       {captureResult.warnings.length > 0 ? (

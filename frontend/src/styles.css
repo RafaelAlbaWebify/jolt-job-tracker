@@ -463,6 +463,7 @@ textarea {
 }
 
 .bookmarklet-link {
+  cursor: grab;
   display: inline-flex;
   font-size: 0.9rem;
   font-weight: 800;
@@ -480,6 +481,10 @@ textarea {
   gap: 3px;
   margin: 8px 0 0;
   padding-left: 20px;
+}
+
+.helper-warning {
+  margin-top: 8px;
 }
 
 .run-button {

@@ -62,10 +62,10 @@ The current safe boundary supports:
 
 - manual jobs;
 - user-provided page text / copied HTML;
-- a user-triggered bookmarklet/helper that copies visible page content into a pasted `JOLT_CAPTURE_V1` payload;
+- a user-triggered bookmarklet/helper that must be installed as a browser bookmark and then copies visible page content into a pasted `JOLT_CAPTURE_V1` payload;
 - explicit disabled browser-assisted placeholder.
 
-This keeps the valuable parser/profile/decision/review workflow testable while making the limits honest: the helper does not navigate, crawl, store credentials, bypass protections, or submit applications.
+This keeps the valuable parser/profile/decision/review workflow testable while making the limits honest: the helper does not run inside JOLT, navigate, crawl, store credentials, bypass protections, or submit applications. Chrome may block `javascript:` URLs pasted or clicked directly, so the helper is documented as a bookmarklet installation flow.
 
 Phase 15A improves that safe ingestion layer: it adds clearer capture source modes, stronger card extraction from user-provided text/HTML, diagnostics for accepted/rejected candidate cards, source URL extraction notes, and duplicate preview against local history before saving.
 

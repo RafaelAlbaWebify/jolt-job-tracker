@@ -615,6 +615,7 @@ def test_jolt_capture_v1_payload_extracts_multiple_cards_and_urls() -> None:
     assert data["total_captured"] == 2
     assert data["capture_diagnostics"]["capture_mode_used"] == "manual_browser_helper"
     assert data["capture_diagnostics"]["candidate_cards_found"] == 2
+    assert "Helper page URL: https://example.test/results" in data["capture_diagnostics"]["source_url_extraction_notes"]
     assert data["results"][0]["raw_job"]["source"] == "manual_browser_helper"
     assert data["results"][0]["raw_job"]["source_url"] == "https://example.test/jobs/m365"
     assert "Page title: Example job results" in data["results"][0]["raw_job"]["capture_notes"]

@@ -453,7 +453,10 @@ def _capture_from_jolt_payload(
     diagnostics.cards_accepted = len(raw_jobs)
     diagnostics.cards_rejected = max(diagnostics.cards_rejected, diagnostics.candidate_cards_found - len(raw_jobs))
     diagnostics.rejection_reasons = rejection_reasons
-    diagnostics.source_url_extraction_notes = ["Source URLs preserved from helper card/page URL."] if raw_jobs else []
+    source_url_notes = ["Source URLs preserved from helper card/page URL."] if raw_jobs else []
+    if page_url:
+        source_url_notes.append(f"Helper page URL: {page_url}")
+    diagnostics.source_url_extraction_notes = source_url_notes
     diagnostics.capture_confidence = _capture_confidence(len(raw_jobs), diagnostics.cards_rejected, False)
     diagnostics.warnings.extend(warnings)
     return raw_jobs, warnings, diagnostics
